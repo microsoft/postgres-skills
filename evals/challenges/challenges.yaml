@@ -842,3 +842,156 @@ challenges:
     expected_patterns:
       - "validate.only|--validate"
       - "ANALYZE|vacuumdb|statistics"
+
+  # ─── AZURE ENRICHMENT CHALLENGES (13: 1 per Azure skill) ───────────────────
+
+  # vector-diskann enrichment
+  - id: az-vec-enr-01
+    task: "I'm building a DiskANN vector index on Azure PostgreSQL for 50M embeddings. How do I tune search_type and max_neighbors for my filtered queries? I need to balance recall vs latency."
+    difficulty: hard
+    target_skill: azure-postgresql/vector-diskann
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "search_type"
+      - "max_neighbors"
+      - "search_list_size|pg_stat_progress"
+
+  # intelligent-tuning enrichment
+  - id: az-tune-enr-01
+    task: "I want to analyze wait events on my Azure PostgreSQL Flexible Server to find what's blocking my queries. How do I query the wait sampling view and interpret event types?"
+    difficulty: hard
+    target_skill: azure-postgresql/intelligent-tuning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "pgms_wait_sampling|wait_sampling"
+      - "event_type"
+      - "qs_view|query_store"
+
+  # entra-id-auth enrichment
+  - id: az-auth-enr-01
+    task: "I need a one-liner to connect to my Azure PostgreSQL server via psql using my Entra ID token from the Azure CLI. Also, how do I set up token refresh in a Python app?"
+    difficulty: hard
+    target_skill: azure-postgresql/entra-id-auth
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "az account get-access-token|get.access.token"
+      - "pgaadauth|token.*callback|AccessToken"
+
+  # azure-ai-extension enrichment
+  - id: az-aiext-enr-01
+    task: "After deploying the azure_ai extension, how do I verify it's working? Also, my calls are returning 429 errors intermittently. How do I handle rate limiting gracefully?"
+    difficulty: hard
+    target_skill: azure-postgresql/azure-ai-extension
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "azure_ai.version|version()"
+      - "429|rate.limit|retry|pg_sleep"
+
+  # connection-pooling enrichment
+  - id: az-pool-enr-01
+    task: "I'm using the built-in PgBouncer on Azure PostgreSQL with Entra ID authentication. Connections keep failing. My app connects on port 5432. What am I doing wrong?"
+    difficulty: hard
+    target_skill: azure-postgresql/connection-pooling
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "6432"
+      - "pgbouncer\\.|transaction.*mode|session.*mode"
+      - "token|entra|managed.identity"
+
+  # embeddings-azure-ai enrichment
+  - id: az-emb-enr-01
+    task: "Show me the exact SQL to generate embeddings using azure_openai.create_embeddings on Azure PostgreSQL and store them in a vector column. I'm using text-embedding-ada-002 with 1536 dimensions."
+    difficulty: hard
+    target_skill: azure-postgresql/embeddings-azure-ai
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "azure_openai.create_embeddings"
+      - "::vector|vector\\(1536\\)"
+      - "UPDATE.*SET|INSERT"
+
+  # ai-functions enrichment
+  - id: az-aifn-enr-01
+    task: "I want to classify 10,000 product descriptions into categories using GPT-4o directly in SQL on Azure PostgreSQL. Show me the batch pattern with azure_openai.create()."
+    difficulty: hard
+    target_skill: azure-postgresql/ai-functions
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "azure_openai.create"
+      - "UPDATE.*SET|batch|LIMIT"
+      - "system.*user|json"
+
+  # networking-ssl enrichment
+  - id: az-net-enr-01
+    task: "I'm setting up Private Link for my Azure PostgreSQL server. What are the Private DNS zone naming requirements, and what happens to my firewall rules when I enable VNet integration?"
+    difficulty: hard
+    target_skill: azure-postgresql/networking-ssl
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "privatelink.postgres.database.azure.com|private.*dns"
+      - "firewall.*disabled|firewall.*rules"
+
+  # provisioning enrichment
+  - id: az-prov-enr-01
+    task: "I provisioned an Azure PostgreSQL Flexible Server with 256GB storage but now I only need 128GB. Can I shrink it? Also, the SKU format seems different between az CLI and Terraform — what are the correct formats?"
+    difficulty: hard
+    target_skill: azure-postgresql/provisioning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "cannot.*shrink|immutable|cannot.*reduce|only.*increase"
+      - "Standard_D|GP_Standard|sku"
+
+  # ha-disaster-recovery enrichment
+  - id: az-ha-enr-01
+    task: "My Azure PostgreSQL server had a data corruption issue. I need to do a point-in-time restore to 2 hours ago. Will my existing connection strings still work after the restore?"
+    difficulty: hard
+    target_skill: azure-postgresql/ha-disaster-recovery
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "new.*server|new.*hostname|connection.*string"
+      - "az postgres flexible-server.*restore|PITR"
+
+  # extension-lifecycle enrichment
+  - id: az-ext-enr-01
+    task: "I need to add the pg_cron extension to my Azure PostgreSQL server that already has vector and postgis enabled. How do I update the allowlist without breaking the existing extensions?"
+    difficulty: hard
+    target_skill: azure-postgresql/extension-lifecycle
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "azure.extensions"
+      - "append|GET.*current|show.*parameter"
+      - "shared_preload|restart"
+
+  # rag-pipeline enrichment
+  - id: az-rag-enr-01
+    task: "I want to do the entire RAG pipeline inside Azure PostgreSQL — embed the user's query, search similar documents, and generate a response, all in SQL using the azure_ai extension. Show me the pattern."
+    difficulty: hard
+    target_skill: azure-postgresql/rag-pipeline
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "azure_openai.create_embeddings"
+      - "ORDER BY.*<=>|vector.*search"
+      - "azure_openai.create|generate"
+
+  # upgrades-maintenance enrichment
+  - id: az-upg-enr-01
+    task: "I want to upgrade my Azure PostgreSQL from version 14 to 16. How do I do a dry run first to check for issues? And what's the full post-upgrade checklist I need to follow?"
+    difficulty: hard
+    target_skill: azure-postgresql/upgrades-maintenance
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "validate.only|--validate"
+      - "ANALYZE|vacuumdb"
+      - "extension.*update|ALTER EXTENSION"
