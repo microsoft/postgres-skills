@@ -80,10 +80,13 @@ ALTER TABLE events DETACH PARTITION events_2023_01 CONCURRENTLY;
 
 ## Common Mistakes
 
-1. **No default partition**: Inserts with values outside defined ranges fail with ERROR
-2. **Partition key not in WHERE**: Query touches all partitions (no pruning), slower than unpartitioned
-3. **Too many partitions**: Hundreds of partitions increase planning time. Target 50-200 max
-4. **Missing indexes on partitions**: Create indexes on the parent table; PostgreSQL propagates to children
+1. **Default partition traps data**: Once rows land in DEFAULT, creating a new partition for that range fails until you move them out. Always pre-create partitions ahead of time
+2. **Partition pruning failure with casts**: `WHERE created_at > '2024-01-01'::date` on a `timestamptz` partition key may prevent pruning. Match types exactly: `WHERE created_at > '2024-01-01 00:00:00+00'::timestamptz`
+3. **Too many partitions**: >200 partitions increase planning time exponentially. Use `enable_partition_pruning = on` (default) and keep partitions to 50-200
+4. **pg_partman automation not configured**: For time-series, use `pg_partman` to auto-create/drop partitions. Without it, inserts fail when the next period's partition doesn't exist: `CREATE EXTENSION pg_partman; SELECT partman.create_parent('public.events', 'created_at', 'native', 'monthly')`
+5. **DETACH CONCURRENTLY two-phase pitfall (PG 14+)**: If session disconnects mid-DETACH CONCURRENTLY, partition is left in "detach pending" state. Fix with `ALTER TABLE events DETACH PARTITION events_old FINALIZE`
+6. **publish_via_partition_root for replication**: Logical replication requires `ALTER PUBLICATION pub SET (publish_via_partition_root = true)` or subscriber sees individual partition names instead of parent table
+7. **UNIQUE/PK must include partition key**: Cannot create a unique index without the partition key column. Design: `PRIMARY KEY (id, created_at)` not just `PRIMARY KEY (id)`
 
 ## Verification
 

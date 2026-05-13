@@ -68,10 +68,13 @@ CREATE POLICY insert_own ON orders FOR INSERT
 
 ## Common Mistakes
 
-1. **Forgetting FORCE on owner**: Table owner bypasses RLS silently. Use `FORCE ROW LEVEL SECURITY` if owner queries too
-2. **No default-deny**: If no policy exists for a role, RLS blocks ALL rows (secure by default). Add explicit policies
-3. **Missing `current_setting` GUC**: If `app.current_tenant` is not set, `current_setting()` throws ERROR. Use `current_setting('app.current_tenant', true)` (returns NULL if unset)
-4. **Performance**: RLS adds a filter to every query. Index the policy column (e.g., `tenant_id`) to avoid seq scans
+1. **Forgetting FORCE on owner**: Table owner bypasses RLS silently. Always add `ALTER TABLE t FORCE ROW LEVEL SECURITY` if owners also query the table
+2. **`current_setting` with connection poolers**: PgBouncer transaction-mode resets session variables between transactions. Set `app.current_tenant` in EVERY transaction, not once per connection: `BEGIN; SET LOCAL app.current_tenant = '...'; SELECT ...; COMMIT;`
+3. **Policy stacking logic**: Multiple policies on the same table for the same command are OR'd together (any match allows access). Use a SINGLE policy with combined logic if you need AND behavior
+4. **Leakproof function requirement**: If a policy calls a user-defined function, the planner may reorder filters and leak rows. Mark security functions as `LEAKPROOF` or the query may expose filtered data via error messages
+5. **RLS + pg_dump/pg_restore**: `pg_dump` runs as superuser and bypasses RLS. But `COPY` in application code respects RLS. Mismatched expectations cause data loss during restore if roles differ
+6. **Permissive vs Restrictive policies (PG 10+)**: Default is PERMISSIVE (OR'd). Use `CREATE POLICY ... AS RESTRICTIVE` to add mandatory constraints that AND with other policies — essential for compliance rules
+7. **SECURITY DEFINER functions bypass RLS**: Functions marked `SECURITY DEFINER` run as the function owner (often superuser), silently bypassing RLS. Use `SECURITY INVOKER` for functions that should respect row policies
 
 ## Verification
 

@@ -78,10 +78,13 @@ WHERE id = 1;
 
 ## Common Mistakes
 
-1. **`->` vs `->>`**: Using `->` in WHERE with text comparison fails silently (compares jsonb, not text)
-2. **Missing type cast**: `(data ->> 'price') > '9'` does lexical comparison, not numeric
-3. **B-tree index on JSONB**: B-tree cannot index JSONB containment; use GIN
-4. **Full-document replacement**: Using `UPDATE SET data = <entire_json>` instead of `jsonb_set()` for single-field changes
+1. **Missing type cast**: `(data ->> 'price') > '9'` does lexical comparison, not numeric. Always cast: `(data ->> 'price')::numeric > 9`
+2. **Full-document replacement on every update**: `UPDATE SET data = <entire_json>` rewrites the entire TOAST tuple. Use `jsonb_set()` for single-field changes or `||` for merging keys
+3. **jsonb_path_query vs @> for nested access**: `@>` with `jsonb_path_ops` index is fastest for containment. `jsonb_path_query` (SQL/JSON standard, PG 12+) is for complex path expressions with filters: `$.items[*] ? (@.price > 10)`
+4. **Generated column for indexed expressions**: Instead of expression B-tree index, use `GENERATED ALWAYS AS (data ->> 'status') STORED` column + regular B-tree — survives `pg_dump` and is visible in `\d`
+5. **JSONB subscript syntax (PG 14+)**: `data['address']['city']` replaces `data -> 'address' -> 'city'` — shorter and supports UPDATE: `UPDATE t SET data['score'] = '42'`
+6. **jsonb_array_elements in WHERE without LATERAL**: Must use `CROSS JOIN LATERAL jsonb_array_elements(data->'items') AS elem` or a subquery, not direct array access in WHERE
+7. **Toast compression choice (PG 14+)**: Large JSONB benefits from `ALTER TABLE t ALTER COLUMN data SET COMPRESSION lz4` — 2x faster compression/decompression vs pglz default
 
 ## Verification
 

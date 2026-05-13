@@ -66,10 +66,13 @@ CREATE INDEX idx_users_email_lower ON users(lower(email));
 
 ## Common Mistakes
 
-1. **B-tree for everything**: Agents default to B-tree even for JSONB/array containment queries where GIN is required
-2. **Missing expression match**: Expression index must exactly match the expression in the query (e.g., `lower(email)` index won't help `UPPER(email)` query)
-3. **Full-table index when partial suffices**: Creates unnecessary write overhead and storage
-4. **BRIN on randomly-ordered data**: BRIN only works when physical row order correlates with column values
+1. **Missing expression match**: Expression index must exactly match the expression in the query (e.g., `lower(email)` index won't help `UPPER(email)` query)
+2. **BRIN on randomly-ordered data**: BRIN only works when physical row order correlates with column values. Check correlation: `SELECT correlation FROM pg_stats WHERE tablename='t' AND attname='col'` (needs > 0.9)
+3. **Ignoring index-only scans**: Add `INCLUDE` columns to avoid heap fetches: `CREATE INDEX ON orders(status) INCLUDE (total, created_at)` — PG 12+ covering index
+4. **Not detecting unused indexes**: Query `pg_stat_user_indexes` for `idx_scan = 0` to find indexes wasting write amplification and storage
+5. **Partial index predicate mismatch**: The WHERE clause in the query must be a superset of the partial index predicate or the planner won't use it
+6. **REINDEX without CONCURRENTLY**: `REINDEX INDEX idx` locks the table. Use `REINDEX INDEX CONCURRENTLY idx` (PG 12+) to rebuild without blocking
+7. **Multi-column B-tree column order**: Leftmost column must appear in the query's WHERE clause or the index is unusable. Column order matters: put equality filters first, range filters last
 
 ## Verification
 

@@ -75,10 +75,13 @@ In EXPLAIN output, compare `rows=` (estimated) vs actual rows. If off by 10x+, r
 
 ## Common Mistakes
 
-1. **Ignoring loops multiplier**: A node showing 0.1ms but with loops=10000 is actually 1000ms total
-2. **Adding indexes before checking config**: `work_mem` increase can eliminate sort spills faster than new indexes
-3. **OFFSET pagination at scale**: `OFFSET 100000` scans and discards 100K rows. Use keyset pagination instead
-4. **NOT IN with NULLs**: `NOT IN (subquery)` returns no rows if subquery contains NULL. Use `NOT EXISTS` instead
+1. **Ignoring loops multiplier**: A node showing 0.1ms but with loops=10000 is actually 1000ms total. Always compute `actual_time × loops`
+2. **OFFSET pagination at scale**: `OFFSET 100000` scans and discards 100K rows. Use keyset pagination: `WHERE id > last_seen_id ORDER BY id LIMIT 20`
+3. **JIT compilation overhead on short queries**: JIT (PG 11+) compiles to machine code but adds 5-50ms startup. Disable for OLTP: `SET jit = off` per session if queries < 100ms
+4. **Parallel query not activating**: Requires `max_parallel_workers_per_gather > 0`, table > `min_parallel_table_scan_size` (8MB default), and no `FOR UPDATE/SHARE` clause
+5. **Plan instability from bad statistics**: After bulk loads, `ANALYZE` immediately. For columns with skewed distributions: `ALTER TABLE t ALTER COLUMN c SET STATISTICS 1000` (default 100)
+6. **Missing pg_stat_statements top-N analysis**: Sort by `total_exec_time` not `mean_exec_time` — a 1ms query called 1M times is worse than a 500ms query called once
+7. **CTE materialization trap (pre-PG 12)**: CTEs are optimization fences before PG 12. On PG 12+, add `MATERIALIZED`/`NOT MATERIALIZED` to control this explicitly
 
 ## Verification
 

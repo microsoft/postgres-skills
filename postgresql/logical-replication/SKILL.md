@@ -79,11 +79,14 @@ FROM pg_replication_slots;
 
 ## Common Mistakes
 
-1. **Missing primary key**: Without PK or REPLICA IDENTITY, UPDATE/DELETE fail to replicate with "cannot update/delete from table without primary key"
-2. **wal_level not set**: `wal_level = logical` requires server restart. Plan for downtime or set during maintenance window
-3. **Slot bloat**: Inactive replication slots prevent WAL cleanup, growing disk usage. Drop unused slots
-4. **Schema changes not replicated**: DDL (ALTER TABLE) is NOT replicated. Apply schema changes on both publisher and subscriber manually
-5. **Referencing `postgresql.conf` on managed services**: On Azure/RDS, use the server parameters API or `ALTER DATABASE` to change settings. Never reference config files directly
+1. **Missing primary key**: Without PK or REPLICA IDENTITY, UPDATE/DELETE fail: "cannot update/delete from table without primary key or replica identity". Fix: `ALTER TABLE t REPLICA IDENTITY FULL` (slow) or add a PK
+2. **Slot bloat consuming all disk**: Inactive replication slots prevent WAL cleanup indefinitely. Monitor: `SELECT slot_name, pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)) AS retained_wal FROM pg_replication_slots WHERE NOT active`. Drop orphaned slots immediately
+3. **Schema changes (DDL) not replicated**: `ALTER TABLE ADD COLUMN` is NOT replicated. Apply DDL on subscriber FIRST (new column with default), then on publisher. Reverse order breaks replication with column mismatch error
+4. **Initial table sync fails silently**: `CREATE SUBSCRIPTION` copies existing rows. If table is large, initial sync can take hours and consumes `max_wal_senders` slot the entire time. Monitor: `SELECT * FROM pg_stat_subscription`
+5. **Conflict resolution on subscriber**: Duplicate key or constraint violation halts replication. Fix: `ALTER SUBSCRIPTION my_sub DISABLE; DELETE conflicting row; ALTER SUBSCRIPTION my_sub ENABLE` or use `ALTER SUBSCRIPTION SET (disable_on_error = true)` (PG 16+)
+6. **publish_via_partition_root not set**: Partitioned tables default to publishing as individual partition names. Subscriber expects parent table. Fix: `ALTER PUBLICATION pub SET (publish_via_partition_root = true)`
+7. **max_replication_slots too low**: Each subscription uses one slot. Default is 10. If you hit limit, new subscriptions silently fail. Check with `SHOW max_replication_slots` and increase before adding more subscribers
+8. **wal2json vs pgoutput**: `pgoutput` is built-in (PG 10+) and efficient. `wal2json` is third-party and outputs JSON but adds decode overhead. Use `pgoutput` unless you need Debezium/Kafka Connect JSON format
 
 ## Verification
 

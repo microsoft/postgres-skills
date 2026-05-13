@@ -78,11 +78,13 @@ SHOW max_connections;  -- Default: 100
 
 ## Common Mistakes
 
-1. **Setting max_connections = 1000**: Each connection uses RAM and CPU context switches. Use a pooler instead
-2. **Session-mode pooling with serverless**: Session mode holds connections open. Use transaction mode for short-lived requests
-3. **No idle timeout**: Idle connections accumulate overnight from crashed clients. Always set `idle_in_transaction_session_timeout`
-4. **Application-level pooling alone**: Libraries like HikariCP/SQLAlchemy pool per-process. With multiple pods, you still need a server-side pooler
-5. **Using `ALTER SYSTEM SET` on managed PostgreSQL**: This command is unavailable on Azure/RDS. Use `ALTER DATABASE` or the server parameters UI instead
+1. **Session-mode pooling with serverless**: Session mode holds connections open per client. Use transaction mode for Lambda/Cloud Functions: connections return to pool after each transaction
+2. **Transaction-mode pooling breaks prepared statements**: PgBouncer transaction mode cannot route `PREPARE`/`EXECUTE` across different backends. Fix: use `DEALLOCATE ALL` in `server_reset_query`, or switch to session mode, or use protocol-level prepared statements (PG 14+ `statement_timeout` setting in pgbouncer.ini)
+3. **Application pool per-process adds up**: HikariCP pool_size=10 across 20 pods = 200 server connections. Always calculate: `total = pool_size_per_instance × num_instances`. Set server-side pooler as central bottleneck
+4. **Missing `idle_in_transaction_session_timeout`**: Crashed clients leave open transactions that hold locks and prevent VACUUM. Always set: `ALTER DATABASE mydb SET idle_in_transaction_session_timeout = '5min'`
+5. **`idle_session_timeout` (PG 14+) not used**: Completely idle connections (not in transaction) still consume a backend slot. Set to 30min for non-pooled connections to auto-reclaim slots
+6. **Using `ALTER SYSTEM SET` on managed PostgreSQL**: This command is unavailable on Azure/RDS/Cloud SQL. Use `ALTER DATABASE` or the server parameters UI instead
+7. **Connection storm after restart**: All app instances reconnect simultaneously. Use exponential backoff with jitter in connection retry logic, and set PgBouncer `min_pool_size` to pre-warm connections
 
 ## Verification
 
