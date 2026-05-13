@@ -94,10 +94,14 @@ SELECT intelligent_performance.dismiss_recommendation('<recommendation_id>');
 
 ## Common Mistakes
 
-1. **Query Store disabled**: Older servers may have it off. Must be enabled to get recommendations
-2. **Not waiting for data**: Auto-index needs days of query patterns before generating recommendations
-3. **Ignoring wait statistics**: Query Store captures waits too. A slow query blocked on I/O needs storage/SKU changes, not index changes
+1. **Query Store disabled**: Older servers may have it off. Enable via: `az postgres flexible-server parameter set --name pg_qs.query_capture_mode --value top`
+2. **Not waiting for data**: Auto-index needs 48+ hours of query patterns before generating recommendations. Don't expect instant results
+3. **Ignoring wait statistics**: Query Store captures waits too. A slow query blocked on I/O needs storage/SKU changes, not index changes. Check `query_store.pgms_wait_sampling_view`
 4. **403/PermissionDenied**: Query Store views require `azure_pg_admin` role
+5. **Auto-vacuum interference**: Auto-created indexes add maintenance overhead. Monitor `pg_stat_user_indexes` for unused auto-indexes and drop them
+6. **Query Store overhead on Burstable tier**: On B-series (Burstable), Query Store adds ~5% CPU overhead. Consider disabling on dev/test burstable servers
+7. **Missing `pg_qs.max_query_text_length`**: Default 6000 chars truncates long queries. Increase to 10000 for complex analytical queries
+8. **Not using `query_store.qs_view` correctly**: Join with `query_store.query_texts_view` on `query_text_id` to get actual SQL text. The `qs_view` only has metrics
 
 ## Verification
 

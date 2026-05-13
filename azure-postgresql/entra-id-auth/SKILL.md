@@ -93,11 +93,14 @@ GRANT ALL ON DATABASE mydb TO "my-managed-identity-name";
 
 ## Common Mistakes
 
-1. **Token expiry**: Entra tokens expire after ~1 hour. Applications must refresh tokens before expiry
-2. **Wrong resource URL**: Use `https://ossrdbms-aad.database.windows.net/.default` not the generic Azure resource URL
-3. **Username mismatch**: The psql username must match the Entra principal name exactly (case-sensitive)
-4. **403/PermissionDenied**: The managed identity must be explicitly granted roles via `pgaadauth_create_principal`
-5. **PgBouncer with tokens**: Built-in PgBouncer requires special configuration for token passthrough
+1. **Token expiry**: Entra tokens expire after ~1 hour. Applications must refresh tokens before expiry. Use connection libraries with built-in token refresh (e.g., `azure-identity` + `psycopg2` token callback)
+2. **Wrong resource URL**: Use `https://ossrdbms-aad.database.windows.net/.default` not the generic Azure resource URL (`https://management.azure.com`)
+3. **Username mismatch**: The psql username must match the Entra principal name exactly (case-sensitive for managed identities, email format for users)
+4. **403/PermissionDenied**: The managed identity must be explicitly granted roles via `pgaadauth_create_principal`. Just having Contributor role on the Azure resource is NOT enough
+5. **PgBouncer with tokens**: Built-in PgBouncer requires session mode for token auth. Transaction mode drops the auth context
+6. **Mixing password and Entra auth**: Both can coexist. Set `password_auth = enabled` AND `active_directory_auth = enabled` in server configuration for hybrid auth during migration
+7. **Service principal vs managed identity**: Use managed identity (no secret rotation needed). Service principals require client_secret which must be rotated
+8. **Terraform/IaC automation**: Use `azurerm_postgresql_flexible_server_active_directory_administrator` resource. The principal must exist before server creation or use `depends_on`
 
 ## Verification
 

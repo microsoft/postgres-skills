@@ -111,6 +111,10 @@ LIMIT 5;
 3. **Mismatched query**: Vector query uses the embedding of the user question. Text query uses the raw text. Both must be derived from the same user input
 4. **Too many results**: Returning 20+ chunks to an LLM wastes tokens and adds noise. Return 3-5 highly relevant chunks
 5. **403/PermissionDenied**: Ensure `azure_ai` extension is configured for embedding the query
+6. **Chunking too large**: Chunks > 512 tokens dilute embedding quality. Split content into 256-512 token chunks with 50-token overlap for best retrieval
+7. **No metadata filtering**: Always include a WHERE clause for tenant/category before vector search. DiskANN handles pre-filtering efficiently; HNSW requires post-filtering
+8. **Embedding the entire user prompt**: Strip system instructions and chat history. Embed only the user's actual question for query vector
+9. **Not using azure_ai.create_embeddings in SQL**: Calling an external API to get query embeddings adds latency. Use the in-database function for single-query embedding at search time
 
 ## Verification
 

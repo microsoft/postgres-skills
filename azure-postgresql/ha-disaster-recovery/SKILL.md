@@ -88,10 +88,14 @@ az postgres flexible-server create \
 ## Common Mistakes
 
 1. **Assuming PITR modifies the original**: PITR creates a completely NEW server with a new connection string. Applications must be updated to point to the new server
-2. **Geo-backup after creation**: Geo-redundant backup can only be enabled at server creation time
-3. **Read replica as HA**: Replicas have async replication lag. They are for read scale-out, not automatic failover
+2. **Geo-backup after creation**: Geo-redundant backup can only be enabled at server creation time. Cannot be added to existing servers
+3. **Read replica as HA**: Replicas have async replication lag (seconds to minutes). They are for read scale-out, not automatic failover. Use Zone-redundant HA for RPO=0
 4. **403/PermissionDenied**: HA and replica operations need Contributor role on the resource group
-5. **Backup retention default**: Default is 7 days. Set up to 35 days for compliance requirements
+5. **Backup retention default**: Default is 7 days. Set up to 35 days for compliance requirements. Change with `az postgres flexible-server update --backup-retention`
+6. **Zone-redundant HA cost**: HA doubles compute cost (standby replica runs in another zone). Budget for 2x compute + same storage
+7. **Same-zone HA vs Zone-redundant**: Same-zone HA has faster failover (~60s) but no zone failure protection. Zone-redundant protects against zone outage but failover takes 60-120s
+8. **Replica promotion is one-way**: `az postgres flexible-server replica stop-replication` permanently breaks replication. The replica becomes independent. Cannot re-attach
+9. **Cross-region replica limitations**: Cross-region replicas have higher lag and do NOT support zone-redundant HA themselves. Plan for this in your DR strategy
 
 ## Verification
 

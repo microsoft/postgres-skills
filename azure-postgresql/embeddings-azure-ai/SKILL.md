@@ -97,10 +97,14 @@ END $$;
 ## Common Mistakes
 
 1. **Deployment name vs model name**: Use your Azure OpenAI deployment name, not the model name. They may differ
-2. **Dimension mismatch**: `text-embedding-ada-002` = 1536 dimensions, `text-embedding-3-large` = 3072. Column must match
-3. **Rate limiting**: Azure OpenAI has TPM limits. Process in batches with `pg_sleep()` between batches
+2. **Dimension mismatch**: `text-embedding-ada-002` = 1536 dimensions, `text-embedding-3-large` = 3072, `text-embedding-3-small` = 1536. Column must match
+3. **Rate limiting**: Azure OpenAI has TPM limits. Process in batches of 100 rows with `pg_sleep(1)` between batches
 4. **Null content**: `create_embeddings(model, NULL)` returns NULL. Filter out NULLs before embedding
 5. **403/PermissionDenied**: Ensure the azure_ai extension endpoint and key are configured correctly
+6. **Not setting endpoint correctly**: Use `SELECT azure_ai.set_setting('azure_openai.endpoint', 'https://YOUR-RESOURCE.openai.azure.com')` and `azure_ai.set_setting('azure_openai.subscription_key', 'YOUR-KEY')`
+7. **Embedding entire documents**: For text > 8191 tokens (ada-002 limit), truncation happens silently. Split content before embedding
+8. **Using wrong API version**: The azure_ai extension calls Azure OpenAI REST API internally. Ensure your deployment supports the embeddings API (not completions-only deployments)
+9. **Cost surprise on backfill**: Embedding 1M rows at $0.0001/1K tokens adds up. Estimate cost: `SELECT sum(length(content))/4/1000 * 0.0001 AS estimated_cost FROM documents`
 
 ## Verification
 
