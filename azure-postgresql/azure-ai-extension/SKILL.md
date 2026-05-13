@@ -83,11 +83,13 @@ SELECT azure_ai.get_setting('azure_openai.endpoint');
 
 ## Common Mistakes
 
-1. **Key exposed in logs**: API keys set via SQL appear in query logs. Use managed identity for production or rotate keys after setup
-2. **Wrong endpoint format**: Use the full URL with `https://` prefix. Omitting the protocol causes connection failures
-3. **Managed identity not assigned**: The Flexible Server must have a system-assigned managed identity enabled AND the identity must have the correct RBAC role on the AI resource
-4. **Multiple services, multiple keys**: Each AI service (OpenAI, Language, ML) has its own endpoint/key pair. Configure each separately
-5. **403/PermissionDenied**: For managed identity, verify RBAC assignment. For API key, verify key is valid and not expired
+1. **Health check pattern**: Always verify extension works before building pipelines: `SELECT azure_ai.version()` returns version string if configured correctly. Returns error if extension not in allowlist
+2. **Multi-model registration**: Each AI service needs separate configuration. Pattern: `SELECT azure_ai.set_setting('azure_openai.endpoint', 'https://RESOURCE.openai.azure.com'); SELECT azure_ai.set_setting('azure_openai.subscription_key', 'KEY1');` Then for Azure ML: `SELECT azure_ai.set_setting('azure_ml.scoring_endpoint', 'https://ENDPOINT.inference.ml.azure.com/score')`
+3. **Managed identity RBAC chain**: Server needs system-assigned identity enabled (`az postgres flexible-server identity assign`). Then assign `Cognitive Services OpenAI User` role on the OpenAI resource to the server's managed identity. Without BOTH steps, you get 403
+4. **Error code interpretation**: 401 = wrong key or expired key. 403 with managed identity = missing RBAC role assignment. 429 = rate limited (implement retry with `pg_sleep`). 404 = wrong deployment name or endpoint URL
+5. **Fallback chain for rate limits**: Wrap AI calls in a retry function: `DO $$ BEGIN FOR i IN 1..3 LOOP BEGIN PERFORM azure_openai.create(...); RETURN; EXCEPTION WHEN OTHERS THEN PERFORM pg_sleep(power(2, i)); END; END LOOP; END $$;`
+6. **Key rotation without downtime**: Set new key first (`azure_ai.set_setting`), test with `SELECT azure_ai.version()`, then revoke old key in Azure Portal. Settings take effect immediately without server restart
+7. **Audit trail for AI calls**: API keys set via SQL appear in `pg_stat_statements` and query logs. Use managed identity for production to avoid key exposure. If keys must be used, rotate after initial setup and restrict `pg_stat_statements` access
 
 ## Verification
 

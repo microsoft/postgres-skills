@@ -81,14 +81,14 @@ az postgres flexible-server parameter set \
 
 ## Common Mistakes
 
-1. **Wrong port**: PgBouncer listens on port 6432, not 5432. Applications must change their connection port
-2. **Prepared statements in transaction mode**: `PREPARE`/`EXECUTE` break in transaction mode because each transaction may get a different backend. Use session mode or `DEALLOCATE ALL`
-3. **SET commands lost**: `SET search_path = ...` is lost between transactions in transaction mode. Use `ALTER ROLE ... SET` for persistent settings
-4. **403/PermissionDenied**: PgBouncer parameters require server admin. Use `az CLI` not SQL to configure
-5. **Entra tokens with PgBouncer**: Token-based auth works but requires session mode or specific PgBouncer auth settings
-6. **Ignoring pool_size math**: Default pool_size=50 means 50 connections per user/database pair. With 3 databases and 5 users, that's up to 750 backend connections. Ensure max_connections on the server supports this
-7. **Connecting to pgbouncer admin database on Azure**: `SHOW POOLS` and `SHOW STATS` are not available through the built-in PgBouncer on Azure Flexible Server. Use `pg_stat_activity` and Azure metrics instead
-8. **Not setting server_reset_query**: In transaction mode, leftover session state from one client can leak to the next. Azure built-in PgBouncer handles this automatically
+1. **`pgbouncer.*` parameter namespace**: All PgBouncer settings use server parameters prefixed with `pgbouncer.`. Set via: `az postgres flexible-server parameter set --name pgbouncer.default_pool_size --value 50`. NOT via SQL `SHOW` commands
+2. **Port 6432 is mandatory**: Built-in PgBouncer always listens on 6432. Cannot change it. Connection strings MUST use port 6432. Using 5432 bypasses PgBouncer entirely (direct to PostgreSQL)
+3. **Pool math overflow**: `default_pool_size` (default=50) applies per user/database pair. Formula: `max_backend_connections = default_pool_size * num_databases * num_users`. Set `pgbouncer.max_client_conn = 5000` and verify `max_connections` on the backend supports the pool's demand
+4. **Entra token + transaction mode conflict**: Transaction mode reassigns backends per transaction but Entra tokens bind to the original auth handshake. Use `pgbouncer.pool_mode = session` when ANY client uses token auth, or route token clients to port 5432 directly
+5. **`SHOW POOLS` unavailable**: Azure built-in PgBouncer does NOT expose the admin console. No `SHOW POOLS`, `SHOW STATS`, `SHOW CLIENTS`. Use `pg_stat_activity` (shows backend connections) and Azure Monitor metrics (`pgbouncer_active_connections`, `pgbouncer_waiting_connections`) instead
+6. **Prepared statement workaround**: Transaction mode breaks server-side prepared statements. Solutions: (a) `pgbouncer.pool_mode = session` for that user, (b) client-side prepared statements, (c) `DEALLOCATE ALL` at transaction start
+7. **Connection storm recovery**: When PgBouncer queue fills (`pgbouncer.max_client_conn` reached), new connections get `ERROR: no more connections allowed`. Add exponential backoff with jitter in application retry logic. Monitor `pgbouncer_waiting_connections` metric for early warning
+8. **Session-level state leakage**: `SET statement_timeout` in one transaction leaks to the next client in transaction mode. Azure's built-in PgBouncer runs `DISCARD ALL` as `server_reset_query` automatically, but custom GUCs set with `SET LOCAL` only are safe
 
 ## Verification
 

@@ -85,11 +85,14 @@ ALTER EXTENSION pg_stat_statements UPDATE;
 
 ## Common Mistakes
 
-1. **No backup before upgrade**: Always ensure PITR is available before MVU. Azure takes a snapshot, but verify independently
-2. **Skipping validation**: Always run with `--validate-only` first to catch incompatibilities
-3. **Extension incompatibility**: Some extensions may not support the target version. Check compatibility before upgrading
-4. **403/PermissionDenied**: Major version upgrades require Contributor role minimum
-5. **Forgetting ANALYZE**: After MVU, statistics are stale. Run `ANALYZE` on all databases to prevent query plan regressions
+1. **`--validate-only` first, always**: `az postgres flexible-server upgrade --resource-group rg --name server --version 16 --validate-only` checks extension compatibility, disk space, and connection limits without performing upgrade. Takes 2-5 minutes. Never skip
+2. **MVU snapshot verification**: Azure takes an automatic snapshot before MVU. Verify it exists: `az postgres flexible-server backup list --resource-group rg --name server` — look for a backup with timestamp just before upgrade start. Keep manual backup as additional safety net
+3. **Extension compatibility matrix**: Not all extensions support all PG versions. Check BEFORE upgrade: `SELECT e.extname, e.extversion FROM pg_extension e` then verify target version supports each. `pg_partman` and `postgis` are common blockers
+4. **Post-MVU `ANALYZE` requirement**: After major version upgrade, `pg_statistic` is stale. All query plans may regress. Run: `vacuumdb --all --analyze-in-place` immediately post-upgrade. On large databases, prioritize critical tables first
+5. **Post-MVU extension updates**: After upgrading PG version (e.g., 15→16), extension versions may have newer compatible releases. Run: `ALTER EXTENSION vector UPDATE; ALTER EXTENSION postgis UPDATE;` for each extension to get version compatible with new PG major
+6. **Maintenance window control**: MVU takes 5-15 minutes of downtime. Schedule with `--planned-maintenance-window`: `az postgres flexible-server update --maintenance-window "Mon:02:00"`. MVU itself must be triggered manually but respects the window for automatic restarts
+7. **Application connection handling during MVU**: Server restarts during upgrade. Applications get `FATAL: the database system is shutting down`. Implement retry with 30s timeout and exponential backoff. Connection pools (PgBouncer) will queue requests during the brief outage
+8. **Rollback strategy**: MVU is one-way (cannot downgrade). If upgrade causes issues, restore from pre-upgrade PITR backup (creates NEW server at old version). Test upgrade on a read replica first: promote replica, upgrade it, validate, then upgrade primary
 
 ## Verification
 

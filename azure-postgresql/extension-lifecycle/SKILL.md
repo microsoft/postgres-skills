@@ -85,15 +85,14 @@ ALTER EXTENSION vector UPDATE TO '0.8.0';
 
 ## Common Mistakes
 
-1. **Using marketing name**: `CREATE EXTENSION pgvector` fails. Use the binary name: `CREATE EXTENSION vector`
-2. **Forgetting allowlist**: Extension must be in `azure.extensions` parameter before CREATE EXTENSION works
-3. **No restart after preload change**: `shared_preload_libraries` requires server restart to take effect
-4. **Overwriting allowlist**: `az parameter set --value "new_ext"` replaces the entire list. Always GET current value first and append
-5. **403/PermissionDenied**: You have `azure_pg_admin` role, not superuser. Some extensions (e.g., file_fdw, adminpack) are not available on Azure
-6. **Attempting DROP EXTENSION CASCADE**: Safe on dev, but on production Azure databases check dependencies first with `SELECT * FROM pg_depend WHERE deptype = 'e'`
-7. **Version pinning forgotten**: `CREATE EXTENSION vector VERSION '0.7.0'` ensures deterministic builds. Without it, the server's default_version is used which may differ between environments
-8. **Extensions not available on Azure**: `pg_cron`, `pg_partman`, `pgvector`, `postgis`, `pg_stat_statements` ARE available. `file_fdw`, `dblink to external`, `plpython3u` are NOT
-9. **Ignoring `SELECT * FROM pg_available_extensions`**: This shows the exact version available on your server. Don't assume a version exists just because docs mention it
+1. **Allowlist append workflow (critical)**: `az postgres flexible-server parameter show --name azure.extensions` returns current list. You must append, not replace: `az postgres flexible-server parameter set --name azure.extensions --value "vector,pg_diskann,pg_trgm,NEW_EXT"`. Setting `--value "NEW_EXT"` alone REMOVES all existing extensions
+2. **`shared_preload_libraries` restart behavior**: Adding to this parameter requires server restart. Plan maintenance window. Current value check: `SHOW shared_preload_libraries`. Common values needing preload: `pg_cron`, `pg_stat_statements`, `auto_explain`
+3. **Binary name vs marketing name mapping**: `pgvector` → `CREATE EXTENSION vector`. `pg_partman` → `CREATE EXTENSION pg_partman`. `PostGIS` → `CREATE EXTENSION postgis`. Always verify with `SELECT * FROM pg_available_extensions WHERE name LIKE '%search%'`
+4. **Version pinning for reproducibility**: `CREATE EXTENSION vector VERSION '0.7.0'` ensures same version across environments. Without version, server's `default_version` is used which auto-updates with server patches. Pin in migration scripts
+5. **Extension availability matrix**: Available: `vector`, `pg_diskann`, `postgis`, `pg_cron`, `pg_partman`, `pg_stat_statements`, `pg_trgm`, `hstore`, `uuid-ossp`, `azure_ai`. NOT available: `file_fdw`, `plpython3u`, `adminpack`, `dblink` (to external). Check: `SELECT * FROM pg_available_extensions ORDER BY name`
+6. **`azure_pg_admin` role limitations**: You have `azure_pg_admin`, not superuser. Cannot: `CREATE EXTENSION` for unlisted extensions, load custom C libraries, modify `pg_hba.conf`. Can: create any extension in the allowlist, manage roles, create databases
+7. **Dependency checking before DROP**: `SELECT classid::regclass, objid, deptype FROM pg_depend WHERE refobjid = (SELECT oid FROM pg_extension WHERE extname = 'vector')` shows what depends on the extension. CASCADE drops all dependent objects (indexes, columns)
+8. **Extension update path**: `ALTER EXTENSION vector UPDATE TO '0.8.0'` only works if update path exists. Check: `SELECT * FROM pg_extension_update_paths('vector') WHERE source = '0.7.0'`. Some updates require DROP + CREATE (data loss for extension-managed types)
 
 ## Verification
 

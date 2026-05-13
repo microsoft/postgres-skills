@@ -94,14 +94,14 @@ SELECT intelligent_performance.dismiss_recommendation('<recommendation_id>');
 
 ## Common Mistakes
 
-1. **Query Store disabled**: Older servers may have it off. Enable via: `az postgres flexible-server parameter set --name pg_qs.query_capture_mode --value top`
-2. **Not waiting for data**: Auto-index needs 48+ hours of query patterns before generating recommendations. Don't expect instant results
-3. **Ignoring wait statistics**: Query Store captures waits too. A slow query blocked on I/O needs storage/SKU changes, not index changes. Check `query_store.pgms_wait_sampling_view`
-4. **403/PermissionDenied**: Query Store views require `azure_pg_admin` role
-5. **Auto-vacuum interference**: Auto-created indexes add maintenance overhead. Monitor `pg_stat_user_indexes` for unused auto-indexes and drop them
-6. **Query Store overhead on Burstable tier**: On B-series (Burstable), Query Store adds ~5% CPU overhead. Consider disabling on dev/test burstable servers
-7. **Missing `pg_qs.max_query_text_length`**: Default 6000 chars truncates long queries. Increase to 10000 for complex analytical queries
-8. **Not using `query_store.qs_view` correctly**: Join with `query_store.query_texts_view` on `query_text_id` to get actual SQL text. The `qs_view` only has metrics
+1. **Reading `query_store.qs_view` without join**: The `qs_view` contains only metrics (calls, total_time, rows). Join with `query_store.query_texts_view` on `query_text_id` to get actual SQL text: `SELECT qt.query_sql_text, qs.calls, qs.mean_time FROM query_store.qs_view qs JOIN query_store.query_texts_view qt ON qs.query_text_id = qt.query_text_id ORDER BY qs.total_time DESC LIMIT 20`
+2. **Ignoring wait event analysis**: `query_store.pgms_wait_sampling_view` shows WHERE time is spent. Column `event_type` values: `LWLock` = contention, `IO` = storage bottleneck (upgrade SKU), `Lock` = blocking queries. Query: `SELECT event_type, event, sum(count) FROM query_store.pgms_wait_sampling_view GROUP BY 1,2 ORDER BY 3 DESC`
+3. **Auto-index recommendation lifecycle**: Recommendations go through states: `Recommended` > `Verified` > `Applied`. Check `SELECT * FROM intelligent_performance.index_recommendations`. Reverted indexes show `Reverted` state. Manually apply with the provided DDL if auto-apply is off
+4. **Query Store retention eating storage**: Default retention is 7 days. On high-QPS servers, QS storage grows to GBs. Set `pg_qs.retention_period_in_days = 3` on busy systems and `pg_qs.store_query_plans = off` to reduce overhead
+5. **Not enabling `pg_qs.track_utility`**: By default, utility commands (COPY, CREATE, VACUUM) are not tracked. Enable to catch slow bulk loads: `az postgres flexible-server parameter set --name pg_qs.track_utility --value on`
+6. **Burstable tier overhead**: Query Store adds ~5% CPU on B-series. Disable on dev/test with `pg_qs.query_capture_mode = none`. Re-enable for production profiling sessions only
+7. **Missing normalized query identification**: Same query with different literal values gets one `query_text_id`. Use `query_store.qs_view.query_id` to group by plan shape, then `mean_time` variance to detect plan instability
+8. **Not correlating with Azure Metrics**: Cross-reference QS `total_time` spikes with Azure Monitor `cpu_percent` and `iops` metrics to determine if bottleneck is compute, storage, or query logic
 
 ## Verification
 

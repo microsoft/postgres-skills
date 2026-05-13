@@ -96,15 +96,15 @@ END $$;
 
 ## Common Mistakes
 
-1. **Deployment name vs model name**: Use your Azure OpenAI deployment name, not the model name. They may differ
-2. **Dimension mismatch**: `text-embedding-ada-002` = 1536 dimensions, `text-embedding-3-large` = 3072, `text-embedding-3-small` = 1536. Column must match
-3. **Rate limiting**: Azure OpenAI has TPM limits. Process in batches of 100 rows with `pg_sleep(1)` between batches
-4. **Null content**: `create_embeddings(model, NULL)` returns NULL. Filter out NULLs before embedding
-5. **403/PermissionDenied**: Ensure the azure_ai extension endpoint and key are configured correctly
-6. **Not setting endpoint correctly**: Use `SELECT azure_ai.set_setting('azure_openai.endpoint', 'https://YOUR-RESOURCE.openai.azure.com')` and `azure_ai.set_setting('azure_openai.subscription_key', 'YOUR-KEY')`
-7. **Embedding entire documents**: For text > 8191 tokens (ada-002 limit), truncation happens silently. Split content before embedding
-8. **Using wrong API version**: The azure_ai extension calls Azure OpenAI REST API internally. Ensure your deployment supports the embeddings API (not completions-only deployments)
-9. **Cost surprise on backfill**: Embedding 1M rows at $0.0001/1K tokens adds up. Estimate cost: `SELECT sum(length(content))/4/1000 * 0.0001 AS estimated_cost FROM documents`
+1. **`azure_openai.create_embeddings()` SQL syntax**: `SELECT azure_openai.create_embeddings('deployment-name', 'text to embed')::vector(1536)`. Returns `text` — must cast to `vector(N)` for storage. Without cast, you get a text string representation
+2. **Batch embedding pattern**: Process in chunks to avoid timeouts: `WITH batch AS (SELECT id, content FROM documents WHERE embedding IS NULL LIMIT 100) UPDATE documents SET embedding = azure_openai.create_embeddings('ada-002', batch.content)::vector(1536) FROM batch WHERE documents.id = batch.id`
+3. **TPM limit workaround**: Azure OpenAI enforces tokens-per-minute limits. Add `SELECT pg_sleep(1)` between batches. Monitor: if you get 429 errors in `pg_stat_activity`, increase sleep or reduce batch size
+4. **Dimension table by model**: `text-embedding-ada-002` = 1536, `text-embedding-3-small` = 1536 (default) or configurable down to 256, `text-embedding-3-large` = 3072 (default) or configurable. Pass `dimensions` parameter for v3 models: `azure_openai.create_embeddings('text-3-small', text, dimensions => 512)`
+5. **Silent truncation trap**: ada-002 truncates input at 8191 tokens silently (no error). text-embedding-3 models handle 8191 tokens. For longer content, split with overlap: `substring(content from 1 for 2000)` with 200-char overlap between chunks
+6. **Deployment name vs model name confusion**: Azure OpenAI deployments can have ANY name. `azure_openai.create_embeddings('my-custom-name', ...)` uses the deployment name you set in Azure Portal, NOT 'text-embedding-ada-002'
+7. **NULL propagation**: `azure_openai.create_embeddings('model', NULL)` returns NULL (not an error). Filter: `WHERE content IS NOT NULL AND length(content) > 0` before embedding. Empty string also produces a valid but meaningless vector
+8. **Cost estimation formula**: `SELECT count(*), sum(length(content))/4/1000 * 0.0001 AS estimated_usd FROM documents WHERE embedding IS NULL` — approximate cost before backfilling. At scale (1M+ rows), consider provisioned throughput for cost predictability
+9. **Verifying deployment supports embeddings**: Not all Azure OpenAI deployments support embeddings. Use a completions deployment for chat, embeddings deployment for vectors. Calling embeddings on a GPT deployment gives HTTP 404
 
 ## Verification
 

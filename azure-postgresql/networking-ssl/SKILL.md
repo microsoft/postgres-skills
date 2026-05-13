@@ -90,11 +90,14 @@ az network private-endpoint create \
 
 ## Common Mistakes
 
-1. **sslmode=disable**: Never disable SSL. Azure enforces it by default. Use `sslmode=require` minimum, `verify-full` for production
-2. **Wrong CA certificate**: Azure uses DigiCert Global Root CA, not the old Baltimore root
-3. **Firewall blocks after VNet**: Once VNet-integrated, firewall rules do not apply. Access is VNet-only
-4. **403/PermissionDenied**: Network operations need Contributor role. Private endpoints also need Network Contributor on the VNet
-5. **Allow Azure services**: The "Allow access from Azure services" checkbox opens access to ALL Azure IPs, not just yours
+1. **DigiCert CA, not Baltimore**: Azure Flexible Server uses DigiCert Global Root G2 CA since 2022. Old Baltimore CyberTrust Root is deprecated. Download: `https://dl.cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem`. Using old cert gives `SSL certificate verify failed`
+2. **VNet disables firewall completely**: Once private access (VNet integration) is enabled, ALL firewall rules are ignored (including "Allow Azure services"). Access is VNet-only. Cannot have hybrid (some firewall + VNet)
+3. **Private DNS zone requirement**: VNet-integrated servers require a Private DNS zone (e.g., `privatelink.postgres.database.azure.com`) linked to the VNet. Without it, hostname resolution fails even though network connectivity exists
+4. **Private DNS zone naming**: Zone MUST be `<servername>.private.postgres.database.azure.com` or `privatelink.postgres.database.azure.com`. Custom zone names break Azure's automatic DNS record management
+5. **"Allow Azure services" is wider than expected**: This checkbox allows traffic from ANY Azure subscription's public IPs, not just your resources. Use Private Endpoints or VNet rules for isolation. Only enable temporarily for Azure Data Factory/Functions without VNet integration
+6. **Cross-VNet connectivity**: Two VNet-integrated servers in different VNets cannot connect by default. Requires VNet peering + DNS forwarding. For cross-region, use Global VNet peering (additional latency)
+7. **`verify-full` connection string**: `sslmode=verify-full sslrootcert=/path/to/DigiCertGlobalRootG2.crt.pem` — the hostname in the cert matches `*.postgres.database.azure.com`. Custom server names via CNAME still validate against the Azure-issued cert's SAN
+8. **TLS version enforcement**: Azure enforces TLS 1.2 minimum. Clients using TLS 1.0/1.1 get connection refused. Check client library TLS support. Python psycopg2 on older systems may need `ssl_context` configuration
 
 ## Verification
 

@@ -106,15 +106,14 @@ LIMIT 5;
 
 ## Common Mistakes
 
-1. **Vector-only search**: Pure vector search misses exact keyword matches. Hybrid search with RRF consistently outperforms single-modality
-2. **RRF constant too low**: The constant `k=60` in `1/(k+rank)` controls rank smoothing. Lower k amplifies top-rank differences. Default 60 works well for most cases
-3. **Mismatched query**: Vector query uses the embedding of the user question. Text query uses the raw text. Both must be derived from the same user input
-4. **Too many results**: Returning 20+ chunks to an LLM wastes tokens and adds noise. Return 3-5 highly relevant chunks
-5. **403/PermissionDenied**: Ensure `azure_ai` extension is configured for embedding the query
-6. **Chunking too large**: Chunks > 512 tokens dilute embedding quality. Split content into 256-512 token chunks with 50-token overlap for best retrieval
-7. **No metadata filtering**: Always include a WHERE clause for tenant/category before vector search. DiskANN handles pre-filtering efficiently; HNSW requires post-filtering
-8. **Embedding the entire user prompt**: Strip system instructions and chat history. Embed only the user's actual question for query vector
-9. **Not using azure_ai.create_embeddings in SQL**: Calling an external API to get query embeddings adds latency. Use the in-database function for single-query embedding at search time
+1. **In-database embedding for query vector**: Use `azure_openai.create_embeddings('ada-002', user_question)::vector(1536)` directly in the search query instead of calling an external API. Eliminates one network hop and simplifies the pipeline
+2. **Hybrid search with RRF scoring pattern**: `WITH vector_results AS (SELECT id, 1.0/(60 + rank) AS score FROM documents ORDER BY embedding <=> query_vec LIMIT 20), text_results AS (SELECT id, 1.0/(60 + rank) AS score FROM documents WHERE to_tsvector('english', content) @@ websearch_to_tsquery('english', query) LIMIT 20) SELECT id, sum(score) AS rrf_score FROM (SELECT * FROM vector_results UNION ALL SELECT * FROM text_results) combined GROUP BY id ORDER BY rrf_score DESC LIMIT 5`
+3. **DiskANN pre-filtering for multi-tenant RAG**: `SELECT id, content FROM documents WHERE tenant_id = $1 ORDER BY embedding <=> $2 LIMIT 5` — DiskANN handles the WHERE clause pre-filter natively. HNSW would post-filter and may return fewer than 5 results
+4. **Chunk size optimization**: 256-512 tokens per chunk with 50-token overlap. Larger chunks dilute embedding signal. Smaller chunks lose context. Store `chunk_index` and `document_id` to reconstruct full context for the LLM
+5. **Query embedding isolation**: Embed ONLY the user's actual question. Strip system prompts, chat history, and instructions before embedding. These add noise and reduce retrieval quality
+6. **Azure AI Search hybrid fallback**: For >100M documents, use PostgreSQL for structured/filtered search and Azure AI Search for full-text. Connect via `azure_ai` extension: `SELECT azure_ai.invoke('search-endpoint', jsonb_build_object('search', query, 'filter', tenant_filter))`
+7. **Context window management**: Return 3-5 chunks (not 20). Total context for LLM = system prompt + retrieved chunks + user question. Budget: ~2000 tokens for chunks leaves room for system prompt and response. Use `length(content)/4` to estimate tokens
+8. **Reranking with AI functions**: After initial retrieval of top-20, rerank with: `SELECT id, content, azure_openai.create('gpt4', 'Score relevance 0-10', content || ' QUERY: ' || user_question)::int AS relevance FROM candidates ORDER BY relevance DESC LIMIT 5`
 
 ## Verification
 

@@ -112,11 +112,14 @@ WHERE azure_ai.is_true(
 
 ## Common Mistakes
 
-1. **Deployment name vs model name**: Pass your Azure OpenAI deployment name (e.g., 'my-gpt4'), not the model identifier
-2. **Rate limiting in loops**: Calling AI functions on every row of a large table hits rate limits. Process in batches with `LIMIT` and store results
-3. **Non-deterministic in WHERE**: AI function outputs vary between calls. Cache results in a column rather than using in repeated WHERE clauses
-4. **Token overflow**: Long `content` fields may exceed model context window. Truncate or chunk text before passing
-5. **403/PermissionDenied**: Verify azure_ai extension is configured with valid endpoint and key/managed identity
+1. **`azure_openai.create()` function signature**: `SELECT azure_openai.create('deployment-name', 'system prompt', 'user content')` returns text. For JSON output, add format instruction in system prompt: `'Respond with valid JSON only: {"category": "...", "confidence": 0.0-1.0}'`
+2. **Deployment name confusion**: First parameter is your Azure OpenAI DEPLOYMENT name (set in Portal), not model name. A deployment named 'classifier-v1' using gpt-4o is called as `azure_openai.create('classifier-v1', ...)`
+3. **Batch classification pattern**: `UPDATE documents SET category = azure_openai.create('gpt4', 'Classify into: tech, business, science. Return only the category name.', content) WHERE category IS NULL LIMIT 50` — process in batches to avoid 429 rate limits
+4. **Token overflow on large content**: GPT-4o context = 128K tokens but Azure imposes per-request limits. Truncate: `left(content, 4000)` for classification. For summarization, chunk and summarize incrementally
+5. **Non-deterministic outputs in WHERE clauses**: `WHERE azure_openai.create(...) = 'positive'` re-calls the API on every evaluation. Cache: `UPDATE docs SET sentiment = azure_openai.create(...)` once, then `SELECT * FROM docs WHERE sentiment = 'positive'`
+6. **Extract structured data pattern**: `SELECT id, azure_openai.create('gpt4', 'Extract JSON: {"name": "", "email": "", "company": ""}', raw_text)::jsonb FROM contacts WHERE parsed_data IS NULL LIMIT 25` — cast result to `jsonb` for SQL-queryable output
+7. **Cost control**: Each `azure_openai.create()` call bills tokens. Guard against runaway costs: always use `LIMIT`, add `WHERE processed_at IS NULL`, and log call counts with a trigger or wrapper function
+8. **Error handling in SQL**: Wrap in exception handler: `DO $$ BEGIN PERFORM azure_openai.create(...); EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'AI call failed: %', SQLERRM; END $$;` — 429/500 errors from Azure OpenAI surface as PostgreSQL exceptions
 
 ## Verification
 

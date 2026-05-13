@@ -93,14 +93,15 @@ GRANT ALL ON DATABASE mydb TO "my-managed-identity-name";
 
 ## Common Mistakes
 
-1. **Token expiry**: Entra tokens expire after ~1 hour. Applications must refresh tokens before expiry. Use connection libraries with built-in token refresh (e.g., `azure-identity` + `psycopg2` token callback)
-2. **Wrong resource URL**: Use `https://ossrdbms-aad.database.windows.net/.default` not the generic Azure resource URL (`https://management.azure.com`)
-3. **Username mismatch**: The psql username must match the Entra principal name exactly (case-sensitive for managed identities, email format for users)
-4. **403/PermissionDenied**: The managed identity must be explicitly granted roles via `pgaadauth_create_principal`. Just having Contributor role on the Azure resource is NOT enough
-5. **PgBouncer with tokens**: Built-in PgBouncer requires session mode for token auth. Transaction mode drops the auth context
-6. **Mixing password and Entra auth**: Both can coexist. Set `password_auth = enabled` AND `active_directory_auth = enabled` in server configuration for hybrid auth during migration
-7. **Service principal vs managed identity**: Use managed identity (no secret rotation needed). Service principals require client_secret which must be rotated
-8. **Terraform/IaC automation**: Use `azurerm_postgresql_flexible_server_active_directory_administrator` resource. The principal must exist before server creation or use `depends_on`
+1. **Token callback pattern (Python)**: Use `azure.identity.DefaultAzureCredential` with psycopg2 connection factory: `credential.get_token("https://ossrdbms-aad.database.windows.net/.default").token` as password. Cache token and refresh when `expires_on - time.time() < 300`
+2. **Token callback pattern (Node.js)**: `@azure/identity` `DefaultAzureCredential.getToken("https://ossrdbms-aad.database.windows.net/.default")` — pass `token.token` as password in pg connection config. Set `ssl: { rejectUnauthorized: true }`
+3. **psql one-liner**: `PGPASSWORD=$(az account get-access-token --resource-type oss-rdbms --query accessToken -o tsv) psql "host=server.postgres.database.azure.com user=identity@server dbname=postgres sslmode=require"`
+4. **`pgaadauth_create_principal` vs Azure RBAC**: Azure Contributor role manages the server resource. `SELECT * FROM pgaadauth_create_principal('myapp', false, false)` grants PostgreSQL-level login. Both are required — RBAC alone does NOT grant database access
+5. **Group-based role mapping**: Create an Entra group, add members, then `SELECT pgaadauth_create_principal('group-name', false, true)` (last param = isGroup). All group members inherit the PostgreSQL role. Simpler than per-user grants
+6. **PgBouncer session mode required**: Token auth fails in transaction mode because auth context is per-connection. Set `pgbouncer.pool_mode = session` OR use password auth for PgBouncer and token auth only for direct connections
+7. **Username format matrix**: Managed identity = client ID or object ID. User = `user@domain.com`. Service principal = application (client) ID. Group = group display name. Mismatch gives `FATAL: password authentication failed`
+8. **Hybrid auth migration path**: Enable both `password_auth` and `active_directory_auth`. Migrate apps one-by-one to Entra tokens. Once all apps use tokens, disable password auth. Use `SELECT * FROM pg_stat_activity WHERE application_name LIKE '%legacy%'` to find remaining password connections
+9. **Terraform ordering**: `azurerm_postgresql_flexible_server_active_directory_administrator` requires the server to exist first AND the identity to be created. Use explicit `depends_on` or `azurerm_user_assigned_identity` with lifecycle blocks
 
 ## Verification
 

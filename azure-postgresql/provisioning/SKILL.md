@@ -81,11 +81,14 @@ resource "azurerm_postgresql_flexible_server" "main" {
 
 ## Common Mistakes
 
-1. **Storage scale-down**: Storage only scales UP on Azure. Once you increase it, you cannot shrink it back
-2. **Wrong SKU format**: CLI uses `Standard_D4ds_v5`, Terraform uses `GP_Standard_D4ds_v5` (prefix with tier abbreviation)
-3. **No HA at start**: Zone-redundant HA doubles cost. Plan for it at provisioning time
-4. **403/PermissionDenied**: Requires Contributor or higher role on the resource group
-5. **Region mismatch**: Choose the same region as your application to minimize latency
+1. **Storage immutability**: Storage only scales UP. Once you provision 256 GB, you cannot shrink to 128 GB. Overprovision storage leads to permanent cost. Start conservative and scale up as needed (auto-grow handles this if enabled)
+2. **SKU format divergence**: CLI uses `Standard_D4ds_v5`. Terraform uses `GP_Standard_D4ds_v5` (tier prefix: B_ for Burstable, GP_ for General Purpose, MO_ for Memory Optimized). ARM templates use yet another format. Always check provider docs
+3. **IOPS tiers and provisioning**: Base IOPS = 3 IOPS/GB (min 100, max 20K for premium). Additional provisioned IOPS available on General Purpose and Memory Optimized. Use `az postgres flexible-server update --iops 5000`. Burstable tier has fixed IOPS cap
+4. **HA must be planned at creation**: Zone-redundant HA can be enabled post-creation but requires downtime (server restart). Same-zone HA can be added anytime. Budget for 2x compute cost from day one if HA is required
+5. **Auto-grow behavior**: When enabled, storage auto-grows by the greater of 5GB or 10% of current storage when free space drops below 10%. Growth is permanent (cannot shrink). Monitor `storage_percent` metric to avoid surprise growth
+6. **Compute tier restrictions**: Cannot change between Burstable and General Purpose/Memory Optimized in-place. Must create new server and migrate. Plan tier choice at provisioning time
+7. **Region + availability zone lock-in**: Server is pinned to its availability zone. Moving to another zone requires new server + migration. Choose zone strategically if using zone-redundant HA (standby goes to a different zone automatically)
+8. **Backup storage billing**: Backup storage up to 1x provisioned storage is free. Beyond that, billed per-GB/month. With 35-day retention and high churn, backup storage can exceed provisioned storage significantly
 
 ## Verification
 

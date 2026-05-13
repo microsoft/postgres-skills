@@ -87,15 +87,15 @@ az postgres flexible-server create \
 
 ## Common Mistakes
 
-1. **Assuming PITR modifies the original**: PITR creates a completely NEW server with a new connection string. Applications must be updated to point to the new server
-2. **Geo-backup after creation**: Geo-redundant backup can only be enabled at server creation time. Cannot be added to existing servers
-3. **Read replica as HA**: Replicas have async replication lag (seconds to minutes). They are for read scale-out, not automatic failover. Use Zone-redundant HA for RPO=0
-4. **403/PermissionDenied**: HA and replica operations need Contributor role on the resource group
-5. **Backup retention default**: Default is 7 days. Set up to 35 days for compliance requirements. Change with `az postgres flexible-server update --backup-retention`
-6. **Zone-redundant HA cost**: HA doubles compute cost (standby replica runs in another zone). Budget for 2x compute + same storage
-7. **Same-zone HA vs Zone-redundant**: Same-zone HA has faster failover (~60s) but no zone failure protection. Zone-redundant protects against zone outage but failover takes 60-120s
-8. **Replica promotion is one-way**: `az postgres flexible-server replica stop-replication` permanently breaks replication. The replica becomes independent. Cannot re-attach
-9. **Cross-region replica limitations**: Cross-region replicas have higher lag and do NOT support zone-redundant HA themselves. Plan for this in your DR strategy
+1. **PITR creates a NEW server**: Point-in-time restore produces a completely new server with a new hostname (`restored-server.postgres.database.azure.com`). All connection strings, firewall rules, and VNet configurations must be recreated. PITR is NOT an in-place rollback
+2. **PITR destination restrictions**: Restored server inherits source's tier/SKU but NOT HA settings, firewall rules, or VNet config. Must reconfigure networking post-restore. Restore target must be in same region as source
+3. **Geo-backup is creation-time only**: `--geo-redundant-backup Enabled` can only be set at server creation. Cannot enable on existing servers. If you forgot, your DR option is cross-region read replicas
+4. **Zone-redundant failover timing**: Automatic failover takes 60-120 seconds (DNS propagation + standby promotion). During this window, writes fail. Applications need retry logic with 30s timeout + reconnect. Read replicas are unaffected during primary failover
+5. **Same-zone vs zone-redundant decision tree**: Same-zone HA: ~30s failover, protects against compute failure, no zone protection. Zone-redundant: ~120s failover, protects against entire zone outage, 2x compute cost. Use zone-redundant for production SLA > 99.95%
+6. **Replica promotion is permanent and irreversible**: `az postgres flexible-server replica stop-replication --resource-group rg --name replica` permanently severs replication. The replica becomes an independent server. Cannot re-attach. Plan carefully
+7. **Cross-region read replica lag**: Expect 100ms-5s lag depending on transaction rate and network distance. NOT suitable for strong consistency reads. Use for reporting, analytics, and DR failover only. Monitor with `pg_stat_replication.sent_lsn - replay_lsn`
+8. **Backup retention + PITR window**: Default 7 days, max 35 days. PITR can only restore to a point within the retention window. For compliance requiring 90+ day retention, export to Azure Blob Storage separately
+9. **Failover testing**: Use `az postgres flexible-server restart --failover Forced` to test HA failover in production-like environments. Measures actual failover time. Schedule monthly to validate DR readiness
 
 ## Verification
 
