@@ -695,3 +695,150 @@ challenges:
     expected_patterns:
       - "private.*endpoint|Private.*Link"
       - "VNet|peering|cross.*VNet"
+
+  # ─── AZURE ENRICHMENT CHALLENGES (13 challenges: 1 per Azure skill) ─────────
+  # These target advanced content added during enrichment that gpt-4o
+  # does NOT know without the skill loaded.
+
+  # vector-diskann: DiskANN search_type parameter tuning
+  - id: enrich-az-diskann-02
+    task: "I created a DiskANN index on Azure PostgreSQL but my filtered queries (WHERE tenant_id = X ORDER BY embedding <=> query LIMIT 5) are slow. How do I configure DiskANN for filtered search?"
+    difficulty: hard
+    target_skill: azure-postgresql/vector-diskann
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "search_type|diskann.*filter|pre.?filter"
+      - "max_neighbors|search_list_size"
+
+  # intelligent-tuning: pgms_wait_sampling_view query pattern
+  - id: enrich-az-tune-02
+    task: "My Azure PostgreSQL is slow but CPU and memory look fine. How do I use the wait statistics feature to find what the queries are actually waiting on?"
+    difficulty: hard
+    target_skill: azure-postgresql/intelligent-tuning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "pgms_wait_sampling|wait_sampling_view"
+      - "event_type|event_name"
+
+  # entra-id-auth: psql one-liner with az account get-access-token
+  - id: enrich-az-auth-03
+    task: "I need a one-liner to connect to my Azure PostgreSQL server from the command line using my Entra ID identity — no stored password. What's the psql command?"
+    difficulty: hard
+    target_skill: azure-postgresql/entra-id-auth
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "az account get-access-token|get.access.token"
+      - "PGPASSWORD|psql"
+
+  # azure-ai-extension: health check + error 429 handling
+  - id: enrich-az-aiext-03
+    task: "My azure_ai extension calls are failing intermittently. How do I verify the extension is working and handle rate limiting (429) errors gracefully?"
+    difficulty: hard
+    target_skill: azure-postgresql/azure-ai-extension
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "azure_ai\\.version|version\\(\\)"
+      - "429|rate.?limit|retry|pg_sleep"
+
+  # connection-pooling: port 6432 + Entra token conflict
+  - id: enrich-az-pool-02
+    task: "I enabled the built-in PgBouncer on Azure PostgreSQL but my Entra ID token-based connections keep failing. I'm using transaction pooling mode. What's wrong?"
+    difficulty: hard
+    target_skill: azure-postgresql/connection-pooling
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "6432|port"
+      - "token|Entra|transaction.*mode|session.*mode"
+
+  # embeddings-azure-ai: create_embeddings() exact SQL syntax
+  - id: enrich-az-emb-03
+    task: "Show me the exact SQL to generate embeddings for a text column using azure_openai in Azure PostgreSQL and store them as a vector(1536) column."
+    difficulty: hard
+    target_skill: azure-postgresql/embeddings-azure-ai
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "azure_openai\\.create_embeddings|create_embeddings\\("
+      - "::vector|vector\\(1536\\)"
+
+  # ai-functions: azure_openai.create() batch classification
+  - id: enrich-az-aifn-03
+    task: "I have a support_tickets table with a description column. I want to classify each ticket into categories using GPT-4 directly in SQL on Azure PostgreSQL. Show me the pattern."
+    difficulty: hard
+    target_skill: azure-postgresql/ai-functions
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "azure_openai\\.create\\(|azure_openai\\.create"
+      - "UPDATE|SELECT.*FROM.*support_tickets"
+
+  # networking-ssl: Private DNS zone naming requirement
+  - id: enrich-az-net-02
+    task: "I set up a Private Endpoint for my Azure PostgreSQL Flexible Server but DNS resolution isn't working from my VNet. What's the Private DNS zone I need to create?"
+    difficulty: hard
+    target_skill: azure-postgresql/networking-ssl
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "privatelink\\.postgres|private.*dns.*zone"
+      - "postgres\\.database\\.azure\\.com"
+
+  # provisioning: storage immutability + SKU format
+  - id: enrich-az-prov-02
+    task: "I provisioned my Azure PostgreSQL with 128GB storage but now I only need 64GB. Can I shrink it? Also, what's the correct SKU format for the az CLI vs Terraform?"
+    difficulty: hard
+    target_skill: azure-postgresql/provisioning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "cannot.*shrink|immutable|cannot.*reduce|only.*increase"
+      - "Standard_D|sku|GP_|MO_|B_"
+
+  # ha-disaster-recovery: PITR creates NEW server
+  - id: enrich-az-ha-03
+    task: "I need to restore my Azure PostgreSQL to 2 hours ago. Will PITR restore in-place or do I get a new server? What happens to my connection strings and firewall rules?"
+    difficulty: hard
+    target_skill: azure-postgresql/ha-disaster-recovery
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "new.*server|new.*hostname|different.*server"
+      - "connection.*string|firewall|reconfigure"
+
+  # extension-lifecycle: allowlist append (not replace)
+  - id: enrich-az-ext-03
+    task: "I want to add pg_cron to my Azure PostgreSQL extensions. I already have vector and postgis enabled. What's the safe way to update the azure.extensions parameter without breaking existing extensions?"
+    difficulty: hard
+    target_skill: azure-postgresql/extension-lifecycle
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "append|GET.*current|existing.*value"
+      - "azure\\.extensions|parameter.*set"
+
+  # rag-pipeline: in-database embedding for query vector
+  - id: enrich-az-rag-03
+    task: "In my RAG pipeline on Azure PostgreSQL, I want to embed the user's search query directly in SQL instead of calling an external API. How do I combine embedding + vector search in one query?"
+    difficulty: hard
+    target_skill: azure-postgresql/rag-pipeline
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "azure_openai\\.create_embeddings|create_embeddings\\("
+      - "ORDER BY.*<=>|vector.*search"
+
+  # upgrades-maintenance: --validate-only + post-MVU ANALYZE
+  - id: enrich-az-upg-03
+    task: "Before upgrading my production Azure PostgreSQL from v14 to v16, how do I do a dry-run validation? And what's the critical step I must take immediately after the upgrade completes?"
+    difficulty: hard
+    target_skill: azure-postgresql/upgrades-maintenance
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "validate.only|--validate"
+      - "ANALYZE|vacuumdb|statistics"
