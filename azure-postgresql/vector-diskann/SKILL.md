@@ -106,11 +106,15 @@ LIMIT 10;
 
 ## Common Mistakes
 
-1. **Wrong dimension**: Vector dimension in column must match embedding model output (e.g., 1536 for text-embedding-ada-002, 3072 for text-embedding-3-large)
-2. **HNSW for large datasets**: HNSW stores entire graph in memory. For > 1M vectors, DiskANN is more cost-effective
+1. **Wrong dimension**: Vector dimension in column must match embedding model output (e.g., 1536 for text-embedding-ada-002, 3072 for text-embedding-3-large, 768 for Cohere embed-v3)
+2. **HNSW for large datasets**: HNSW stores entire graph in memory. For > 1M vectors, DiskANN is more cost-effective. For > 10M vectors, DiskANN is the ONLY viable option on Azure
 3. **Missing operator class**: Must specify `vector_cosine_ops`, `vector_l2_ops`, or `vector_ip_ops` when creating index
-4. **No filtered index**: For filtered queries, create a partial index or use DiskANN which handles filters natively
+4. **No filtered index**: For filtered queries, create a partial index or use DiskANN which handles pre-filtering natively (unlike HNSW which requires post-filtering)
 5. **403/PermissionDenied**: Ensure both `vector` and `pg_diskann` are in the azure.extensions allowlist
+6. **DiskANN not available on other providers**: `pg_diskann` is Azure-exclusive. On RDS/Supabase/Neon, use HNSW only
+7. **Quantization not enabled**: For DiskANN with > 5M vectors, enable scalar quantization to reduce storage by 4x: `CREATE INDEX ... USING diskann (embedding vector_cosine_ops) WITH (quantizer = 'sq8')`
+8. **Wrong ef_search for recall target**: Default `hnsw.ef_search = 40` gives ~95% recall. For 99%+ recall, use `SET hnsw.ef_search = 200` (trades latency for accuracy)
+9. **Not using `CONCURRENTLY` for production**: Vector index builds lock the table. Always use `CREATE INDEX CONCURRENTLY` on tables with active traffic
 
 ## Verification
 

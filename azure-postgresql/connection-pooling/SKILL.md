@@ -86,6 +86,9 @@ az postgres flexible-server parameter set \
 3. **SET commands lost**: `SET search_path = ...` is lost between transactions in transaction mode. Use `ALTER ROLE ... SET` for persistent settings
 4. **403/PermissionDenied**: PgBouncer parameters require server admin. Use `az CLI` not SQL to configure
 5. **Entra tokens with PgBouncer**: Token-based auth works but requires session mode or specific PgBouncer auth settings
+6. **Ignoring pool_size math**: Default pool_size=50 means 50 connections per user/database pair. With 3 databases and 5 users, that's up to 750 backend connections. Ensure max_connections on the server supports this
+7. **Connecting to pgbouncer admin database on Azure**: `SHOW POOLS` and `SHOW STATS` are not available through the built-in PgBouncer on Azure Flexible Server. Use `pg_stat_activity` and Azure metrics instead
+8. **Not setting server_reset_query**: In transaction mode, leftover session state from one client can leak to the next. Azure built-in PgBouncer handles this automatically
 
 ## Verification
 

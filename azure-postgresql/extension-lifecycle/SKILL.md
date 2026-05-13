@@ -88,8 +88,12 @@ ALTER EXTENSION vector UPDATE TO '0.8.0';
 1. **Using marketing name**: `CREATE EXTENSION pgvector` fails. Use the binary name: `CREATE EXTENSION vector`
 2. **Forgetting allowlist**: Extension must be in `azure.extensions` parameter before CREATE EXTENSION works
 3. **No restart after preload change**: `shared_preload_libraries` requires server restart to take effect
-4. **Overwriting allowlist**: `az parameter set --value "new_ext"` replaces the entire list. Always append to current value
-5. **403/PermissionDenied**: You have `azure_pg_admin` role, not superuser. Some extensions (e.g., file_fdw) are not available on Azure
+4. **Overwriting allowlist**: `az parameter set --value "new_ext"` replaces the entire list. Always GET current value first and append
+5. **403/PermissionDenied**: You have `azure_pg_admin` role, not superuser. Some extensions (e.g., file_fdw, adminpack) are not available on Azure
+6. **Attempting DROP EXTENSION CASCADE**: Safe on dev, but on production Azure databases check dependencies first with `SELECT * FROM pg_depend WHERE deptype = 'e'`
+7. **Version pinning forgotten**: `CREATE EXTENSION vector VERSION '0.7.0'` ensures deterministic builds. Without it, the server's default_version is used which may differ between environments
+8. **Extensions not available on Azure**: `pg_cron`, `pg_partman`, `pgvector`, `postgis`, `pg_stat_statements` ARE available. `file_fdw`, `dblink to external`, `plpython3u` are NOT
+9. **Ignoring `SELECT * FROM pg_available_extensions`**: This shows the exact version available on your server. Don't assume a version exists just because docs mention it
 
 ## Verification
 
