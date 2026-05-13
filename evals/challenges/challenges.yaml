@@ -995,3 +995,45 @@ challenges:
       - "validate.only|--validate"
       - "ANALYZE|vacuumdb"
       - "extension.*update|ALTER EXTENSION"
+
+  # ─── NEGATIVE CHALLENGES (should NOT activate targeted skill) ──────────────
+
+  # MySQL question should not activate PostgreSQL jsonb skill
+  - id: neg-mysql-json-01
+    task: "How do I use JSON_TABLE in MySQL 8.0 to extract nested array elements?"
+    difficulty: easy
+    target_skill: postgresql/jsonb-patterns
+    platform_scope: generic
+    expected_activation: false
+
+  # General Python question should not activate connection-pooling skill
+  - id: neg-python-pool-01
+    task: "How do I implement a thread pool in Python using concurrent.futures for CPU-bound tasks?"
+    difficulty: easy
+    target_skill: azure-postgresql/connection-pooling
+    platform_scope: azure-postgresql
+    expected_activation: false
+
+  # Basic SQL question should not activate RAG pipeline skill
+  - id: neg-basic-sql-01
+    task: "Write a SQL query to find duplicate rows in a table based on email column."
+    difficulty: easy
+    target_skill: azure-postgresql/rag-pipeline
+    platform_scope: azure-postgresql
+    expected_activation: false
+
+  # AWS RDS question should not activate Azure provisioning skill
+  - id: neg-aws-rds-01
+    task: "How do I set up a Multi-AZ deployment for Amazon RDS PostgreSQL with read replicas?"
+    difficulty: easy
+    target_skill: azure-postgresql/provisioning
+    platform_scope: azure-postgresql
+    expected_activation: false
+
+  # Generic Linux admin question should not activate networking-ssl skill
+  - id: neg-linux-net-01
+    task: "How do I configure iptables rules to allow only SSH and HTTP traffic on my Ubuntu server?"
+    difficulty: easy
+    target_skill: azure-postgresql/networking-ssl
+    platform_scope: azure-postgresql
+    expected_activation: false
