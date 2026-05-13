@@ -1,0 +1,121 @@
+{
+  "schema_version": "1.0",
+  "name": "postgresql-agent-skills",
+  "display_name": "PostgreSQL Agent Skills",
+  "description": "Expert-curated skills for AI coding agents working with PostgreSQL and Azure Database for PostgreSQL",
+  "publisher": "microsoft",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": "https://github.com/microsoft/postgresql-agent-skills",
+  "platform_scope_filter": {
+    "postgresql": "Generic PostgreSQL best practices (no cloud vendor lock-in)",
+    "azure-postgresql": "Azure Database for PostgreSQL specific guidance"
+  },
+  "skills": [
+    {
+      "id": "advanced-indexing",
+      "path": "postgresql/advanced-indexing/SKILL.md",
+      "platform_scope": "postgresql"
+    },
+    {
+      "id": "jsonb-patterns",
+      "path": "postgresql/jsonb-patterns/SKILL.md",
+      "platform_scope": "postgresql"
+    },
+    {
+      "id": "query-performance",
+      "path": "postgresql/query-performance/SKILL.md",
+      "platform_scope": "postgresql"
+    },
+    {
+      "id": "table-partitioning",
+      "path": "postgresql/table-partitioning/SKILL.md",
+      "platform_scope": "postgresql"
+    },
+    {
+      "id": "row-level-security",
+      "path": "postgresql/row-level-security/SKILL.md",
+      "platform_scope": "postgresql"
+    },
+    {
+      "id": "full-text-search",
+      "path": "postgresql/full-text-search/SKILL.md",
+      "platform_scope": "postgresql"
+    },
+    {
+      "id": "connection-management",
+      "path": "postgresql/connection-management/SKILL.md",
+      "platform_scope": "postgresql"
+    },
+    {
+      "id": "logical-replication",
+      "path": "postgresql/logical-replication/SKILL.md",
+      "platform_scope": "postgresql"
+    },
+    {
+      "id": "extension-lifecycle",
+      "path": "azure-postgresql/extension-lifecycle/SKILL.md",
+      "platform_scope": "azure-postgresql"
+    },
+    {
+      "id": "provisioning",
+      "path": "azure-postgresql/provisioning/SKILL.md",
+      "platform_scope": "azure-postgresql"
+    },
+    {
+      "id": "ha-disaster-recovery",
+      "path": "azure-postgresql/ha-disaster-recovery/SKILL.md",
+      "platform_scope": "azure-postgresql"
+    },
+    {
+      "id": "entra-id-auth",
+      "path": "azure-postgresql/entra-id-auth/SKILL.md",
+      "platform_scope": "azure-postgresql"
+    },
+    {
+      "id": "networking-ssl",
+      "path": "azure-postgresql/networking-ssl/SKILL.md",
+      "platform_scope": "azure-postgresql"
+    },
+    {
+      "id": "connection-pooling",
+      "path": "azure-postgresql/connection-pooling/SKILL.md",
+      "platform_scope": "azure-postgresql"
+    },
+    {
+      "id": "intelligent-tuning",
+      "path": "azure-postgresql/intelligent-tuning/SKILL.md",
+      "platform_scope": "azure-postgresql"
+    },
+    {
+      "id": "upgrades-maintenance",
+      "path": "azure-postgresql/upgrades-maintenance/SKILL.md",
+      "platform_scope": "azure-postgresql"
+    },
+    {
+      "id": "vector-diskann",
+      "path": "azure-postgresql/vector-diskann/SKILL.md",
+      "platform_scope": "azure-postgresql"
+    },
+    {
+      "id": "embeddings-azure-ai",
+      "path": "azure-postgresql/embeddings-azure-ai/SKILL.md",
+      "platform_scope": "azure-postgresql"
+    },
+    {
+      "id": "rag-pipeline",
+      "path": "azure-postgresql/rag-pipeline/SKILL.md",
+      "platform_scope": "azure-postgresql"
+    },
+    {
+      "id": "azure-ai-extension",
+      "path": "azure-postgresql/azure-ai-extension/SKILL.md",
+      "platform_scope": "azure-postgresql"
+    },
+    {
+      "id": "ai-functions",
+      "path": "azure-postgresql/ai-functions/SKILL.md",
+      "platform_scope": "azure-postgresql"
+    }
+  ]
+}

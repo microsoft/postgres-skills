@@ -1,0 +1,29 @@
+{
+  "$schema": "https://claude.ai/marketplace/schema/v1",
+  "name": "postgresql-agent-skills",
+  "display_name": "PostgreSQL Agent Skills",
+  "description": "Expert PostgreSQL and Azure Database for PostgreSQL skills for Claude Code",
+  "version": "0.1.0",
+  "publisher": {
+    "name": "Microsoft",
+    "url": "https://github.com/microsoft"
+  },
+  "categories": ["databases", "cloud", "devops"],
+  "icon": "icon.png",
+  "license": "MIT",
+  "repository": "https://github.com/microsoft/postgresql-agent-skills",
+  "mcp": {
+    "version": "2024-11-05",
+    "transport": "stdio"
+  },
+  "skills_manifest": ".skills.json",
+  "scope_filter": {
+    "type": "single_package",
+    "scopes": ["postgresql", "azure-postgresql"],
+    "default": "postgresql"
+  },
+  "activation": {
+    "file_patterns": ["*.sql", "*.pgsql", "migrations/**", "prisma/schema.prisma"],
+    "context_keywords": ["postgresql", "postgres", "pg_", "azure database"]
+  }
+}

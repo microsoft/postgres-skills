@@ -1,0 +1,12 @@
+{
+  "name": "postgresql-agent-skills",
+  "display_name": "PostgreSQL Agent Skills",
+  "description": "Expert PostgreSQL and Azure Database for PostgreSQL skills for Cursor",
+  "version": "0.1.0",
+  "publisher": "microsoft",
+  "entry_point": "../.skills.json",
+  "activation": {
+    "languages": ["sql", "plpgsql"],
+    "file_patterns": ["*.sql", "*.pgsql", "migrations/**"]
+  }
+}
