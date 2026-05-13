@@ -335,6 +335,82 @@ def mock_agent(task: str, skill_context: str, model: str) -> str:
     return f"[MOCK] Would answer: {task[:100]}... (skill={'provided' if skill_context else 'none'})"
 
 
+def azure_openai_agent(task: str, skill_context: str, model: str) -> str:
+    """Real agent using Azure OpenAI endpoint."""
+    try:
+        from openai import AzureOpenAI
+    except ImportError:
+        print("ERROR: openai package required. Install with: pip install openai")
+        sys.exit(1)
+
+    endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT", "")
+    api_key = os.environ.get("AZURE_OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
+    api_version = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
+    deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT", model)
+
+    if not endpoint or not api_key:
+        print("ERROR: Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY (or OPENAI_API_KEY)")
+        print("  Example:")
+        print("    $env:AZURE_OPENAI_ENDPOINT = 'https://your-resource.openai.azure.com'")
+        print("    $env:AZURE_OPENAI_API_KEY = '<key>'")
+        print("    $env:AZURE_OPENAI_DEPLOYMENT = 'gpt-4o'  # optional, defaults to --model")
+        sys.exit(1)
+
+    client = AzureOpenAI(
+        azure_endpoint=endpoint,
+        api_key=api_key,
+        api_version=api_version,
+    )
+
+    system_prompt = "You are a PostgreSQL expert assistant helping developers with database tasks."
+    if skill_context:
+        system_prompt += f"\n\nUse the following skill reference:\n\n{skill_context}"
+
+    response = client.chat.completions.create(
+        model=deployment,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": task},
+        ],
+        temperature=0.2,
+        max_tokens=1500,
+    )
+
+    return response.choices[0].message.content or ""
+
+
+def openai_agent(task: str, skill_context: str, model: str) -> str:
+    """Real agent using OpenAI API directly."""
+    try:
+        from openai import OpenAI
+    except ImportError:
+        print("ERROR: openai package required. Install with: pip install openai")
+        sys.exit(1)
+
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    if not api_key:
+        print("ERROR: Set OPENAI_API_KEY environment variable")
+        sys.exit(1)
+
+    client = OpenAI(api_key=api_key)
+
+    system_prompt = "You are a PostgreSQL expert assistant helping developers with database tasks."
+    if skill_context:
+        system_prompt += f"\n\nUse the following skill reference:\n\n{skill_context}"
+
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": task},
+        ],
+        temperature=0.2,
+        max_tokens=1500,
+    )
+
+    return response.choices[0].message.content or ""
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -344,6 +420,8 @@ if __name__ == "__main__":
     parser.add_argument("--output", default="evals/results")
     parser.add_argument("--model", default="gpt-4o")
     parser.add_argument("--dry-run", action="store_true", help="Use mock agent")
+    parser.add_argument("--provider", default="auto", choices=["auto", "azure", "openai"],
+                        help="LLM provider: azure, openai, or auto (detect from env vars)")
     args = parser.parse_args()
 
     pipeline = EvalPipeline(
@@ -355,5 +433,30 @@ if __name__ == "__main__":
     if args.dry_run:
         pipeline.run(mock_agent, model=args.model)
     else:
-        print("ERROR: No real agent configured. Use --dry-run for pipeline validation.")
-        sys.exit(1)
+        # Auto-detect provider
+        provider = args.provider
+        if provider == "auto":
+            if os.environ.get("AZURE_OPENAI_ENDPOINT"):
+                provider = "azure"
+            elif os.environ.get("OPENAI_API_KEY"):
+                provider = "openai"
+            else:
+                print("ERROR: No API credentials found. Set environment variables:")
+                print("")
+                print("  For Azure OpenAI:")
+                print("    $env:AZURE_OPENAI_ENDPOINT = 'https://your-resource.openai.azure.com'")
+                print("    $env:AZURE_OPENAI_API_KEY = '<key>'")
+                print("    $env:AZURE_OPENAI_DEPLOYMENT = 'gpt-4o'  # optional")
+                print("")
+                print("  For OpenAI:")
+                print("    $env:OPENAI_API_KEY = 'sk-...'")
+                print("")
+                print("  Or use --dry-run for pipeline validation without API calls.")
+                sys.exit(1)
+
+        if provider == "azure":
+            print(f"Using Azure OpenAI (deployment: {os.environ.get('AZURE_OPENAI_DEPLOYMENT', args.model)})")
+            pipeline.run(azure_openai_agent, model=args.model)
+        else:
+            print(f"Using OpenAI ({args.model})")
+            pipeline.run(openai_agent, model=args.model)
