@@ -66,12 +66,31 @@ class HallucinationDetector:
         (r"sudo\s+.*postgres", "No OS-level access on managed PostgreSQL"),
     ]
 
+    # Patterns where the match should be suppressed if preceded by negation context
+    NEGATION_EXEMPT_PATTERNS = {r"GRANT\s+.*superuser"}
+    NEGATION_CONTEXT = re.compile(
+        r"(cannot|does not allow|not\s+possible|not\s+allowed|not\s+supported|not\s+available|do not|never)\s+",
+        re.IGNORECASE
+    )
+
     def check(self, output: str) -> list[dict]:
         """Returns list of hallucination findings."""
         findings = []
         for pattern, reason in self.HALLUCINATION_PATTERNS:
-            matches = re.findall(pattern, output, re.IGNORECASE)
+            matches = list(re.finditer(pattern, output, re.IGNORECASE))
             if matches:
+                # Filter out matches preceded by negation context (within 60 chars)
+                if pattern in self.NEGATION_EXEMPT_PATTERNS:
+                    real_matches = []
+                    for m in matches:
+                        preceding = output[max(0, m.start() - 60):m.start()]
+                        if not self.NEGATION_CONTEXT.search(preceding):
+                            real_matches.append(m.group())
+                    if not real_matches:
+                        continue
+                    matches = real_matches
+                else:
+                    matches = [m.group() for m in matches]
                 findings.append({
                     "pattern": pattern,
                     "reason": reason,

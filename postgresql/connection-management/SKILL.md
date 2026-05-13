@@ -50,15 +50,16 @@ ORDER BY idle_time DESC;
 
 **Step 2: Set safety timeouts**
 
+For self-managed PostgreSQL:
 ```sql
 -- Kill connections idle in transaction for > 5 minutes
-ALTER SYSTEM SET idle_in_transaction_session_timeout = '5min';
+ALTER DATABASE mydb SET idle_in_transaction_session_timeout = '5min';
 
--- Kill completely idle connections after 30 minutes
-ALTER SYSTEM SET idle_session_timeout = '30min';  -- PostgreSQL 14+
-
-SELECT pg_reload_conf();
+-- Kill completely idle connections after 30 minutes (PostgreSQL 14+)
+ALTER DATABASE mydb SET idle_session_timeout = '30min';
 ```
+
+For managed PostgreSQL (Azure, RDS, etc.) use `ALTER DATABASE` or the cloud portal server parameters page. Do NOT use `ALTER SYSTEM SET` (unavailable on managed services).
 
 **Step 3: Right-size max_connections**
 
@@ -81,6 +82,7 @@ SHOW max_connections;  -- Default: 100
 2. **Session-mode pooling with serverless**: Session mode holds connections open. Use transaction mode for short-lived requests
 3. **No idle timeout**: Idle connections accumulate overnight from crashed clients. Always set `idle_in_transaction_session_timeout`
 4. **Application-level pooling alone**: Libraries like HikariCP/SQLAlchemy pool per-process. With multiple pods, you still need a server-side pooler
+5. **Using `ALTER SYSTEM SET` on managed PostgreSQL**: This command is unavailable on Azure/RDS. Use `ALTER DATABASE` or the server parameters UI instead
 
 ## Verification
 

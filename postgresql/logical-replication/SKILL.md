@@ -49,6 +49,8 @@ CREATE PUBLICATION my_pub FOR TABLE orders, customers;
 CREATE PUBLICATION my_pub FOR ALL TABLES;
 ```
 
+> **Note:** On managed PostgreSQL (Azure, RDS), change `wal_level` via the cloud portal or server parameters API, not `postgresql.conf` directly. Use `SHOW` commands to verify current settings.
+
 **Step 2: Configure subscriber**
 
 ```sql
@@ -81,6 +83,7 @@ FROM pg_replication_slots;
 2. **wal_level not set**: `wal_level = logical` requires server restart. Plan for downtime or set during maintenance window
 3. **Slot bloat**: Inactive replication slots prevent WAL cleanup, growing disk usage. Drop unused slots
 4. **Schema changes not replicated**: DDL (ALTER TABLE) is NOT replicated. Apply schema changes on both publisher and subscriber manually
+5. **Referencing `postgresql.conf` on managed services**: On Azure/RDS, use the server parameters API or `ALTER DATABASE` to change settings. Never reference config files directly
 
 ## Verification
 
