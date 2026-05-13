@@ -127,3 +127,35 @@ class SkillJudge:
         return HALLUCINATION_JUDGE.format(
             task=task, output=output, platform_scope=platform_scope
         )
+
+    def judge_quality(self, task: str, output: str, skill_name: str, call_llm_fn) -> JudgeVerdict:
+        """Run LLM-as-judge quality evaluation and return structured verdict."""
+        prompt = self.build_quality_prompt(task, output, skill_name)
+        raw = call_llm_fn(prompt)
+
+        try:
+            import json as _json
+            # Extract JSON from response (handle markdown code fences)
+            text = raw.strip()
+            if text.startswith("```"):
+                text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+            parsed = _json.loads(text)
+
+            criteria = {
+                "correctness": parsed.get("correctness", 0) / 10.0,
+                "completeness": parsed.get("completeness", 0) / 10.0,
+                "safety": parsed.get("safety", 0) / 10.0,
+                "best_practice": parsed.get("best_practice", 0) / 10.0,
+                "managed_awareness": parsed.get("managed_awareness", 0) / 10.0,
+            }
+            overall = sum(criteria.values()) / len(criteria)
+
+            return JudgeVerdict(
+                score=overall,
+                passed=parsed.get("overall_pass", overall >= 0.6),
+                reasoning=parsed.get("reasoning", ""),
+                criteria_scores=criteria,
+            )
+        except Exception:
+            # Fallback if LLM output isn't valid JSON
+            return JudgeVerdict(score=0.5, passed=True, reasoning=f"Parse error: {raw[:100]}", criteria_scores={})

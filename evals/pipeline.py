@@ -60,6 +60,7 @@ class SkillMetrics:
     false_negatives: int = 0  # not activated when should
     true_negatives: int = 0   # correctly not activated
     pattern_scores: list[float] = field(default_factory=list)
+    judge_scores: list[float] = field(default_factory=list)
     hallucination_count: int = 0
 
 
@@ -83,6 +84,7 @@ class EvalPipeline:
         self.challenges: list[Challenge] = []
         self.results: list[EvalResult] = []
         self.skill_metrics: dict[str, SkillMetrics] = {}
+        self._judge_agent_fn = None  # Set during run() for judge LLM calls
 
     def load_challenges(self) -> list[Challenge]:
         """Load challenge definitions from YAML."""
@@ -151,6 +153,24 @@ class EvalPipeline:
         if not challenge.expected_activation and pattern_result.score > 0.5:
             activation_correct = False
 
+        # LLM-as-judge quality scoring (only for positive challenges with real agent)
+        judge_verdict = None
+        if challenge.expected_activation and self._judge_agent_fn and output and not output.startswith("[MOCK]"):
+            def _call_judge_llm(prompt: str) -> str:
+                return self._judge_agent_fn(prompt, "", model)
+            verdict = self.judge.judge_quality(
+                task=challenge.task,
+                output=output,
+                skill_name=challenge.target_skill,
+                call_llm_fn=_call_judge_llm,
+            )
+            judge_verdict = {
+                "score": verdict.score,
+                "passed": verdict.passed,
+                "reasoning": verdict.reasoning,
+                "criteria_scores": verdict.criteria_scores,
+            }
+
         result = EvalResult(
             challenge_id=challenge.id,
             group=group,
@@ -167,6 +187,7 @@ class EvalPipeline:
             sql_validity=sql_result,
             token_budget=token_result,
             activation_correct=activation_correct,
+            judge_verdict=judge_verdict,
             latency_ms=latency_ms,
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
@@ -204,6 +225,8 @@ class EvalPipeline:
                     m.false_positives += 1
 
             m.pattern_scores.append(result.pattern_match.get("score", 0.0))
+            if result.judge_verdict and "score" in result.judge_verdict:
+                m.judge_scores.append(result.judge_verdict["score"])
             m.hallucination_count += len(result.hallucinations)
 
         self.skill_metrics = metrics
@@ -224,16 +247,36 @@ class EvalPipeline:
         recall = total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else 0
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
 
-        # Compare control vs test
-        control_scores = [
-            r.pattern_match.get("score", 0) for r in self.results if r.group == "control"
+        # Compare control vs test using JUDGE scores (semantic quality)
+        # Falls back to pattern scores if judge wasn't used
+        control_judge_scores = [
+            r.judge_verdict["score"] for r in self.results
+            if r.group == "control" and r.judge_verdict and "score" in r.judge_verdict
         ]
-        test_scores = [
-            r.pattern_match.get("score", 0) for r in self.results if r.group == "test"
+        test_judge_scores = [
+            r.judge_verdict["score"] for r in self.results
+            if r.group == "test" and r.judge_verdict and "score" in r.judge_verdict
         ]
 
-        avg_control = sum(control_scores) / len(control_scores) if control_scores else 0
-        avg_test = sum(test_scores) / len(test_scores) if test_scores else 0
+        # Pattern-based delta (legacy)
+        control_pattern_scores = [
+            r.pattern_match.get("score", 0) for r in self.results if r.group == "control"
+        ]
+        test_pattern_scores = [
+            r.pattern_match.get("score", 0) for r in self.results if r.group == "test"
+        ]
+        avg_control_pattern = sum(control_pattern_scores) / len(control_pattern_scores) if control_pattern_scores else 0
+        avg_test_pattern = sum(test_pattern_scores) / len(test_pattern_scores) if test_pattern_scores else 0
+
+        # Use judge scores for delta if available, otherwise fall back to pattern
+        if control_judge_scores and test_judge_scores:
+            avg_control = sum(control_judge_scores) / len(control_judge_scores)
+            avg_test = sum(test_judge_scores) / len(test_judge_scores)
+            delta_method = "judge"
+        else:
+            avg_control = avg_control_pattern
+            avg_test = avg_test_pattern
+            delta_method = "pattern"
         delta = avg_test - avg_control
 
         report = {
@@ -248,9 +291,11 @@ class EvalPipeline:
                 "false_activation_rate": round(total_fp / (total_fp + total_tn), 3) if (total_fp + total_tn) > 0 else 0,
             },
             "delta": {
+                "method": delta_method,
                 "control_avg_score": round(avg_control, 3),
                 "test_avg_score": round(avg_test, 3),
                 "improvement": round(delta, 3),
+                "pattern_delta": round(avg_test_pattern - avg_control_pattern, 3),
             },
             "per_skill": {
                 skill: {
@@ -259,6 +304,7 @@ class EvalPipeline:
                     "fn": m.false_negatives,
                     "tn": m.true_negatives,
                     "avg_pattern_score": round(sum(m.pattern_scores) / len(m.pattern_scores), 3) if m.pattern_scores else 0,
+                    "avg_judge_score": round(sum(m.judge_scores) / len(m.judge_scores), 3) if m.judge_scores else None,
                     "hallucinations": m.hallucination_count,
                 }
                 for skill, m in metrics.items()
@@ -292,13 +338,21 @@ class EvalPipeline:
         print(f"Results saved: {results_path}")
         return report_path, results_path
 
-    def run(self, agent_fn, model: str = "gpt-4o"):
+    def run(self, agent_fn, model: str = "gpt-4o", use_judge: bool = True):
         """Execute full pipeline: control + test for all challenges."""
         self.load_challenges()
 
+        # Wire up judge agent function (same LLM as the eval agent)
+        if use_judge and agent_fn != mock_agent:
+            self._judge_agent_fn = agent_fn
+        else:
+            self._judge_agent_fn = None
+
+        judge_status = "enabled (LLM-as-judge)" if self._judge_agent_fn else "disabled (pattern-only)"
         print(f"\n{'='*60}")
         print(f"Running eval pipeline: {len(self.challenges)} challenges x 2 groups")
         print(f"Model: {model}")
+        print(f"Judge: {judge_status}")
         print(f"{'='*60}\n")
 
         for i, challenge in enumerate(self.challenges):
@@ -321,7 +375,9 @@ class EvalPipeline:
         print(f"Precision: {report['summary']['precision']}")
         print(f"Recall:    {report['summary']['recall']}")
         print(f"F1 Score:  {report['summary']['f1_score']}")
-        print(f"Delta (test - control): {report['delta']['improvement']}")
+        print(f"Delta ({report['delta']['method']}): {report['delta']['improvement']}")
+        if report['delta']['method'] == 'judge':
+            print(f"Delta (pattern, legacy): {report['delta']['pattern_delta']}")
         print(f"Hallucinations: {report['summary']['hallucination_rate']}")
         print(f"False Activation Rate: {report['summary']['false_activation_rate']}")
 
@@ -422,6 +478,8 @@ if __name__ == "__main__":
     parser.add_argument("--dry-run", action="store_true", help="Use mock agent")
     parser.add_argument("--provider", default="auto", choices=["auto", "azure", "openai"],
                         help="LLM provider: azure, openai, or auto (detect from env vars)")
+    parser.add_argument("--no-judge", action="store_true",
+                        help="Disable LLM-as-judge scoring (faster, uses pattern-only delta)")
     args = parser.parse_args()
 
     pipeline = EvalPipeline(
@@ -431,7 +489,7 @@ if __name__ == "__main__":
     )
 
     if args.dry_run:
-        pipeline.run(mock_agent, model=args.model)
+        pipeline.run(mock_agent, model=args.model, use_judge=False)
     else:
         # Auto-detect provider
         provider = args.provider
@@ -454,9 +512,10 @@ if __name__ == "__main__":
                 print("  Or use --dry-run for pipeline validation without API calls.")
                 sys.exit(1)
 
+        use_judge = not args.no_judge
         if provider == "azure":
             print(f"Using Azure OpenAI (deployment: {os.environ.get('AZURE_OPENAI_DEPLOYMENT', args.model)})")
-            pipeline.run(azure_openai_agent, model=args.model)
+            pipeline.run(azure_openai_agent, model=args.model, use_judge=use_judge)
         else:
             print(f"Using OpenAI ({args.model})")
-            pipeline.run(openai_agent, model=args.model)
+            pipeline.run(openai_agent, model=args.model, use_judge=use_judge)
