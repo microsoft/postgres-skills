@@ -70,6 +70,10 @@ SHOW max_connections;  -- Default: 100
 -- Each connection uses ~5-10MB RAM (work_mem + sort buffers)
 ```
 
+> **⚠️ `max_connections` and `shared_buffers` are postmaster-level parameters** requiring a server restart.
+> `SET` and `ALTER SYSTEM` do not work for these on managed services. On Azure Flexible Server,
+> change them via the **Server Parameters** blade in the portal or `az postgres flexible-server parameter set`.
+
 **Step 4: Connection pooling decision tree**
 
 - **< 50 connections**: No pooler needed
@@ -84,6 +88,7 @@ SHOW max_connections;  -- Default: 100
 4. **Missing `idle_in_transaction_session_timeout`**: Crashed clients leave open transactions that hold locks and prevent VACUUM. Always set: `ALTER DATABASE mydb SET idle_in_transaction_session_timeout = '5min'`
 5. **`idle_session_timeout` (PG 14+) not used**: Completely idle connections (not in transaction) still consume a backend slot. Set to 30min for non-pooled connections to auto-reclaim slots
 6. **Using `ALTER SYSTEM SET` on managed PostgreSQL**: This command is unavailable on Azure/RDS/Cloud SQL. Use `ALTER DATABASE` or the server parameters UI instead
+7. **Using `SET` for postmaster-level params**: `SET max_connections` or `SET shared_buffers` has no effect (session-level SET only works for runtime parameters). These require a server restart. Change via portal or CLI on managed services
 7. **Connection storm after restart**: All app instances reconnect simultaneously. Use exponential backoff with jitter in connection retry logic, and set PgBouncer `min_pool_size` to pre-warm connections
 
 ## Verification
@@ -104,3 +109,5 @@ FROM pg_stat_activity;
 - **"too many clients" error**: Terminate idle connections: `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND now() - state_change > interval '10 min'`
 - **Cannot change max_connections**: Requires restart. Use pooler as immediate fix
 - **Pooler breaks prepared statements**: Switch from transaction to session mode, or use `DEALLOCATE ALL` in pool reset query
+- **idle_in_transaction connections accumulating**: Set `idle_in_transaction_session_timeout = '30s'` at database level: `ALTER DATABASE mydb SET idle_in_transaction_session_timeout = '30s';`
+- **Permission denied on pg_terminate_backend**: Requires `pg_signal_backend` role or ownership of the backend's session. On Azure, `azure_pg_admin` has this privilege

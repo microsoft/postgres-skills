@@ -23,7 +23,7 @@
     "default": "postgresql"
   },
   "activation": {
-    "file_patterns": ["*.sql", "*.pgsql", "migrations/**", "prisma/schema.prisma"],
-    "context_keywords": ["postgresql", "postgres", "pg_", "azure database"]
+    "file_patterns": ["*.sql", "*.pgsql", "migrations/**", "prisma/schema.prisma", "*.prisma", "docker-compose*.yml"],
+    "context_keywords": ["postgresql", "postgres", "azure database for postgresql", "flexible server", "pgvector", "diskann", "azure_ai", "azure_openai"]
   }
 }

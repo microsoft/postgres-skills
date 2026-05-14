@@ -30,6 +30,7 @@ platform_scope: azure-postgresql
 ## Prerequisites
 
 - Azure Database for PostgreSQL Flexible Server
+- Role: `azure_pg_admin` (required for azure_ai functions; never superuser on Flexible Server)
 - `azure_ai` extension installed and configured with Azure OpenAI endpoint
 - Azure OpenAI deployment with a chat/completion model (e.g., gpt-4o)
 - MCP `execute_sql` tool or `psql`
@@ -98,6 +99,7 @@ LIMIT 50;
 5. **Token overflow**: Truncate long content: `left(content, 4000)` for classification tasks. GPT-4o has 128K context but Azure per-request limits apply
 6. **Cast output for typed columns**: For numeric scores: `::int`. For structured data: `::jsonb`. Raw output is always `text`
 7. **Error handling**: 429/500 errors from Azure OpenAI surface as PostgreSQL exceptions. Wrap in `BEGIN...EXCEPTION WHEN OTHERS` for batch resilience
+8. **Function naming**: `azure_openai.create()` = text generation (returns text), `azure_openai.create_embeddings()` = vector embeddings (returns vector). Do not confuse them. For embeddings, use `azure-postgresql/embeddings-azure-ai/`
 
 ## Verification
 
@@ -120,3 +122,4 @@ SELECT azure_openai.create(
 - **Timeout**: Reduce `max_tokens` or simplify prompt. Set `statement_timeout` higher for AI calls
 - **Rate limit (429)**: Add `pg_sleep(1)` between batch operations or request higher TPM quota
 - **Empty response**: The model may refuse unsafe prompts. Check content filtering settings in Azure OpenAI
+- **403 / permission denied**: Verify your role has `azure_pg_admin`: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` If false, grant via Azure Portal > Server > Roles

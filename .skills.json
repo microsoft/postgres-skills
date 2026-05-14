@@ -15,107 +15,128 @@
     {
       "id": "advanced-indexing",
       "path": "postgresql/advanced-indexing/SKILL.md",
-      "platform_scope": "postgresql"
+      "platform_scope": "postgresql",
+      "activation_keywords": ["index", "btree", "gin", "gist", "brin", "partial index", "expression index", "covering index", "seq scan", "index type", "reindex"]
     },
     {
       "id": "jsonb-patterns",
       "path": "postgresql/jsonb-patterns/SKILL.md",
-      "platform_scope": "postgresql"
+      "platform_scope": "postgresql",
+      "activation_keywords": ["jsonb", "json column", "containment", "jsonb_set", "jsonb_path_query", "json index", "json operators"]
     },
     {
       "id": "query-performance",
       "path": "postgresql/query-performance/SKILL.md",
-      "platform_scope": "postgresql"
+      "platform_scope": "postgresql",
+      "activation_keywords": ["explain", "analyze", "slow query", "work_mem", "shared_buffers", "pg_stat_statements", "query optimization", "spill to disk", "statistics", "jit"]
     },
     {
       "id": "table-partitioning",
       "path": "postgresql/table-partitioning/SKILL.md",
-      "platform_scope": "postgresql"
+      "platform_scope": "postgresql",
+      "activation_keywords": ["partition", "range partition", "list partition", "hash partition", "partition pruning", "detach partition", "pg_partman", "archiving old data"]
     },
     {
       "id": "row-level-security",
       "path": "postgresql/row-level-security/SKILL.md",
-      "platform_scope": "postgresql"
+      "platform_scope": "postgresql",
+      "activation_keywords": ["rls", "row level security", "tenant isolation", "multi-tenant", "policy", "current_setting", "row policy", "data isolation"]
     },
     {
       "id": "full-text-search",
       "path": "postgresql/full-text-search/SKILL.md",
-      "platform_scope": "postgresql"
+      "platform_scope": "postgresql",
+      "activation_keywords": ["tsvector", "tsquery", "full text search", "text search", "ts_rank", "websearch_to_tsquery", "search ranking", "stemming"]
     },
     {
       "id": "connection-management",
       "path": "postgresql/connection-management/SKILL.md",
-      "platform_scope": "postgresql"
+      "platform_scope": "postgresql",
+      "activation_keywords": ["max_connections", "too many connections", "connection pooling", "pgbouncer", "idle connections", "connection exhaustion", "connection timeout", "idle_in_transaction"]
     },
     {
       "id": "logical-replication",
       "path": "postgresql/logical-replication/SKILL.md",
-      "platform_scope": "postgresql"
+      "platform_scope": "postgresql",
+      "activation_keywords": ["logical replication", "publication", "subscription", "wal_level", "cdc", "change data capture", "replication slot", "replication lag", "replica identity"]
     },
     {
       "id": "extension-lifecycle",
       "path": "azure-postgresql/extension-lifecycle/SKILL.md",
-      "platform_scope": "azure-postgresql"
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": ["create extension", "install extension", "azure.extensions", "allowlist extension", "pg_available_extensions", "extension version", "drop extension"]
     },
     {
       "id": "provisioning",
       "path": "azure-postgresql/provisioning/SKILL.md",
-      "platform_scope": "azure-postgresql"
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": ["create server", "flexible server", "provision", "az postgres", "sku", "compute tier", "burstable", "general purpose", "memory optimized"]
     },
     {
       "id": "ha-disaster-recovery",
       "path": "azure-postgresql/ha-disaster-recovery/SKILL.md",
-      "platform_scope": "azure-postgresql"
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": ["high availability", "disaster recovery", "failover", "read replica", "pitr", "point in time restore", "geo-redundant", "backup", "virtual endpoint"]
     },
     {
       "id": "entra-id-auth",
       "path": "azure-postgresql/entra-id-auth/SKILL.md",
-      "platform_scope": "azure-postgresql"
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": ["entra id", "azure ad", "managed identity", "aad auth", "passwordless", "service principal", "token authentication"]
     },
     {
       "id": "networking-ssl",
       "path": "azure-postgresql/networking-ssl/SKILL.md",
-      "platform_scope": "azure-postgresql"
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": ["ssl", "tls", "private endpoint", "vnet", "firewall rule", "network security", "private link", "sslmode"]
     },
     {
       "id": "connection-pooling",
       "path": "azure-postgresql/connection-pooling/SKILL.md",
-      "platform_scope": "azure-postgresql"
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": ["built-in pgbouncer", "azure connection pooling", "pgbouncer azure", "connection pooler", "transaction mode azure", "pool_mode"]
     },
     {
       "id": "intelligent-tuning",
       "path": "azure-postgresql/intelligent-tuning/SKILL.md",
-      "platform_scope": "azure-postgresql"
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": ["query store", "intelligent performance", "auto index", "index recommendations", "performance insights", "query capture", "pg_qs"]
     },
     {
       "id": "upgrades-maintenance",
       "path": "azure-postgresql/upgrades-maintenance/SKILL.md",
-      "platform_scope": "azure-postgresql"
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": ["major version upgrade", "minor version", "maintenance window", "planned maintenance", "mvu", "upgrade postgresql", "server update"]
     },
     {
       "id": "vector-diskann",
       "path": "azure-postgresql/vector-diskann/SKILL.md",
-      "platform_scope": "azure-postgresql"
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": ["diskann", "vector index", "hnsw", "pgvector", "similarity search", "vector search", "cosine distance", "pg_diskann", "embedding index"]
     },
     {
       "id": "embeddings-azure-ai",
       "path": "azure-postgresql/embeddings-azure-ai/SKILL.md",
-      "platform_scope": "azure-postgresql"
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": ["create_embeddings", "generate embeddings", "azure_openai embedding", "text-embedding", "batch embeddings", "embed text", "vector column"]
     },
     {
       "id": "rag-pipeline",
       "path": "azure-postgresql/rag-pipeline/SKILL.md",
-      "platform_scope": "azure-postgresql"
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": ["rag", "retrieval augmented generation", "hybrid search", "reciprocal rank fusion", "rrf", "semantic search", "context retrieval"]
     },
     {
       "id": "azure-ai-extension",
       "path": "azure-postgresql/azure-ai-extension/SKILL.md",
-      "platform_scope": "azure-postgresql"
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": ["azure_ai extension", "azure_ai.set_setting", "azure_openai endpoint", "configure azure_ai", "azure ai setup"]
     },
     {
       "id": "ai-functions",
       "path": "azure-postgresql/ai-functions/SKILL.md",
-      "platform_scope": "azure-postgresql"
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": ["azure_openai.create", "llm from sql", "classify sql", "summarize sql", "extract entities sql", "ai function", "generate text sql"]
     }
   ]
 }

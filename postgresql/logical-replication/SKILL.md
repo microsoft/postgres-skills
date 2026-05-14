@@ -26,6 +26,8 @@ platform_scope: postgresql
 
 **Overlaps with:**
 - `azure-postgresql/ha-disaster-recovery/` (Azure-managed replicas)
+- `postgresql/connection-management/` (replication connections count toward max_connections)
+- `postgresql/table-partitioning/` (partitioned tables need `publish_via_partition_root`)
 
 ## Prerequisites
 
@@ -108,3 +110,6 @@ FROM pg_replication_slots;
 - **Subscription stuck**: `ALTER SUBSCRIPTION my_sub DISABLE; ALTER SUBSCRIPTION my_sub ENABLE;`
 - **Slot consuming disk**: If subscriber is gone, drop the orphaned slot: `SELECT pg_drop_replication_slot('my_sub')`
 - **Conflict on subscriber**: Check `pg_stat_subscription` for error. Common fix: skip the conflicting transaction or resync the table
+- **wal_level not set**: Requires `wal_level = logical` (restart needed). On Azure Flexible Server, change via Server Parameters blade then restart
+- **Permission denied on CREATE PUBLICATION**: Requires table ownership. On Azure, verify `azure_pg_admin` role: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');`
+- **Sequence values not replicated**: Logical replication does not replicate sequences. After failover, reset sequences on subscriber: `SELECT setval('my_seq', (SELECT max(id) FROM my_table) + 1)`

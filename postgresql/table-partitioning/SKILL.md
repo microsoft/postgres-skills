@@ -86,6 +86,7 @@ ALTER TABLE events DETACH PARTITION events_2023_01;
 4. **UNIQUE/PK must include partition key**: Cannot create unique index without partition key: `PRIMARY KEY (id, created_at)` not just `PRIMARY KEY (id)`. This also affects foreign keys pointing to partitioned tables
 5. **pg_partman automation**: For time-series, `pg_partman` auto-creates/drops partitions. Without it, inserts fail when next period's partition doesn't exist. Setup: `CREATE EXTENSION pg_partman; SELECT partman.create_parent('public.events', 'created_at', 'native', 'monthly')`
 6. **publish_via_partition_root for replication**: Logical replication requires `ALTER PUBLICATION pub SET (publish_via_partition_root = true)` or subscriber sees individual partition names instead of parent table
+7. **`DETACH PARTITION CONCURRENTLY`**: Available in PostgreSQL 14+. For PG13 and earlier, `DETACH PARTITION` takes an `ACCESS EXCLUSIVE` lock. Plan a maintenance window for older versions
 
 ## Verification
 

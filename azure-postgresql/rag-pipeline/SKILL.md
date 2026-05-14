@@ -33,6 +33,7 @@ platform_scope: azure-postgresql
 ## Prerequisites
 
 - Azure Database for PostgreSQL Flexible Server
+- Role: `azure_pg_admin` (required for azure_ai functions; never superuser on Flexible Server)
 - Extensions: `vector`, `pg_diskann` (or HNSW), `azure_ai`
 - Table with both `tsvector` column and `vector` embedding column
 - MCP `execute_sql` tool or `psql`
@@ -131,3 +132,4 @@ SELECT
 - **Zero results from text search**: Check tsvector language matches content language. Try `plainto_tsquery` instead of `websearch_to_tsquery`
 - **Zero results from vector search**: Verify embeddings exist (not NULL) and embedding dimension matches query vector
 - **Low relevance**: Increase the LIMIT in each CTE (retrieve more candidates) then still return top 5 after RRF
+- **403 / permission denied**: Verify your role has `azure_pg_admin`: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` If false, grant via Azure Portal > Server > Roles

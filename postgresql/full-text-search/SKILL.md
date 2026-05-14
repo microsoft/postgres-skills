@@ -92,3 +92,6 @@ ORDER BY rank DESC LIMIT 5;
 - **Zero results**: Check language config matches content language. `SELECT to_tsvector('english', 'running')` should stem to `run`
 - **Index not used**: Ensure query uses `@@` operator against the indexed tsvector column, not a function call
 - **Slow on updates**: GIN index updates are batched. For write-heavy tables, tune `gin_pending_list_limit`
+- **Missing extension**: `pg_trgm` for fuzzy/trigram search: `CREATE EXTENSION IF NOT EXISTS pg_trgm;` If unavailable on managed service, use native `tsvector/tsquery` only
+- **Permission denied on CREATE INDEX**: Requires table ownership or `CREATE` privilege on schema. On Azure, verify you have `azure_pg_admin` role
+- **Unsupported PG version**: `websearch_to_tsquery()` requires PostgreSQL 11+. For older versions, use `plainto_tsquery()` or `to_tsquery()` with manual AND/OR syntax

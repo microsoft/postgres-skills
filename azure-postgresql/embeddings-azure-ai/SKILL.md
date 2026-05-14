@@ -32,6 +32,7 @@ platform_scope: azure-postgresql
 ## Prerequisites
 
 - Azure Database for PostgreSQL Flexible Server
+- Role: `azure_pg_admin` (required for azure_ai functions; never superuser on Flexible Server)
 - `azure_ai` extension installed (see `azure-postgresql/azure-ai-extension/`)
 - Azure OpenAI endpoint configured with an embedding model deployed
 - MCP `execute_sql` tool or `psql`
@@ -126,3 +127,4 @@ ORDER BY distance LIMIT 5;
 - **"model not found"**: Verify deployment name in Azure OpenAI Studio matches what you pass to the function
 - **Timeout on large batches**: Reduce batch size to 50 or fewer rows per UPDATE
 - **Rate limit (429)**: Increase `pg_sleep()` delay or request higher TPM quota in Azure OpenAI
+- **403 / permission denied**: Verify your role has `azure_pg_admin`: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` If false, grant via Azure Portal > Server > Roles

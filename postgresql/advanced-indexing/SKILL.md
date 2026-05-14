@@ -13,16 +13,17 @@ platform_scope: postgresql
 ## When to Use
 
 **Trigger when:**
-- User asks "what index should I create" or "why is my query slow"
+- User asks "what index should I create" or "which index type should I use"
 - Query uses JSONB containment (@>), array operators, tsvector, geometric/range types
 - EXPLAIN output shows sequential scan on a large table
 - User mentions partial indexes, expression indexes, or covering indexes
 - Error: "Seq Scan on <table>" in EXPLAIN with high row counts
 
 **Do NOT use when:**
-- Query is slow due to configuration (work_mem, shared_buffers) not missing indexes
-- User needs Azure-specific intelligent tuning recommendations
+- Query is slow due to configuration (work_mem, shared_buffers, statistics) not missing indexes (use `postgresql/query-performance/`)
+- User needs Azure-specific intelligent tuning recommendations (use `azure-postgresql/intelligent-tuning/`)
 - Table has fewer than 10,000 rows (seq scan may be optimal)
+- User needs EXPLAIN interpretation or planner behavior guidance (use `postgresql/query-performance/`)
 
 **Overlaps with:**
 - `postgresql/query-performance/` (EXPLAIN analysis may reveal missing index)

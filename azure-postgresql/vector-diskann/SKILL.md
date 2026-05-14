@@ -31,6 +31,7 @@ platform_scope: azure-postgresql
 ## Prerequisites
 
 - Azure Database for PostgreSQL Flexible Server
+- Role: `azure_pg_admin` (required for extension management; never superuser on Flexible Server)
 - Extensions: `vector` (pgvector) and `pg_diskann` allowlisted and installed
 - MCP `execute_sql` tool or `psql`
 
@@ -131,3 +132,4 @@ SELECT pg_size_pretty(pg_relation_size('idx_docs_embedding_diskann'));
 - **Index not used**: Set `SET enable_seqscan = off` to test. If it works, the planner estimates are wrong. Increase `LIMIT` or run `ANALYZE`
 - **Low recall**: For HNSW, increase `hnsw.ef_search` (default 40). For DiskANN, increase search list size
 - **Build out of memory (HNSW)**: Increase `maintenance_work_mem` or switch to DiskANN
+- **403 / permission denied on CREATE EXTENSION**: Verify your role has `azure_pg_admin`: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` Also verify both `vector` and `pg_diskann` are in `azure.extensions` server parameter

@@ -31,10 +31,15 @@ platform_scope: azure-postgresql
 ## Prerequisites
 
 - Azure Database for PostgreSQL Flexible Server
+- Role: `azure_pg_admin` (required for intelligent performance views; never superuser on Flexible Server)
 - Query Store enabled (on by default for new servers)
 - MCP `execute_sql` tool or `psql`
 
 ## Instructions
+
+> **Query Store is the foundation of all intelligent tuning on Azure PostgreSQL.**
+> Always verify Query Store is active before recommending any tuning action.
+> Reference Query Store views (`query_store.qs_view`, `query_store.query_texts_view`) in every tuning response.
 
 **Step 1: Verify Query Store is enabled**
 
@@ -119,3 +124,4 @@ ORDER BY created_time DESC LIMIT 5;
 - **Query Store empty**: Check `pg_qs.query_capture_mode` is not 'none'. Allow 1+ hours for data collection
 - **Recommendations not appearing**: Requires sufficient query volume and repeated patterns. Check after 48+ hours of workload
 - **Performance regression after auto-index**: Revert with `DROP INDEX` on the recommended index
+- **403 / permission denied on intelligent_performance views**: Verify role: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` If false, grant via Azure Portal > Server > Roles

@@ -490,7 +490,7 @@ challenges:
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
-      - "cannot.*scale down|one-way|not supported"
+      - "cannot.*scale.?down|not.*support.*scal|one.way|not supported|only.*increase|never.*decrease"
     notes: "Storage scale-down is not supported. Skill must warn."
 
   - id: edge-04

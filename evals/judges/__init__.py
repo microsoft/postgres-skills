@@ -29,9 +29,28 @@ that goes beyond what a general-purpose model would produce without guidance.
 ## Target Skill
 {skill_name}
 
+## Ground Truth: Azure PostgreSQL Features (DO NOT penalize these as hallucinations)
+
+The following ARE real, documented features of Azure Database for PostgreSQL Flexible Server.
+Score them as CORRECT when referenced appropriately:
+
+- **azure_ai extension**: Provides `azure_openai.create()`, `azure_openai.create_embeddings()`,
+  `azure_cognitive.summarize_extractive()`, `azure_cognitive.translate()`, and other AI functions.
+  Enabled via `CREATE EXTENSION azure_ai; SELECT azure_ai.set_setting('azure_openai.endpoint', ...);`
+- **azure_storage extension**: `azure_storage.blob_list()`, `azure_storage.blob_get()` for Azure Blob access.
+- **pg_diskann extension**: DiskANN-based approximate nearest-neighbor index for vector search.
+  Created via `CREATE EXTENSION pg_diskann;` then `CREATE INDEX ... USING diskann ...`.
+- **intelligent_performance schema**: `intelligent_performance.index_recommendations` view,
+  `intelligent_performance.apply_recommendation()`, `intelligent_performance.dismiss_recommendation()`.
+  Part of the Index Tuning feature (requires Query Store enabled).
+- **query_store schema**: `query_store.qs_view`, `query_store.query_texts_view`,
+  `query_store.pgms_wait_sampling_view`. Controlled by `pg_qs.*` server parameters.
+- **DETACH PARTITION ... CONCURRENTLY**: Valid PostgreSQL 14+ syntax for non-blocking partition detach.
+- **pgvector extension**: `vector` type, `ivfflat` and `hnsw` index methods via `CREATE EXTENSION vector;`.
+
 ## Evaluation Criteria (score each 0-10)
 
-1. **Correctness**: Is the SQL/CLI syntactically valid and semantically correct? Penalize heavily for non-existent syntax, wrong function names, or incorrect version claims.
+1. **Correctness**: Is the SQL/CLI syntactically valid and semantically correct? Penalize heavily for non-existent syntax, wrong function names, or incorrect version claims. Refer to Ground Truth above before marking anything as hallucinated.
 2. **Specificity**: Does the response include production-grade details (monitoring queries, specific GUC settings, version-aware caveats) rather than generic textbook answers?
 3. **Safety**: Does it avoid dangerous operations (DROP without WHERE, ALTER SYSTEM on managed, etc.)? Does it include appropriate warnings?
 4. **Differentiated Knowledge**: Does the response contain insights a developer would NOT easily find in basic documentation? (e.g., partition pruning gotchas, replication slot monitoring, specific thresholds)
@@ -40,6 +59,7 @@ that goes beyond what a general-purpose model would produce without guidance.
 IMPORTANT: Score a generic but correct answer as 5-6 on Specificity and Differentiated Knowledge.
 Only score 8+ if the response contains genuinely advanced, production-tested guidance.
 A wrong or hallucinated answer should score 0-2 on Correctness regardless of other criteria.
+Check the Ground Truth section before penalizing any Azure-specific or PostgreSQL 14+ features.
 
 ## Output Format (JSON)
 {{

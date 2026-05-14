@@ -18,11 +18,14 @@ platform_scope: postgresql
 - Queries spilling to disk (sort/hash operations)
 - User asks about `work_mem`, `shared_buffers`, `effective_cache_size`
 - `pg_stat_statements` shows high total_time queries
+- User asks about vacuum, bloat, dead tuples, autovacuum tuning
+- User mentions locks, deadlocks, or long-running transactions blocking queries
 
 **Do NOT use when:**
-- Issue is missing index (use `postgresql/advanced-indexing/`)
+- EXPLAIN shows Seq Scan on a large table as the primary bottleneck and adding an index is the fix (use `postgresql/advanced-indexing/`)
 - Problem is Azure-specific tuning (use `azure-postgresql/intelligent-tuning/`)
 - Query is correct but table needs partitioning (use `postgresql/table-partitioning/`)
+- User asks about vacuum, bloat, or dead tuples (general maintenance, not query tuning)
 
 **Overlaps with:**
 - `postgresql/advanced-indexing/` (EXPLAIN may reveal missing index as root cause)
