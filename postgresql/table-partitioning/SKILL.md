@@ -75,19 +75,17 @@ EXPLAIN SELECT * FROM events WHERE created_at >= '2024-01-15';
 ```sql
 -- Detach instead of DELETE (no bloat, no long locks)
 ALTER TABLE events DETACH PARTITION events_2023_01;
--- On PostgreSQL 14+, add CONCURRENTLY to avoid blocking queries
--- On PostgreSQL 12-13, this acquires a brief ACCESS EXCLUSIVE lock
+-- This acquires ACCESS EXCLUSIVE lock briefly
 ```
 
 ## Common Mistakes
 
-1. **Default partition traps data**: Once rows land in DEFAULT, creating a new partition for that range fails until you move them out. Always pre-create partitions ahead of time
-2. **Partition pruning failure with casts**: `WHERE created_at > '2024-01-01'::date` on a `timestamptz` partition key may prevent pruning. Match types exactly: `WHERE created_at > '2024-01-01 00:00:00+00'::timestamptz`
-3. **Too many partitions**: >200 partitions increase planning time exponentially. Use `enable_partition_pruning = on` (default) and keep partitions to 50-200
-4. **pg_partman automation not configured**: For time-series, use `pg_partman` to auto-create/drop partitions. Without it, inserts fail when the next period's partition doesn't exist: `CREATE EXTENSION pg_partman; SELECT partman.create_parent('public.events', 'created_at', 'native', 'monthly')`
-5. **DETACH two-phase pitfall (PG 14+ CONCURRENTLY mode)**: If session disconnects mid-DETACH CONCURRENTLY, partition is left in "detach pending" state. Check with `SELECT * FROM pg_inherits WHERE inhdetachpending = true`. Fix with `ALTER TABLE events DETACH PARTITION events_old FINALIZE`
+1. **Default partition traps data**: Once rows land in DEFAULT, creating a new partition for that range fails. Pre-create partitions ahead of time. Move trapped rows: `INSERT INTO events_2024_03 SELECT * FROM events_default WHERE created_at >= '2024-03-01' AND created_at < '2024-04-01'; DELETE FROM events_default WHERE ...`
+2. **Partition pruning failure with casts**: `WHERE created_at > '2024-01-01'::date` on a `timestamptz` partition key prevents pruning. Match types exactly: `WHERE created_at > '2024-01-01 00:00:00+00'::timestamptz`
+3. **Too many partitions**: >200 partitions increase planning time. Keep 50-200 partitions. Merge old monthly partitions into yearly ones
+4. **UNIQUE/PK must include partition key**: Cannot create unique index without partition key: `PRIMARY KEY (id, created_at)` not just `PRIMARY KEY (id)`. This also affects foreign keys pointing to partitioned tables
+5. **pg_partman automation**: For time-series, `pg_partman` auto-creates/drops partitions. Without it, inserts fail when next period's partition doesn't exist. Setup: `CREATE EXTENSION pg_partman; SELECT partman.create_parent('public.events', 'created_at', 'native', 'monthly')`
 6. **publish_via_partition_root for replication**: Logical replication requires `ALTER PUBLICATION pub SET (publish_via_partition_root = true)` or subscriber sees individual partition names instead of parent table
-7. **UNIQUE/PK must include partition key**: Cannot create a unique index without the partition key column. Design: `PRIMARY KEY (id, created_at)` not just `PRIMARY KEY (id)`
 
 ## Verification
 

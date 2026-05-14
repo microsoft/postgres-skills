@@ -106,14 +106,13 @@ LIMIT 10;
 
 ## Common Mistakes
 
-1. **DiskANN not available on all tiers**: `pg_diskann` requires Flexible Server with sufficient memory. Always verify with `SELECT * FROM pg_available_extensions WHERE name = 'pg_diskann'` before referencing in code
-2. **Wrong operator class for index**: Must match distance operator to operator class. `vector_cosine_ops` for `<=>`, `vector_l2_ops` for `<->`, `vector_ip_ops` for `<#>`. Mismatched operator class silently returns wrong ordering
-3. **Quantization not enabled at scale**: For > 5M vectors, enable scalar quantization in DiskANN to reduce storage by ~4x with minimal recall loss. Check Azure documentation for current parameter names as these evolve
-4. **HNSW `ef_search` vs DiskANN tuning**: HNSW uses `SET hnsw.ef_search = 200` for query-time recall tuning. DiskANN tuning parameters differ. Always check `SHOW` output for available GUCs: `SHOW ALL` and filter for diskann/hnsw
-5. **No filtered index strategy**: DiskANN handles pre-filtering natively (scans label list before graph traversal). HNSW requires post-filtering which returns fewer results than requested LIMIT. For multi-tenant apps, DiskANN with WHERE clause filtering is significantly faster
-6. **Upgrading from HNSW to DiskANN**: Drop HNSW index first, ensure `pg_diskann` in allowlist, then `CREATE INDEX CONCURRENTLY ... USING diskann`. Monitor with `SELECT * FROM pg_stat_progress_create_index` for build progress on large tables
-7. **Wrong distance operator for use case**: `<=>` (cosine) for text embeddings, `<->` (L2) for image embeddings, `<#>` (inner product) for pre-normalized vectors. Mismatching returns numerically valid but semantically wrong results
-8. **Missing `pg_diskann` in allowlist**: Both `vector` AND `pg_diskann` must be in `azure.extensions`. Forgetting `pg_diskann` gives `ERROR: access to library "pg_diskann" is not allowed`
+1. **DiskANN availability**: `pg_diskann` requires Flexible Server. Verify with `SELECT * FROM pg_available_extensions WHERE name = 'pg_diskann'` before using in code
+2. **Wrong operator class**: Must match distance operator to class. `vector_cosine_ops` for `<=>`, `vector_l2_ops` for `<->`, `vector_ip_ops` for `<#>`. Mismatched class silently returns wrong ordering
+3. **HNSW `ef_search` tuning**: `SET hnsw.ef_search = 200` for query-time recall. Default is 40. Higher = better recall but slower
+4. **DiskANN filtered search advantage**: DiskANN handles WHERE clause pre-filtering natively (graph traversal with label filter). HNSW post-filters and may return fewer results than LIMIT. For multi-tenant apps, DiskANN is significantly faster
+5. **Missing allowlist entries**: Both `vector` AND `pg_diskann` must be in `azure.extensions` server parameter. Forgetting `pg_diskann` gives `ERROR: access to library "pg_diskann" is not allowed`
+6. **Wrong distance operator for use case**: `<=>` (cosine) for normalized text embeddings, `<->` (L2) for image embeddings, `<#>` (negative inner product) for pre-normalized vectors
+7. **Index build monitoring**: For large tables, monitor DiskANN build progress: `SELECT * FROM pg_stat_progress_create_index`. Use `CREATE INDEX CONCURRENTLY` to avoid blocking writes
 
 ## Verification
 
