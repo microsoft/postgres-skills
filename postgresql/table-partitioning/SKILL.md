@@ -74,8 +74,9 @@ EXPLAIN SELECT * FROM events WHERE created_at >= '2024-01-15';
 
 ```sql
 -- Detach instead of DELETE (no bloat, no long locks)
-ALTER TABLE events DETACH PARTITION events_2023_01 CONCURRENTLY;
--- CONCURRENTLY avoids blocking other queries (PostgreSQL 14+)
+ALTER TABLE events DETACH PARTITION events_2023_01;
+-- On PostgreSQL 14+, add CONCURRENTLY to avoid blocking queries
+-- On PostgreSQL 12-13, this acquires a brief ACCESS EXCLUSIVE lock
 ```
 
 ## Common Mistakes
@@ -84,7 +85,7 @@ ALTER TABLE events DETACH PARTITION events_2023_01 CONCURRENTLY;
 2. **Partition pruning failure with casts**: `WHERE created_at > '2024-01-01'::date` on a `timestamptz` partition key may prevent pruning. Match types exactly: `WHERE created_at > '2024-01-01 00:00:00+00'::timestamptz`
 3. **Too many partitions**: >200 partitions increase planning time exponentially. Use `enable_partition_pruning = on` (default) and keep partitions to 50-200
 4. **pg_partman automation not configured**: For time-series, use `pg_partman` to auto-create/drop partitions. Without it, inserts fail when the next period's partition doesn't exist: `CREATE EXTENSION pg_partman; SELECT partman.create_parent('public.events', 'created_at', 'native', 'monthly')`
-5. **DETACH CONCURRENTLY two-phase pitfall (PG 14+)**: If session disconnects mid-DETACH CONCURRENTLY, partition is left in "detach pending" state. Fix with `ALTER TABLE events DETACH PARTITION events_old FINALIZE`
+5. **DETACH two-phase pitfall (PG 14+ CONCURRENTLY mode)**: If session disconnects mid-DETACH CONCURRENTLY, partition is left in "detach pending" state. Check with `SELECT * FROM pg_inherits WHERE inhdetachpending = true`. Fix with `ALTER TABLE events DETACH PARTITION events_old FINALIZE`
 6. **publish_via_partition_root for replication**: Logical replication requires `ALTER PUBLICATION pub SET (publish_via_partition_root = true)` or subscriber sees individual partition names instead of parent table
 7. **UNIQUE/PK must include partition key**: Cannot create a unique index without the partition key column. Design: `PRIMARY KEY (id, created_at)` not just `PRIMARY KEY (id)`
 
@@ -102,5 +103,5 @@ EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at = '2024-01-15';
 ## Failure Recovery
 
 - **Insert fails "no partition"**: Add a DEFAULT partition or create the missing range partition
-- **Cannot detach concurrently**: On PostgreSQL < 14, use `DETACH PARTITION` without CONCURRENTLY (acquires brief lock)
+- **Cannot detach concurrently**: On PostgreSQL < 14, use `ALTER TABLE ... DETACH PARTITION` (acquires brief ACCESS EXCLUSIVE lock). On 14+, CONCURRENTLY option is available but ensure session stays connected until completion
 - **Wrong partition boundaries**: Attach a new partition with correct bounds, migrate rows, detach wrong one

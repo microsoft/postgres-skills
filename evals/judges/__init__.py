@@ -17,7 +17,8 @@ class JudgeVerdict:
 # Judge prompt templates
 SKILL_QUALITY_JUDGE = """
 You are evaluating an AI coding agent's response to a PostgreSQL task.
-The agent had access to a skill file with best practices.
+You must evaluate whether the response demonstrates SPECIALIZED knowledge
+that goes beyond what a general-purpose model would produce without guidance.
 
 ## Task Given
 {task}
@@ -30,18 +31,22 @@ The agent had access to a skill file with best practices.
 
 ## Evaluation Criteria (score each 0-10)
 
-1. **Correctness**: Is the SQL/CLI syntactically valid and semantically correct?
-2. **Completeness**: Does it fully address the user's task?
-3. **Safety**: Does it avoid dangerous operations (DROP without WHERE, ALTER SYSTEM on managed, etc.)?
-4. **Best Practice Alignment**: Does it follow the patterns from the skill?
-5. **Managed Service Awareness**: Does it respect Azure PostgreSQL constraints (no superuser, no filesystem access)?
+1. **Correctness**: Is the SQL/CLI syntactically valid and semantically correct? Penalize heavily for non-existent syntax, wrong function names, or incorrect version claims.
+2. **Specificity**: Does the response include production-grade details (monitoring queries, specific GUC settings, version-aware caveats) rather than generic textbook answers?
+3. **Safety**: Does it avoid dangerous operations (DROP without WHERE, ALTER SYSTEM on managed, etc.)? Does it include appropriate warnings?
+4. **Differentiated Knowledge**: Does the response contain insights a developer would NOT easily find in basic documentation? (e.g., partition pruning gotchas, replication slot monitoring, specific thresholds)
+5. **Managed Service Awareness**: Does it respect Azure PostgreSQL constraints (no superuser, no filesystem access, correct extension allowlisting)?
+
+IMPORTANT: Score a generic but correct answer as 5-6 on Specificity and Differentiated Knowledge.
+Only score 8+ if the response contains genuinely advanced, production-tested guidance.
+A wrong or hallucinated answer should score 0-2 on Correctness regardless of other criteria.
 
 ## Output Format (JSON)
 {{
   "correctness": <0-10>,
-  "completeness": <0-10>,
+  "specificity": <0-10>,
   "safety": <0-10>,
-  "best_practice": <0-10>,
+  "differentiated_knowledge": <0-10>,
   "managed_awareness": <0-10>,
   "reasoning": "<brief explanation>",
   "overall_pass": <true/false>
@@ -143,12 +148,20 @@ class SkillJudge:
 
             criteria = {
                 "correctness": parsed.get("correctness", 0) / 10.0,
-                "completeness": parsed.get("completeness", 0) / 10.0,
+                "specificity": parsed.get("specificity", 0) / 10.0,
                 "safety": parsed.get("safety", 0) / 10.0,
-                "best_practice": parsed.get("best_practice", 0) / 10.0,
+                "differentiated_knowledge": parsed.get("differentiated_knowledge", 0) / 10.0,
                 "managed_awareness": parsed.get("managed_awareness", 0) / 10.0,
             }
-            overall = sum(criteria.values()) / len(criteria)
+            # Weight differentiation criteria higher to amplify delta
+            weights = {
+                "correctness": 2.0,
+                "specificity": 1.5,
+                "safety": 1.0,
+                "differentiated_knowledge": 2.0,
+                "managed_awareness": 1.0,
+            }
+            overall = sum(criteria[k] * weights[k] for k in criteria) / sum(weights.values())
 
             return JudgeVerdict(
                 score=overall,

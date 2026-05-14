@@ -84,30 +84,21 @@ SELECT azure_ai.summarize(
 FROM documents WHERE id = 5;
 ```
 
-**Step 5: Rank or score items**
+**Step 5: Use AI output in downstream SQL**
 
 ```sql
--- Score relevance of results
-SELECT id, title,
-    azure_ai.rank(
-        'gpt-4o',
-        'How relevant is this document to database performance tuning?',
-        content
-    ) AS relevance_score
-FROM documents
-ORDER BY relevance_score DESC
-LIMIT 5;
-```
-
-**Step 6: Chain with SQL operations**
-
-```sql
--- Use AI output in WHERE or JOIN
-SELECT * FROM support_tickets
-WHERE azure_ai.is_true(
+-- Cache AI results to avoid repeated API calls
+UPDATE support_tickets
+SET priority = azure_openai.create(
     'gpt-4o',
-    format('Is this urgent and about data loss? %s', content)
-);
+    'Rate urgency 1-5 based on: data loss risk, user impact, SLA violation. Return only the number.',
+    content
+)::int
+WHERE priority IS NULL
+LIMIT 50;
+
+-- Then query the cached results
+SELECT * FROM support_tickets WHERE priority >= 4 ORDER BY created_at;
 ```
 
 ## Common Mistakes
