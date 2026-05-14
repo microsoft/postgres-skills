@@ -61,6 +61,13 @@
       "activation_keywords": ["logical replication", "publication", "subscription", "wal_level", "cdc", "change data capture", "replication slot", "replication lag", "replica identity"]
     },
     {
+      "id": "azure-postgresql-core",
+      "path": "azure-postgresql/SKILL.md",
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": ["azure postgresql", "flexible server", "az postgres", "azure database for postgresql", "core principles", "azure cli postgres"],
+      "always_load": true
+    },
+    {
       "id": "extension-lifecycle",
       "path": "azure-postgresql/extension-lifecycle/SKILL.md",
       "platform_scope": "azure-postgresql",
