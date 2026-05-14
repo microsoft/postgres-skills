@@ -110,7 +110,7 @@ class HallucinationDetector:
         patterns_to_check = list(self.UNIVERSAL_PATTERNS)
 
         # Only add Azure-managed patterns for Azure-scoped challenges
-        if platform_scope == "azure":
+        if platform_scope in ("azure", "azure-postgresql"):
             patterns_to_check.extend(self.AZURE_MANAGED_PATTERNS)
 
         for pattern, reason in patterns_to_check:

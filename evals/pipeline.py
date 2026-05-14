@@ -308,7 +308,7 @@ class EvalPipeline:
         sql_result = self.sql_validator.validate(output)
 
         # Token budget
-        tier = "azure-ai" if "ai-" in challenge.target_skill or "rag" in challenge.target_skill \
+        tier = "azure-ai" if any(k in challenge.target_skill for k in ("azure-ai", "genai-patterns")) \
             else "azure-standard" if "azure-" in challenge.target_skill \
             else "generic"
         token_result = self.token_validator.check(output, tier)

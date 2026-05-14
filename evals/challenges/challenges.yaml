@@ -1,6 +1,6 @@
 # Agent Challenges
 #
-# 50 challenges: 5 positive + 5 negative per skill cluster
+# 107 challenges across 21 skills (generic + Azure + 2 root skills)
 # Each challenge tests whether the agent activates the correct skill
 # and produces syntactically valid, non-hallucinated output.
 
@@ -1037,3 +1037,111 @@ challenges:
     target_skill: azure-postgresql/networking-ssl
     platform_scope: azure-postgresql
     expected_activation: false
+
+  # ─── ROOT SKILL CHALLENGES (10: 5 postgresql-core + 5 azure-postgresql-core) ──
+
+  # postgresql-core: Ground Rules + routing
+  - id: root-pg-01
+    task: "I'm getting 'relation does not exist' when querying my table. I've tried the query 3 times and it keeps failing."
+    difficulty: easy
+    target_skill: postgresql
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+      - "search_path|SET search_path"
+      - "\\\\dt|pg_class|information_schema"
+    notes: "Tests Ground Rule 3 — diagnose, don't retry blindly"
+
+  - id: root-pg-02
+    task: "I want to use MERGE to do an upsert on my PostgreSQL database. Can you write the SQL?"
+    difficulty: medium
+    target_skill: postgresql
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+      - "SELECT version|version()"
+      - "15|MERGE"
+    notes: "Tests Ground Rule 1 — check PG version before assuming feature exists"
+
+  - id: root-pg-03
+    task: "I need to optimize queries on a table with 50M rows that gets filtered by date range and status. Which skill or approach should I use?"
+    difficulty: easy
+    target_skill: postgresql
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+      - "advanced-indexing|query-performance|table-partitioning"
+    notes: "Tests routing table — should reference appropriate sub-skill"
+
+  - id: root-pg-04
+    task: "I created an index but I'm not sure it's being used. How do I verify?"
+    difficulty: easy
+    target_skill: postgresql
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+      - "EXPLAIN|pg_stat_user_indexes|idx_scan"
+    notes: "Tests Ground Rule 2 — confirm every change with a query"
+
+  - id: root-pg-05
+    task: "Help me set up logical replication between two PostgreSQL servers for CDC."
+    difficulty: easy
+    target_skill: postgresql
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+      - "logical-replication|publication|subscription"
+    notes: "Tests routing table — should point to logical-replication skill"
+
+  # azure-postgresql-core: Ground Rules + Azure-specific routing
+  - id: root-az-01
+    task: "I need to install the pgvector extension on my Azure Database for PostgreSQL Flexible Server."
+    difficulty: easy
+    target_skill: azure-postgresql
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "azure.extensions|allowlist|extension-lifecycle"
+    notes: "Tests Azure Ground Rule 1 — extension allowlist is required before CREATE EXTENSION"
+
+  - id: root-az-02
+    task: "I changed shared_preload_libraries on my Azure PostgreSQL server but the extension still won't load."
+    difficulty: medium
+    target_skill: azure-postgresql
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "restart|az postgres flexible-server restart"
+      - "pending_restart|pg_settings"
+    notes: "Tests Ground Rule 3 — diagnose (restart required), and Ground Rule 2 — confirm with pg_settings"
+
+  - id: root-az-03
+    task: "My application can't connect to my Azure PostgreSQL server. It says 'could not connect'."
+    difficulty: easy
+    target_skill: azure-postgresql
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "firewall|sslmode|networking-ssl"
+    notes: "Tests error lookup table and routing to networking-ssl skill"
+
+  - id: root-az-04
+    task: "What CLI command do I use to create an Azure PostgreSQL Flexible Server with a General Purpose tier?"
+    difficulty: easy
+    target_skill: azure-postgresql
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "az postgres flexible-server create"
+      - "GeneralPurpose|--tier"
+    notes: "Tests CLI Quick Reference section"
+
+  - id: root-az-05
+    task: "I want to build a RAG application with semantic search on my Azure PostgreSQL database. Where do I start?"
+    difficulty: easy
+    target_skill: azure-postgresql
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "genai-patterns|vector-diskann|azure-ai"
+    notes: "Tests routing table — should point to genai-patterns and/or vector-diskann skills"

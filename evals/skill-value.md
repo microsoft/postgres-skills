@@ -36,12 +36,14 @@ Each skill is scored on 4 dimensions:
 | jsonb-patterns | 0.825 | 0.830 | -0.005 | 0/0 | LOW | Negative delta; model knows JSON well already |
 | table-partitioning | 0.645 | 0.865 | -0.220 | 1/0 | **NEGATIVE** | Worst performer; skill actively harms output |
 
-### Azure-Specific Skills (13)
+### Azure-Specific Skills (11)
+
+> **Note (2026-05-14):** Skills were consolidated — `azure-ai-extension`, `embeddings-azure-ai`, and `ai-functions` merged into `azure-ai`; `rag-pipeline` merged into `genai-patterns`. Scores below are pre-consolidation baselines. Re-run evals for current numbers.
 
 | Skill | Test Avg | Ctrl Avg | Delta | Halluc (T/C) | Value Rating | Notes |
 |-------|----------|----------|-------|--------------|--------------|-------|
 | upgrades-maintenance | 0.955 | 0.820 | +0.135 | 1/2 | **HIGH** | Best delta; clear differentiated knowledge |
-| azure-ai-extension | 0.900 | 0.805 | +0.095 | 0/2 | **HIGH** | Strong delta, reduces hallucinations |
+| azure-ai *(was azure-ai-extension + ai-functions + embeddings-azure-ai)* | 0.900 | 0.805 | +0.095 | 0/2 | **HIGH** | Consolidated; re-eval needed |
 | intelligent-tuning | 0.910 | 0.860 | +0.050 | 0/0 | HIGH | Good delta, clean execution |
 | extension-lifecycle | 0.940 | 0.890 | +0.050 | 0/1 | HIGH | Good delta, reduces hallucinations |
 | connection-pooling | 0.985 | 0.965 | +0.020 | 0/0 | MEDIUM | High quality but small delta |
@@ -49,10 +51,8 @@ Each skill is scored on 4 dimensions:
 | provisioning | 0.984 | 0.968 | +0.016 | 1/1 | MEDIUM | High quality, marginal delta |
 | networking-ssl | 0.995 | 0.985 | +0.010 | 0/0 | MEDIUM | Near-perfect but model already knows networking |
 | entra-id-auth | 0.895 | 0.905 | -0.010 | 0/0 | LOW | Negative delta; model knows auth patterns |
-| rag-pipeline | 0.865 | 0.870 | -0.005 | 0/0 | LOW | Near-zero; model handles RAG without help |
+| genai-patterns *(was rag-pipeline)* | 0.865 | 0.870 | -0.005 | 0/0 | LOW | Consolidated; re-eval needed |
 | vector-diskann | 0.767 | 0.807 | -0.040 | 0/1 | **NEGATIVE** | Skill hurts; speculative content confuses model |
-| embeddings-azure-ai | 0.785 | 0.840 | -0.055 | 0/0 | **NEGATIVE** | Clear negative delta; needs rework |
-| ai-functions | 0.700 | 0.713 | -0.013 | 0/0 | LOW | Lowest absolute score, marginally negative |
 
 ---
 
@@ -60,10 +60,10 @@ Each skill is scored on 4 dimensions:
 
 | Tier | Count | Skills |
 |------|-------|--------|
-| **HIGH** | 4 | upgrades-maintenance, azure-ai-extension, intelligent-tuning, extension-lifecycle |
-| **MEDIUM** | 9 | connection-pooling, ha-disaster-recovery, provisioning, networking-ssl, query-performance, connection-management, advanced-indexing, row-level-security, logical-replication* |
-| **LOW** | 5 | full-text-search, jsonb-patterns, entra-id-auth, rag-pipeline, ai-functions |
-| **NEGATIVE** | 3 | table-partitioning, vector-diskann, embeddings-azure-ai |
+| **HIGH** | 4 | upgrades-maintenance, azure-ai, intelligent-tuning, extension-lifecycle |
+| **MEDIUM** | 7 | connection-pooling, ha-disaster-recovery, provisioning, networking-ssl, query-performance, connection-management, advanced-indexing |
+| **LOW** | 5 | full-text-search, jsonb-patterns, entra-id-auth, genai-patterns, row-level-security, logical-replication* |
+| **NEGATIVE** | 2 | table-partitioning, vector-diskann |
 
 *logical-replication borderline LOW due to hallucination rate
 
@@ -76,7 +76,6 @@ Each skill is scored on 4 dimensions:
 | Skill | Action | Rationale |
 |-------|--------|-----------|
 | table-partitioning | **Rework or Remove** | -0.220 delta is catastrophic. Hallucination-prone syntax examples. Fix committed but untested. |
-| embeddings-azure-ai | **Rework** | -0.055 delta. Content too speculative. Simplify to verified API patterns only. |
 | vector-diskann | **Rework** | -0.040 delta. Speculative parameters removed in latest fix. Re-eval needed. |
 
 ### Monitor (LOW value)
@@ -86,14 +85,13 @@ Each skill is scored on 4 dimensions:
 | full-text-search | Simplify enrichment | -0.030 delta. Model already handles FTS well. |
 | jsonb-patterns | Simplify enrichment | -0.005 delta. JSON/JSONB widely known. |
 | entra-id-auth | Add more differentiated content | -0.010 delta. Auth patterns generic. |
-| rag-pipeline | Add Azure-specific RAG details | -0.005 delta. Generic RAG well-known. |
-| ai-functions | Simplify; remove fictional APIs | -0.013 delta. Lowest absolute score (0.700). |
+| genai-patterns *(was rag-pipeline)* | Add Azure-specific RAG details | -0.005 delta. Generic RAG well-known. |
 
 ### Keep (HIGH + strong MEDIUM)
 
 Skills with positive delta and no hallucination increase are delivering clear value:
 - upgrades-maintenance (+0.135): Best performer, keep as-is
-- azure-ai-extension (+0.095): Strong differentiation
+- azure-ai (+0.095): Strong differentiation (consolidated from 3 skills)
 - intelligent-tuning (+0.050): Clean high-delta skill
 - extension-lifecycle (+0.050): Good delta, reduces false info
 
