@@ -98,6 +98,39 @@ az postgres flexible-server show-connection-string --server-name myserver
 - `parameter set --value` for list-type params (like `azure.extensions`) replaces the entire list — always include existing values when adding new ones
 - `firewall-rule create` requires `--start-ip-address` and `--end-ip-address` (use same IP for single host)
 
+## Available Skills
+
+Load the relevant skill when you need detailed guidance for a specific feature area.
+
+**Azure Database for PostgreSQL:**
+
+| Need | Skill |
+|---|---|
+| Install or manage extensions | `extension-lifecycle` |
+| Provision or resize a server | `provisioning` |
+| HA, failover, backups, PITR | `ha-disaster-recovery` |
+| Entra ID / managed identity auth | `entra-id-auth` |
+| Firewall, VNet, Private Link, SSL | `networking-ssl` |
+| Built-in PgBouncer connection pooling | `connection-pooling` |
+| Query Store, auto-index, perf insights | `intelligent-tuning` |
+| Major version upgrades, maintenance | `upgrades-maintenance` |
+| DiskANN / pgvector indexes | `vector-diskann` |
+| azure_ai extension setup + AI functions | `azure-ai` |
+| Embeddings, RAG, hybrid search | `genai-patterns` |
+
+**Generic PostgreSQL (works on any PG, including Azure):**
+
+| Need | Skill |
+|---|---|
+| B-tree, GIN, GiST, BRIN, partial indexes | `advanced-indexing` |
+| EXPLAIN ANALYZE, work_mem, JIT tuning | `query-performance` |
+| JSONB operators, indexing, patterns | `jsonb-patterns` |
+| Range, list, hash partitioning | `table-partitioning` |
+| tsvector, tsquery, ranking | `full-text-search` |
+| Row-level security policies | `row-level-security` |
+| max_connections, idle timeout, pooling | `connection-management` |
+| Publications, subscriptions, CDC | `logical-replication` |
+
 ## Documentation
 
 For detailed guidance on any Azure Database for PostgreSQL feature, consult the MS Learn documentation:
