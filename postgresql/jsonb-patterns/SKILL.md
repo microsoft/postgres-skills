@@ -154,3 +154,5 @@ EXPLAIN SELECT * FROM docs WHERE data @> '{"nested":{"key":"val"}}';
 8. **[MEDIUM] jsonb_path_ops too restrictive**: Switch to default GIN if you need `?` key-existence queries
 
 9. **[MEDIUM] Large JSONB documents slow**: Use partial indexes on frequently-queried paths
+
+10. **[MEDIUM] `json_table()` (PG 17+ only)**: `SELECT * FROM json_table(data, '$.items[*]' COLUMNS (...))` is PG 17+ only. On PG 16 and earlier, use `jsonb_to_recordset()` or `jsonb_array_elements()` for similar functionality

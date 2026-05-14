@@ -235,3 +235,8 @@ FROM documents ORDER BY distance LIMIT 3;
 11. **[HIGH] Dimension error on INSERT/UPDATE**: Column declared as `vector(1536)` but embedding has different length. Check model dimensions.
 12. **[HIGH] Hybrid search returns no FTS results**: Verify `tsvector` column is populated and `GIN` index exists.
 13. **[MEDIUM] Poor retrieval quality**: Try smaller chunks (300-500 tokens), add metadata pre-filters, or switch to hybrid search if using vector-only.
+
+## References
+- [Generate vector embeddings with azure_ai](https://learn.microsoft.com/azure/postgresql/flexible-server/generative-ai-azure-openai#generate-embeddings)
+- [Recommendation system using pgvector](https://learn.microsoft.com/azure/postgresql/flexible-server/generative-ai-recommendation-system)
+- [Semantic search with Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/generative-ai-semantic-search)

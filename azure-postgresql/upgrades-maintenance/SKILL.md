@@ -164,3 +164,7 @@ ORDER BY mean_time DESC LIMIT 10;
 9. **[MEDIUM] Upgrade failed**: Server rolls back to previous version automatically. Check Activity Log for root cause
 10. **[HIGH] Performance regression post-upgrade**: Run `ANALYZE` on all tables. Check if planner settings changed between versions
 11. **[HIGH] Extension broken after upgrade**: `ALTER EXTENSION ... UPDATE` to get version compatible with new PostgreSQL version
+
+## References
+- [Major version upgrades in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-major-version-upgrade)
+- [Scheduled maintenance](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-maintenance)

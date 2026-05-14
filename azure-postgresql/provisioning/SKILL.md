@@ -144,3 +144,7 @@ az postgres flexible-server show --resource-group myRG --name myserver \
 9. **[MEDIUM] Provisioning failed**: Check `az monitor activity-log list` for the resource group to identify root cause
 10. **[MEDIUM] Wrong SKU selected**: Scale with `az postgres flexible-server update --sku-name <new_sku>` (some changes require restart)
 11. **[MEDIUM] Forgot HA at creation**: Enable later with `az postgres flexible-server update --high-availability ZoneRedundant`
+
+## References
+- [Quickstart: Create an Azure Database for PostgreSQL flexible server](https://learn.microsoft.com/azure/postgresql/flexible-server/quickstart-create-server-portal)
+- [Compute and storage options](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-compute-storage)

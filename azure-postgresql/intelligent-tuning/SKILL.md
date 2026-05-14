@@ -166,3 +166,7 @@ ORDER BY created_time DESC LIMIT 5;
    SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');
    -- If false: GRANT azure_pg_admin TO myuser; (as server admin)
    ```
+
+## References
+- [Intelligent tuning in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-intelligent-tuning)
+- [Query Store in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-query-store)

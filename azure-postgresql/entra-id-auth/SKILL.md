@@ -159,3 +159,7 @@ az postgres flexible-server ad-admin list --resource-group myRG --server-name my
 7. **[MEDIUM] Hybrid migration path**: Enable both `password_auth` and `active_directory_auth`. Migrate apps one-by-one. Track remaining password connections: `SELECT * FROM pg_stat_activity` filtered by application_name
 8. **[HIGH] Token expired mid-session**: Refresh with `az account get-access-token --resource-type oss-rdbms`. For long-running applications, implement token refresh logic that acquires a new token before the current one expires
 9. **[HIGH] Principal not found after granting Contributor**: Run `pgaadauth_create_principal()` as Entra admin. Azure resource-level permissions do not automatically create database-level principals
+
+## References
+- [Microsoft Entra authentication with Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-azure-ad-authentication)
+- [Configure Entra ID authentication](https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-configure-sign-in-azure-ad-authentication)

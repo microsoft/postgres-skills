@@ -138,6 +138,10 @@ FROM pg_replication_slots;
 
 12. **[CRITICAL] Sequence values not replicated**: Logical replication does NOT replicate sequences
 
+13. **[MEDIUM] Logical replication for partitioned tables (PG 13+)**: Before PG 13, you must add each partition individually to the publication. PG 13+ supports `ALTER PUBLICATION pub ADD TABLE partitioned_parent` directly
+
+14. **[MEDIUM] `FOR ALL TABLES IN SCHEMA` (PG 15+)**: `CREATE PUBLICATION pub FOR ALL TABLES IN SCHEMA myschema` is PG 15+ only. On PG 14 and earlier, list tables explicitly or use `FOR ALL TABLES`
+
    ❌ Wrong:
    ```sql
    -- After failover to subscriber, sequences still at 1

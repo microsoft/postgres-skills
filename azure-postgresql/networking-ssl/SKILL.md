@@ -159,3 +159,7 @@ az postgres flexible-server firewall-rule list \
 9. **[HIGH] Certificate error after migration**: Download fresh DigiCert root CA. The old Baltimore CyberTrust Root cert was retired in 2022. Update `sslrootcert` path in all connection strings
 10. **[HIGH] Cannot connect after VNet integration**: Ensure client is in the same VNet or has peering/VPN configured. VNet integration removes all public access
 11. **[MEDIUM] "no pg_hba.conf entry" error**: Add client IP to firewall rules (for public access) or verify private endpoint DNS resolution is working correctly (for private access)
+
+## References
+- [Networking overview for Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-networking)
+- [TLS and SSL in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-networking-ssl-tls)

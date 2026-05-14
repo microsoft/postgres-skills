@@ -138,3 +138,5 @@ EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at = '2024-01-15';
 9. **[MEDIUM] Cannot detach concurrently on older PG**: On PG < 14, brief ACCESS EXCLUSIVE lock. On 14+, session must stay connected until completion
 
 10. **[MEDIUM] Wrong partition boundaries**: Attach new partition with correct bounds, migrate rows, detach wrong one
+
+11. **[MEDIUM] Partition pruning in JOINs (PG 12+)**: PG 12+ enables partition-wise joins (`enable_partitionwise_join = on`). On PG 11, joins scan all partitions even when only one matches. Enable explicitly: `SET enable_partitionwise_join = on` (off by default due to planning cost)

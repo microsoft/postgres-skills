@@ -117,3 +117,7 @@ EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) <optimized_query>;
 8. **[MEDIUM] Cannot change server config**: Use session-level `SET` for work_mem (no restart needed)
 
 9. **[MEDIUM] No pg_stat_statements available**: Add to `shared_preload_libraries` (requires restart) or use `EXPLAIN` on individual queries
+
+10. **[HIGH] MERGE statement (PG 15+ only)**: `MERGE INTO ... USING ... WHEN MATCHED/NOT MATCHED` is not available before PG 15. On PG 14 and earlier, use `INSERT ... ON CONFLICT` for upserts
+
+11. **[MEDIUM] Incremental sort (PG 13+)**: PG 13+ can use a pre-sorted prefix to avoid full re-sort. If EXPLAIN shows `Sort` instead of `Incremental Sort` on PG 13+, add a partial index on the leading sort column

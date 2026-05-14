@@ -165,3 +165,7 @@ az postgres flexible-server show --resource-group myRG --name myserver \
 10. **[MEDIUM] Failover triggered — connection handling**: After failover, check `az postgres flexible-server show` for new primary zone. Connections auto-redirect if using server FQDN. Applications should implement retry logic
 11. **[HIGH] PITR failed**: Verify restore time is within backup retention window. Check Azure Activity Log for specific errors. Ensure target server name is not already in use
 12. **[MEDIUM] Replica lag too high**: Check source server load and consider upgrading replica SKU or reducing write load on the primary
+
+## References
+- [High availability in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-high-availability)
+- [Read replicas](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-read-replicas)

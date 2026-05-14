@@ -155,3 +155,7 @@ SHOW shared_preload_libraries;
 8. **[HIGH] Extension update path**: `ALTER EXTENSION vector UPDATE TO '0.8.0'` only works if update path exists. Check: `SELECT * FROM pg_extension_update_paths('vector') WHERE source = '0.7.0'`. Some updates require DROP + CREATE (data loss for extension-managed types)
 9. **[CRITICAL] "extension not allowlisted" error**: Run Step 2 to add the extension to the `azure.extensions` server parameter. Remember to include all existing extensions in the value
 10. **[HIGH] "must be loaded via shared_preload_libraries" error**: Run Step 3 and restart the server. The restart is required for the parameter change to take effect
+
+## References
+- [Extensions in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-extensions)
+- [How to use extensions](https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-allow-extensions)

@@ -153,3 +153,7 @@ psql "host=myserver.postgres.database.azure.com port=6432 \
 8. **[HIGH] Session-level state leakage**: `SET statement_timeout` in one transaction leaks to the next client in transaction mode. Azure's built-in PgBouncer runs `DISCARD ALL` as `server_reset_query` automatically, but custom GUCs set with `SET LOCAL` only are safe
 9. **[MEDIUM] Connection refused on 6432**: Verify PgBouncer is enabled via `az postgres flexible-server parameter show --name pgbouncer.enabled`. If value is `false`, enable it and wait for the parameter to take effect
 10. **[HIGH] Pool exhaustion**: When `default_pool_size` is too low for your workload, increase it or reduce application connection hold time. Monitor `pgbouncer_waiting_connections` metric as early warning
+
+## References
+- [PgBouncer in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-pgbouncer)
+- [Connection pooling best practices](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-connection-pooling-best-practices)

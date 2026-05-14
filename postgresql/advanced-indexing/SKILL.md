@@ -119,3 +119,5 @@ SELECT pg_size_pretty(pg_relation_size('idx_orders_active'));
 9. **[MEDIUM] Index build too slow on large table**: Use `CREATE INDEX CONCURRENTLY` to avoid locking writes
 
 10. **[MEDIUM] Wrong index type error**: GIN/GiST require correct operator class; check `pg_opclass`
+
+11. **[MEDIUM] Parallel index build (PG 11+)**: `CREATE INDEX` uses parallel workers on PG 11+. Tune with `SET max_parallel_maintenance_workers = 4` for faster builds on large tables. Not available on PG 10 and earlier

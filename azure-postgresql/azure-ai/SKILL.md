@@ -180,3 +180,7 @@ SELECT azure_openai.create('<deployment>', 'Reply with: OK', 'test');
 10. **[CRITICAL] 403 Forbidden**: RBAC not assigned. Verify managed identity has "Cognitive Services OpenAI User" on the OpenAI resource.
 11. **[MEDIUM] Timeout on large batches**: Use `LIMIT` + loop pattern; set `statement_timeout` higher if needed.
 12. **[HIGH] NULL results**: Check deployment name matches exactly (case-sensitive), endpoint is correct, and model is deployed.
+
+## References
+- [Azure AI extension for Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/generative-ai-azure-overview)
+- [Integrate Azure AI services](https://learn.microsoft.com/azure/postgresql/flexible-server/generative-ai-azure-openai)
