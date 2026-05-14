@@ -396,8 +396,8 @@ challenges:
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
-      - "hybrid|rerank"
-      - "metadata|filter"
+      - "hybrid|chunk|DiskANN|pre.?filter"
+      - "embed.*query|azure_openai"
 
   # azure-ai-extension
   - id: az-aiext-01
@@ -428,8 +428,8 @@ challenges:
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
-      - "azure_ai|azure_openai"
-      - "classify|is_true|extract"
+      - "azure_openai\\.create|azure_openai"
+      - "classify|category|LIMIT"
 
   - id: az-aifn-02
     task: "How do I use PostgreSQL's EXTRACT function to get the year from a timestamp?"
@@ -565,16 +565,16 @@ challenges:
     expected_patterns:
       - "\\[|subscript|\\['.*'\\]"
 
-  # table-partitioning: pg_partman, DETACH CONCURRENTLY finalize
+  # table-partitioning: pg_partman, default partition
   - id: enrich-part-01
-    task: "I have a partitioned table with 200+ monthly partitions. I need to detach an old partition without blocking concurrent queries. PostgreSQL 14+."
+    task: "I have a partitioned table and some rows are landing in the default partition because new date ranges weren't created in time. How do I fix this?"
     difficulty: hard
     target_skill: postgresql/table-partitioning
     platform_scope: generic
     expected_activation: true
     expected_patterns:
-      - "DETACH.*CONCURRENTLY|detach.*concurrently"
-      - "FINALIZE|finalize"
+      - "default|DEFAULT"
+      - "ATTACH|DETACH|pg_partman|create_parent"
 
   - id: enrich-part-02
     task: "I want to automate monthly partition creation and retention (drop partitions older than 12 months). What's the standard approach?"
