@@ -37,7 +37,6 @@ activation:
 
 ## Prerequisites
 
-- Azure Database for PostgreSQL Flexible Server
 - `azure_pg_admin` role (default admin role; never superuser)
 
 ## Instructions

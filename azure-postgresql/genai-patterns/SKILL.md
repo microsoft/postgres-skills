@@ -30,7 +30,6 @@ activation:
 ---
 
 ## Prerequisites
-- Azure Database for PostgreSQL Flexible Server
 - `vector` extension enabled (`CREATE EXTENSION vector;`)
 - For **in-database embeddings**: `azure_ai` extension configured (see `azure-postgresql/azure-ai/`)
 - For **external embeddings**: Application with access to an embedding API (Azure OpenAI, OpenAI, Cohere, etc.)
@@ -212,29 +211,25 @@ FROM documents ORDER BY distance LIMIT 3;
    ```
 
 4. **[HIGH] Forgetting FTS index for hybrid search**: Without `GIN` index on `tsvector`, keyword search degrades to sequential scan.
-5. **[MEDIUM] Rate limiting on batch embed**: Start with batches of 50-100 rows with `pg_sleep(1)` between batches. Monitor for 429 errors.
-6. **[HIGH] Context window overflow**: GPT-4o supports ~128K tokens. Budget: 80% for context, 20% for response. Track token count when aggregating retrieved chunks.
-7. **[MEDIUM] RRF constant k=60**: The standard value. Changing it biases toward one ranking signal. Only tune if you have evaluation data.
-8. **[MEDIUM] External vs in-database choice**: Use in-database (Path A) when data lives in PostgreSQL and you want SQL-only workflows. Use external (Path B) when your app already calls an embedding API or you need non-Azure embedding models.
-9. **[CRITICAL] "type vector does not exist"**: `CREATE EXTENSION vector;` — ensure `vector` is in `azure.extensions` allowlist.
+5. **[HIGH] Context window overflow**: GPT-4o supports ~128K tokens. Budget: 80% for context, 20% for response. Track token count when aggregating retrieved chunks.
+6. **[MEDIUM] External vs in-database choice**: Use in-database (Path A) when data lives in PostgreSQL and you want SQL-only workflows. Use external (Path B) when your app already calls an embedding API or you need non-Azure embedding models.
+7. **[CRITICAL] "type vector does not exist"**: Run `CREATE EXTENSION vector;` first. On Azure, ensure `vector` is in the extension allowlist (see `azure-postgresql/extension-lifecycle/`).
 
    ❌ Wrong:
    ```sql
-   -- Trying to use vector type without extension
    ALTER TABLE docs ADD COLUMN embedding vector(1536);
    -- ERROR: type "vector" does not exist
    ```
 
    ✅ Right:
    ```sql
-   CREATE EXTENSION vector;  -- must be in azure.extensions allowlist
+   CREATE EXTENSION vector;
    ALTER TABLE docs ADD COLUMN embedding vector(1536);
    ```
 
-10. **[CRITICAL] "azure_openai.create_embeddings does not exist"**: azure_ai extension not installed or not configured. See `azure-postgresql/azure-ai/`.
-11. **[HIGH] Dimension error on INSERT/UPDATE**: Column declared as `vector(1536)` but embedding has different length. Check model dimensions.
-12. **[HIGH] Hybrid search returns no FTS results**: Verify `tsvector` column is populated and `GIN` index exists.
-13. **[MEDIUM] Poor retrieval quality**: Try smaller chunks (300-500 tokens), add metadata pre-filters, or switch to hybrid search if using vector-only.
+8. **[CRITICAL] "azure_openai.create_embeddings does not exist"**: azure_ai extension not installed or not configured. See `azure-postgresql/azure-ai/`.
+9. **[HIGH] Dimension error on INSERT/UPDATE**: Column declared as `vector(1536)` but embedding has different length. Check model dimensions.
+10. **[HIGH] Hybrid search returns no FTS results**: Verify `tsvector` column is populated and `GIN` index exists.
 
 ## References
 - [Generate vector embeddings with azure_ai](https://learn.microsoft.com/azure/postgresql/flexible-server/generative-ai-azure-openai#generate-embeddings)

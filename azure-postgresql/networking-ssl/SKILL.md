@@ -36,7 +36,6 @@ activation:
 
 ## Prerequisites
 
-- Azure Database for PostgreSQL Flexible Server
 - Network planning decisions (public vs private access)
 
 ## Instructions

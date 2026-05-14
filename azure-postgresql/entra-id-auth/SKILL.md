@@ -34,7 +34,6 @@ activation:
 
 ## Prerequisites
 
-- Azure Database for PostgreSQL Flexible Server
 - Entra ID authentication enabled on the server
 - User-assigned or system-assigned managed identity (for applications)
 

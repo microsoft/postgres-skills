@@ -33,7 +33,6 @@ activation:
 
 ## Prerequisites
 
-- Azure Database for PostgreSQL Flexible Server
 - `azure_pg_admin` role (required for intelligent performance views; never superuser on Flexible Server)
 - Query Store enabled (on by default for new servers)
 
@@ -146,11 +145,8 @@ ORDER BY created_time DESC LIMIT 5;
 
 5. **[MEDIUM] Not enabling `pg_qs.track_utility`**: By default, utility commands (COPY, CREATE, VACUUM) are not tracked. Enable to catch slow bulk loads: `az postgres flexible-server parameter set --name pg_qs.track_utility --value on`
 6. **[MEDIUM] Burstable tier overhead**: Query Store adds ~5% CPU on B-series. Disable on dev/test with `pg_qs.query_capture_mode = none`. Re-enable for production profiling sessions only
-7. **[MEDIUM] Missing normalized query identification**: Same query with different literal values gets one `query_text_id`. Use `query_store.qs_view.query_id` to group by plan shape, then `mean_time` variance to detect plan instability
-8. **[MEDIUM] Not correlating with Azure Metrics**: Cross-reference QS `total_time` spikes with Azure Monitor `cpu_percent` and `iops` metrics to determine if bottleneck is compute, storage, or query logic
-9. **[HIGH] Query Store empty**: Check `pg_qs.query_capture_mode` is not 'none'. Allow 1+ hours after enabling for data collection to begin
-10. **[MEDIUM] Recommendations not appearing**: Requires sufficient query volume and repeated patterns. Check after 48+ hours of consistent workload
-11. **[HIGH] Performance regression after auto-index**: Revert with `DROP INDEX` on the recommended index. Check `intelligent_performance.index_recommendations` for the index name and DDL
+7. **[HIGH] Query Store empty**: Check `pg_qs.query_capture_mode` is not 'none'. Allow 1+ hours after enabling for data collection to begin
+8. **[HIGH] Performance regression after auto-index**: Revert with `DROP INDEX` on the recommended index. Check `intelligent_performance.index_recommendations` for the index name and DDL
 12. **[CRITICAL] 403 / permission denied on intelligent_performance views**: Verify role membership: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` If false, grant via Azure Portal > Server > Roles
 
    ❌ Wrong:

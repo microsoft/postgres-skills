@@ -35,7 +35,6 @@ activation:
 
 ## Prerequisites
 
-- Azure Database for PostgreSQL Flexible Server
 - Contributor role on the resource group
 
 ## Instructions

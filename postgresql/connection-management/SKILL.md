@@ -141,8 +141,4 @@ FROM pg_stat_activity;
 
 9. **[MEDIUM] "too many clients" emergency**: `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND now() - state_change > interval '10 min'`
 
-10. **[MEDIUM] Cannot change max_connections immediately**: Requires restart. Use pooler as immediate fix
-
-11. **[MEDIUM] idle_in_transaction connections accumulating**: `ALTER DATABASE mydb SET idle_in_transaction_session_timeout = '30s'`
-
-12. **[MEDIUM] Permission denied on pg_terminate_backend**: Requires `pg_signal_backend` role. On Azure, `azure_pg_admin` has this
+10. **[MEDIUM] Permission denied on pg_terminate_backend**: Requires `pg_signal_backend` role. On Azure, `azure_pg_admin` has this

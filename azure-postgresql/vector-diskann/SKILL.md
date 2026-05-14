@@ -31,7 +31,6 @@ activation:
 
 ## Prerequisites
 
-- Azure Database for PostgreSQL Flexible Server
 - Role: `azure_pg_admin` (required for extension management; never superuser on Flexible Server)
 - Extensions: `vector` (pgvector) and `pg_diskann` allowlisted and installed
 

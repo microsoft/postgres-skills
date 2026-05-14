@@ -32,7 +32,6 @@ activation:
 
 ## Prerequisites
 
-- Azure Database for PostgreSQL Flexible Server
 - Application can switch to port 6432
 
 ## Instructions
@@ -102,8 +101,7 @@ psql "host=myserver.postgres.database.azure.com port=6432 \
 
 ## Common Mistakes
 
-1. **[MEDIUM] `pgbouncer.*` parameter namespace**: All PgBouncer settings use server parameters prefixed with `pgbouncer.`. Set via: `az postgres flexible-server parameter set --name pgbouncer.default_pool_size --value 50`. NOT via SQL `SHOW` commands
-2. **[HIGH] Port 6432 is mandatory**: Built-in PgBouncer always listens on 6432. Cannot change it. Connection strings MUST use port 6432. Using 5432 bypasses PgBouncer entirely (direct to PostgreSQL)
+1. **[HIGH] Port 6432 is mandatory**: Built-in PgBouncer always listens on 6432. Cannot change it. Connection strings MUST use port 6432. Using 5432 bypasses PgBouncer entirely (direct to PostgreSQL)
 
    ❌ Wrong:
    ```bash
@@ -151,8 +149,6 @@ psql "host=myserver.postgres.database.azure.com port=6432 \
 
 7. **[HIGH] Connection storm recovery**: When PgBouncer queue fills (`pgbouncer.max_client_conn` reached), new connections get `ERROR: no more connections allowed`. Add exponential backoff with jitter in application retry logic. Monitor `pgbouncer_waiting_connections` metric for early warning
 8. **[HIGH] Session-level state leakage**: `SET statement_timeout` in one transaction leaks to the next client in transaction mode. Azure's built-in PgBouncer runs `DISCARD ALL` as `server_reset_query` automatically, but custom GUCs set with `SET LOCAL` only are safe
-9. **[MEDIUM] Connection refused on 6432**: Verify PgBouncer is enabled via `az postgres flexible-server parameter show --name pgbouncer.enabled`. If value is `false`, enable it and wait for the parameter to take effect
-10. **[HIGH] Pool exhaustion**: When `default_pool_size` is too low for your workload, increase it or reduce application connection hold time. Monitor `pgbouncer_waiting_connections` metric as early warning
 
 ## References
 - [PgBouncer in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-pgbouncer)

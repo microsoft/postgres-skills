@@ -26,7 +26,6 @@ activation:
 ---
 
 ## Prerequisites
-- Azure Database for PostgreSQL Flexible Server
 - `azure_ai` listed in `azure.extensions` allowlist (requires `azure_pg_admin` role)
 - Azure OpenAI resource deployed in same region (or accessible via Private Link)
 - Azure OpenAI model deployment (e.g., `gpt-4o`, `gpt-4o-mini`)
