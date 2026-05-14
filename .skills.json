@@ -13,6 +13,13 @@
   },
   "skills": [
     {
+      "id": "postgresql-core",
+      "path": "postgresql/SKILL.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": ["postgresql", "postgres", "psql", "pg_", "generic postgres", "core principles"],
+      "always_load": true
+    },
+    {
       "id": "advanced-indexing",
       "path": "postgresql/advanced-indexing/SKILL.md",
       "platform_scope": "postgresql",

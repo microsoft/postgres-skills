@@ -100,9 +100,7 @@ az postgres flexible-server show-connection-string --server-name myserver
 
 ## Available Skills
 
-Load the relevant skill when you need detailed guidance for a specific feature area.
-
-**Azure Database for PostgreSQL:**
+Load the relevant skill when you need detailed guidance for a specific Azure feature area.
 
 | Need | Skill |
 |---|---|
@@ -118,18 +116,7 @@ Load the relevant skill when you need detailed guidance for a specific feature a
 | azure_ai extension setup + AI functions | `azure-ai` |
 | Embeddings, RAG, hybrid search | `genai-patterns` |
 
-**Generic PostgreSQL (works on any PG, including Azure):**
-
-| Need | Skill |
-|---|---|
-| B-tree, GIN, GiST, BRIN, partial indexes | `advanced-indexing` |
-| EXPLAIN ANALYZE, work_mem, JIT tuning | `query-performance` |
-| JSONB operators, indexing, patterns | `jsonb-patterns` |
-| Range, list, hash partitioning | `table-partitioning` |
-| tsvector, tsquery, ranking | `full-text-search` |
-| Row-level security policies | `row-level-security` |
-| max_connections, idle timeout, pooling | `connection-management` |
-| Publications, subscriptions, CDC | `logical-replication` |
+> **Generic PostgreSQL skills** (indexing, query tuning, JSONB, partitioning, FTS, RLS, connection management, logical replication) are in the `postgresql` core skill. They work on Azure too — always load both.
 
 ## Documentation
 
