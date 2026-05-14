@@ -1,41 +1,38 @@
 ---
 name: query-performance
 description: "EXPLAIN ANALYZE interpretation, bottleneck identification, and PostgreSQL server configuration tuning"
-version: "1.0.0"
 tags: [postgresql, performance, explain, work_mem, statistics]
-execution_mode: read
-requires_confirmation: false
 platform_scope: postgresql
+activation:
+  user_intent:
+    - "my query is slow"
+    - "how do I optimize this query"
+    - "interpret this EXPLAIN ANALYZE output"
+    - "queries spilling to disk"
+    - "tune work_mem or shared_buffers"
+    - "pg_stat_statements shows high total_time"
+    - "autovacuum tuning"
+    - "locks or deadlocks blocking queries"
+  technical_keywords:
+    - EXPLAIN ANALYZE
+    - work_mem
+    - shared_buffers
+    - effective_cache_size
+    - pg_stat_statements
+    - Sort Method: external merge
+    - Rows Removed by Filter
+    - default_statistics_target
+    - n_mod_since_analyze
+  exclusion_conditions:
+    - "when Seq Scan on large table is the bottleneck and adding an index is the fix, use `postgresql/advanced-indexing/` instead"
+    - "when problem is Azure-specific tuning, use `azure-postgresql/intelligent-tuning/` instead"
+    - "when table needs partitioning, use `postgresql/table-partitioning/` instead"
+  adjacent_skills:
+    - "`postgresql/advanced-indexing/`"
+    - "`azure-postgresql/intelligent-tuning/`"
 ---
 
 # Query Performance Tuning
-
-## When to Use
-
-**Trigger when:**
-- User says "my query is slow" or "how do I optimize this query"
-- User shares EXPLAIN ANALYZE output
-- Queries spilling to disk (sort/hash operations)
-- User asks about `work_mem`, `shared_buffers`, `effective_cache_size`
-- `pg_stat_statements` shows high total_time queries
-- User asks about vacuum, bloat, dead tuples, autovacuum tuning
-- User mentions locks, deadlocks, or long-running transactions blocking queries
-
-**Do NOT use when:**
-- EXPLAIN shows Seq Scan on a large table as the primary bottleneck and adding an index is the fix (use `postgresql/advanced-indexing/`)
-- Problem is Azure-specific tuning (use `azure-postgresql/intelligent-tuning/`)
-- Query is correct but table needs partitioning (use `postgresql/table-partitioning/`)
-- User asks about vacuum, bloat, or dead tuples (general maintenance, not query tuning)
-
-**Overlaps with:**
-- `postgresql/advanced-indexing/` (EXPLAIN may reveal missing index as root cause)
-- `azure-postgresql/intelligent-tuning/` (Azure-managed tuning recommendations)
-
-## Prerequisites
-
-- `psql` or MCP `execute_sql` tool
-- Access to run `EXPLAIN (ANALYZE, BUFFERS)` on the slow query
-- Access to `pg_stat_statements` (if investigating workload-wide)
 
 ## Instructions
 
@@ -76,6 +73,14 @@ ANALYZE <table_name>;
 
 In EXPLAIN output, compare `rows=` (estimated) vs actual rows. If off by 10x+, run ANALYZE or increase `default_statistics_target` for that column.
 
+### Verify
+
+```sql
+-- Re-run EXPLAIN after fix and compare actual time
+EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) <optimized_query>;
+-- Confirm: no "Sort Method: external merge", reduced actual time
+```
+
 ## Common Mistakes
 
 1. **Ignoring loops multiplier**: A node showing 0.1ms but with loops=10000 is actually 1000ms total. Always compute `actual_time × loops`
@@ -85,17 +90,5 @@ In EXPLAIN output, compare `rows=` (estimated) vs actual rows. If off by 10x+, r
 5. **Plan instability from bad statistics**: After bulk loads, `ANALYZE` immediately. For columns with skewed distributions: `ALTER TABLE t ALTER COLUMN c SET STATISTICS 1000` (default 100)
 6. **Missing pg_stat_statements top-N analysis**: Sort by `total_exec_time` not `mean_exec_time` — a 1ms query called 1M times is worse than a 500ms query called once
 7. **CTE materialization trap (pre-PG 12)**: CTEs are optimization fences before PG 12. On PG 12+, add `MATERIALIZED`/`NOT MATERIALIZED` to control this explicitly
-
-## Verification
-
-```sql
--- Re-run EXPLAIN after fix and compare actual time
-EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) <optimized_query>;
--- Confirm: no "Sort Method: external merge", reduced actual time
-```
-
-## Failure Recovery
-
-- **Cannot change server config**: Use session-level SET for work_mem (no server restart needed)
-- **ANALYZE doesn't help**: Increase `default_statistics_target` for columns with skewed distribution: `ALTER TABLE t ALTER COLUMN c SET STATISTICS 1000`
-- **No pg_stat_statements**: Enable it: add to `shared_preload_libraries` (requires restart) or use `EXPLAIN` on individual queries
+8. **Cannot change server config**: Use session-level SET for work_mem (no server restart needed)
+9. **No pg_stat_statements available**: Enable it: add to `shared_preload_libraries` (requires restart) or use `EXPLAIN` on individual queries

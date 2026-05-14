@@ -1,38 +1,37 @@
 ---
 name: upgrades-maintenance
 description: "Azure Database for PostgreSQL Flexible Server major version upgrades, maintenance windows, and in-place upgrade procedures"
-version: "1.0.0"
 tags: [azure, postgresql, upgrade, major-version, maintenance, mvu]
-execution_mode: control-plane
-requires_confirmation: true
 platform_scope: azure-postgresql
+activation:
+  user_intent:
+    - upgrade PostgreSQL major version
+    - configure maintenance windows or scheduled patching
+    - perform in-place upgrade or MVU
+    - find out when maintenance will occur
+    - plan downtime for upgrades
+  technical_keywords:
+    - az postgres flexible-server upgrade
+    - --validate-only
+    - --maintenance-window
+    - MVU
+    - major version upgrade
+    - ANALYZE
+  exclusion_conditions:
+    - "when user needs to upgrade extensions, use `azure-postgresql/extension-lifecycle/` instead"
+    - "when user asks about scaling SKU, use `azure-postgresql/provisioning/` instead"
+    - "when user needs HA failover, use `azure-postgresql/ha-disaster-recovery/` instead"
+  adjacent_skills:
+    - "`azure-postgresql/extension-lifecycle/`"
+    - "`azure-postgresql/ha-disaster-recovery/`"
 ---
 
 # Upgrades and Maintenance
-
-## When to Use
-
-**Trigger when:**
-- User asks about upgrading PostgreSQL major version (e.g., 14 to 16)
-- User asks about maintenance windows or scheduled patching
-- User mentions "in-place upgrade" or "MVU" (Major Version Upgrade)
-- User wants to know when maintenance will occur
-- User needs to plan downtime for upgrades
-
-**Do NOT use when:**
-- User needs to upgrade extensions (use `azure-postgresql/extension-lifecycle/`)
-- User asks about scaling SKU (use `azure-postgresql/provisioning/`)
-- User needs HA failover (use `azure-postgresql/ha-disaster-recovery/`)
-
-**Overlaps with:**
-- `azure-postgresql/extension-lifecycle/` (extensions may need updates post-upgrade)
-- `azure-postgresql/ha-disaster-recovery/` (HA behavior during maintenance)
 
 ## Prerequisites
 
 - Azure Database for PostgreSQL Flexible Server
 - Contributor role on the resource group
-- `az CLI` authenticated
 - Backup verified before major version upgrade
 
 ## Instructions
@@ -83,18 +82,7 @@ SELECT * FROM pg_catalog.pg_extension WHERE extversion != default_version;
 ALTER EXTENSION pg_stat_statements UPDATE;
 ```
 
-## Common Mistakes
-
-1. **`--validate-only` first, always**: `az postgres flexible-server upgrade --resource-group rg --name server --version 16 --validate-only` checks extension compatibility, disk space, and connection limits without performing upgrade. Takes 2-5 minutes. Never skip
-2. **MVU snapshot verification**: Azure takes an automatic snapshot before MVU. Verify it exists: `az postgres flexible-server backup list --resource-group rg --name server` — look for a backup with timestamp just before upgrade start. Keep manual backup as additional safety net
-3. **Extension compatibility matrix**: Not all extensions support all PG versions. Check BEFORE upgrade: `SELECT e.extname, e.extversion FROM pg_extension e` then verify target version supports each. `pg_partman` and `postgis` are common blockers
-4. **Post-MVU `ANALYZE` requirement**: After major version upgrade, `pg_statistic` is stale. All query plans may regress. Run: `vacuumdb --all --analyze-in-place` immediately post-upgrade. On large databases, prioritize critical tables first
-5. **Post-MVU extension updates**: After upgrading PG version (e.g., 15→16), extension versions may have newer compatible releases. Run: `ALTER EXTENSION vector UPDATE; ALTER EXTENSION postgis UPDATE;` for each extension to get version compatible with new PG major
-6. **Maintenance window control**: MVU takes 5-15 minutes of downtime. Schedule with `--planned-maintenance-window`: `az postgres flexible-server update --maintenance-window "Mon:02:00"`. MVU itself must be triggered manually but respects the window for automatic restarts
-7. **Application connection handling during MVU**: Server restarts during upgrade. Applications get `FATAL: the database system is shutting down`. Implement retry with 30s timeout and exponential backoff. Connection pools (PgBouncer) will queue requests during the brief outage
-8. **Rollback strategy**: MVU is one-way (cannot downgrade). If upgrade causes issues, restore from pre-upgrade PITR backup (creates NEW server at old version). Test upgrade on a read replica first: promote replica, upgrade it, validate, then upgrade primary
-
-## Verification
+### Verify
 
 ```bash
 # Confirm version after upgrade
@@ -118,8 +106,16 @@ WHERE start_time > now() - interval '1 hour'
 ORDER BY mean_time DESC LIMIT 10;
 ```
 
-## Failure Recovery
+## Common Mistakes
 
-- **Upgrade failed**: Server rolls back to previous version automatically. Check Activity Log for root cause
-- **Performance regression post-upgrade**: Run `ANALYZE` on all tables. Check if planner settings changed between versions
-- **Extension broken after upgrade**: `ALTER EXTENSION ... UPDATE` to get version compatible with new PostgreSQL version
+1. **`--validate-only` first, always**: `az postgres flexible-server upgrade --resource-group rg --name server --version 16 --validate-only` checks extension compatibility, disk space, and connection limits without performing upgrade. Takes 2-5 minutes. Never skip
+2. **MVU snapshot verification**: Azure takes an automatic snapshot before MVU. Verify it exists: `az postgres flexible-server backup list --resource-group rg --name server` — look for a backup with timestamp just before upgrade start. Keep manual backup as additional safety net
+3. **Extension compatibility matrix**: Not all extensions support all PG versions. Check BEFORE upgrade: `SELECT e.extname, e.extversion FROM pg_extension e` then verify target version supports each. `pg_partman` and `postgis` are common blockers
+4. **Post-MVU `ANALYZE` requirement**: After major version upgrade, `pg_statistic` is stale. All query plans may regress. Run: `vacuumdb --all --analyze-in-place` immediately post-upgrade. On large databases, prioritize critical tables first
+5. **Post-MVU extension updates**: After upgrading PG version (e.g., 15→16), extension versions may have newer compatible releases. Run: `ALTER EXTENSION vector UPDATE; ALTER EXTENSION postgis UPDATE;` for each extension to get version compatible with new PG major
+6. **Maintenance window control**: MVU takes 5-15 minutes of downtime. Schedule with `--planned-maintenance-window`: `az postgres flexible-server update --maintenance-window "Mon:02:00"`. MVU itself must be triggered manually but respects the window for automatic restarts
+7. **Application connection handling during MVU**: Server restarts during upgrade. Applications get `FATAL: the database system is shutting down`. Implement retry with 30s timeout and exponential backoff. Connection pools (PgBouncer) will queue requests during the brief outage
+8. **Rollback strategy**: MVU is one-way (cannot downgrade). If upgrade causes issues, restore from pre-upgrade PITR backup (creates NEW server at old version). Test upgrade on a read replica first: promote replica, upgrade it, validate, then upgrade primary
+9. **Upgrade failed**: Server rolls back to previous version automatically. Check Activity Log for root cause
+10. **Performance regression post-upgrade**: Run `ANALYZE` on all tables. Check if planner settings changed between versions
+11. **Extension broken after upgrade**: `ALTER EXTENSION ... UPDATE` to get version compatible with new PostgreSQL version

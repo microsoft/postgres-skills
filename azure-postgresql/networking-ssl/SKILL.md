@@ -1,37 +1,42 @@
 ---
 name: networking-ssl
 description: "Configure SSL/TLS, private endpoints, VNet integration, and firewall rules for Azure Database for PostgreSQL Flexible Server"
-version: "1.0.0"
 tags: [azure, postgresql, ssl, tls, private-endpoint, vnet, firewall, networking]
-execution_mode: control-plane
-requires_confirmation: true
 platform_scope: azure-postgresql
+activation:
+  user_intent:
+    - "configure SSL certificate or sslmode for Azure PostgreSQL"
+    - "set up private endpoint or VNet integration"
+    - "add firewall rules or IP allowlisting"
+    - "fix SSL connection is required error or certificate verification failures"
+    - "restrict network access to PostgreSQL server"
+  technical_keywords:
+    - sslmode
+    - verify-full
+    - require_secure_transport
+    - DigiCertGlobalRootCA
+    - DigiCertGlobalRootG2
+    - private-endpoint
+    - firewall-rule
+    - vnet
+    - privatelink.postgres.database.azure.com
+    - "SSL connection is required"
+    - "SSL certificate verify failed"
+    - TLS 1.2
+  exclusion_conditions:
+    - "when user needs authentication/identity setup, use `azure-postgresql/entra-id-auth/` instead"
+    - "when user asks about connection pooling, use `azure-postgresql/connection-pooling/` instead"
+    - "when user needs general connection troubleshooting, use `postgresql/connection-management/` instead"
+  adjacent_skills:
+    - "`azure-postgresql/entra-id-auth/`"
+    - "`azure-postgresql/provisioning/`"
 ---
 
 # Networking and SSL
 
-## When to Use
-
-**Trigger when:**
-- User asks about SSL certificate configuration or sslmode
-- User needs private endpoint or VNet integration
-- User asks about firewall rules or IP allowlisting
-- Error: "SSL connection is required" or certificate verification failures
-- User wants to restrict network access to their PostgreSQL server
-
-**Do NOT use when:**
-- User needs authentication/identity setup (use `azure-postgresql/entra-id-auth/`)
-- User asks about connection pooling (use `azure-postgresql/connection-pooling/`)
-- User needs general connection troubleshooting (use `postgresql/connection-management/`)
-
-**Overlaps with:**
-- `azure-postgresql/entra-id-auth/` (both are security-related)
-- `azure-postgresql/provisioning/` (networking chosen at provisioning)
-
 ## Prerequisites
 
 - Azure Database for PostgreSQL Flexible Server
-- `az CLI` authenticated with Contributor role
 - Network planning decisions (public vs private access)
 
 ## Instructions
@@ -88,18 +93,7 @@ az network private-endpoint create \
     --connection-name myserver-connection
 ```
 
-## Common Mistakes
-
-1. **DigiCert CA, not Baltimore**: Azure Flexible Server uses DigiCert Global Root G2 CA since 2022. Old Baltimore CyberTrust Root is deprecated. Download: `https://dl.cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem`. Using old cert gives `SSL certificate verify failed`
-2. **VNet disables firewall completely**: Once private access (VNet integration) is enabled, ALL firewall rules are ignored (including "Allow Azure services"). Access is VNet-only. Cannot have hybrid (some firewall + VNet)
-3. **Private DNS zone requirement**: VNet-integrated servers require a Private DNS zone (e.g., `privatelink.postgres.database.azure.com`) linked to the VNet. Without it, hostname resolution fails even though network connectivity exists
-4. **Private DNS zone naming**: Zone MUST be `<servername>.private.postgres.database.azure.com` or `privatelink.postgres.database.azure.com`. Custom zone names break Azure's automatic DNS record management
-5. **"Allow Azure services" is wider than expected**: This checkbox allows traffic from ANY Azure subscription's public IPs, not just your resources. Use Private Endpoints or VNet rules for isolation. Only enable temporarily for Azure Data Factory/Functions without VNet integration
-6. **Cross-VNet connectivity**: Two VNet-integrated servers in different VNets cannot connect by default. Requires VNet peering + DNS forwarding. For cross-region, use Global VNet peering (additional latency)
-7. **`verify-full` connection string**: `sslmode=verify-full sslrootcert=/path/to/DigiCertGlobalRootG2.crt.pem` — the hostname in the cert matches `*.postgres.database.azure.com`. Custom server names via CNAME still validate against the Azure-issued cert's SAN
-8. **TLS version enforcement**: Azure enforces TLS 1.2 minimum. Clients using TLS 1.0/1.1 get connection refused. Check client library TLS support. Python psycopg2 on older systems may need `ssl_context` configuration
-
-## Verification
+### Verify
 
 ```bash
 # Test SSL connection
@@ -112,8 +106,16 @@ az postgres flexible-server firewall-rule list \
     --resource-group myRG --name myserver -o table
 ```
 
-## Failure Recovery
+## Common Mistakes
 
-- **Certificate error**: Download fresh DigiCert root CA. Old Baltimore cert was retired
-- **Cannot connect after VNet**: Ensure client is in the same VNet or has peering/VPN configured
-- **"no pg_hba.conf entry"**: Add client IP to firewall rules or verify private endpoint DNS resolution
+1. **DigiCert CA, not Baltimore**: Azure Flexible Server uses DigiCert Global Root G2 CA since 2022. Old Baltimore CyberTrust Root is deprecated. Download: `https://dl.cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem`. Using old cert gives `SSL certificate verify failed`
+2. **VNet disables firewall completely**: Once private access (VNet integration) is enabled, ALL firewall rules are ignored (including "Allow Azure services"). Access is VNet-only. Cannot have hybrid (some firewall + VNet)
+3. **Private DNS zone requirement**: VNet-integrated servers require a Private DNS zone (e.g., `privatelink.postgres.database.azure.com`) linked to the VNet. Without it, hostname resolution fails even though network connectivity exists
+4. **Private DNS zone naming**: Zone MUST be `<servername>.private.postgres.database.azure.com` or `privatelink.postgres.database.azure.com`. Custom zone names break Azure's automatic DNS record management
+5. **"Allow Azure services" is wider than expected**: This checkbox allows traffic from ANY Azure subscription's public IPs, not just your resources. Use Private Endpoints or VNet rules for isolation. Only enable temporarily for Azure Data Factory/Functions without VNet integration
+6. **Cross-VNet connectivity**: Two VNet-integrated servers in different VNets cannot connect by default. Requires VNet peering + DNS forwarding. For cross-region, use Global VNet peering (additional latency)
+7. **`verify-full` connection string**: `sslmode=verify-full sslrootcert=/path/to/DigiCertGlobalRootG2.crt.pem` — the hostname in the cert matches `*.postgres.database.azure.com`. Custom server names via CNAME still validate against the Azure-issued cert's SAN
+8. **TLS version enforcement**: Azure enforces TLS 1.2 minimum. Clients using TLS 1.0/1.1 get connection refused. Check client library TLS support. Python psycopg2 on older systems may need `ssl_context` configuration
+9. **Certificate error after migration**: Download fresh DigiCert root CA. The old Baltimore CyberTrust Root cert was retired in 2022. Update `sslrootcert` path in all connection strings
+10. **Cannot connect after VNet integration**: Ensure client is in the same VNet or has peering/VPN configured. VNet integration removes all public access
+11. **"no pg_hba.conf entry" error**: Add client IP to firewall rules (for public access) or verify private endpoint DNS resolution is working correctly (for private access)

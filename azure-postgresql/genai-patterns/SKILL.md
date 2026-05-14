@@ -19,17 +19,14 @@ activation:
     - vector similarity
     - pgvector
     - azure_openai.create_embeddings
-  required_tools:
-    - pgvector extension
-    - azure_ai extension (for in-database path)
   exclusion_conditions:
-    - User needs vector indexing or DiskANN/HNSW tuning only (use `azure-postgresql/vector-diskann/`)
-    - User needs text generation / classification / extraction (use `azure-postgresql/azure-ai/`)
-    - User needs full-text search without vectors (use `postgresql/full-text-search/`)
+    - "when user needs vector indexing or DiskANN/HNSW tuning only, use `azure-postgresql/vector-diskann/` instead"
+    - "when user needs text generation / classification / extraction, use `azure-postgresql/azure-ai/` instead"
+    - "when user needs full-text search without vectors, use `postgresql/full-text-search/` instead"
   adjacent_skills:
-    - `azure-postgresql/azure-ai/` (extension setup + text generation for RAG answer step)
-    - `azure-postgresql/vector-diskann/` (index tuning for vector columns)
-    - `postgresql/full-text-search/` (FTS component of hybrid search)
+    - "`azure-postgresql/azure-ai/`"
+    - "`azure-postgresql/vector-diskann/`"
+    - "`postgresql/full-text-search/`"
 ---
 
 ## Prerequisites
@@ -166,18 +163,7 @@ FROM (
 ) top_docs;
 ```
 
-## Common Mistakes
-
-1. **Dimension mismatch**: `text-embedding-3-small` = 1536, `text-embedding-3-large` = 3072, `text-embedding-ada-002` = 1536. Column `vector(N)` must match model output.
-2. **Silent truncation**: Models truncate input beyond their token limit without error. Pre-chunk long documents (500-1000 tokens per chunk recommended).
-3. **Mixing distance operators**: `<=>` (cosine), `<->` (L2), `<#>` (inner product). Use `<=>` for normalized embeddings (most common). Index must match: `vector_cosine_ops` for `<=>`.
-4. **Forgetting FTS index for hybrid search**: Without `GIN` index on `tsvector`, keyword search degrades to sequential scan.
-5. **Rate limiting on batch embed**: Start with batches of 50-100 rows with `pg_sleep(1)` between batches. Monitor for 429 errors.
-6. **Context window overflow**: GPT-4o supports ~128K tokens. Budget: 80% for context, 20% for response. Track token count when aggregating retrieved chunks.
-7. **RRF constant k=60**: The standard value. Changing it biases toward one ranking signal. Only tune if you have evaluation data.
-8. **External vs in-database choice**: Use in-database (Path A) when data lives in PostgreSQL and you want SQL-only workflows. Use external (Path B) when your app already calls an embedding API or you need non-Azure embedding models.
-
-## Verification
+### Verify
 
 ```sql
 -- Verify embeddings exist
@@ -191,11 +177,18 @@ FROM documents ORDER BY distance LIMIT 3;
 -- Test hybrid search (should return results from both vector and FTS paths)
 ```
 
-## Failure Recovery
+## Common Mistakes
 
-1. **"type vector does not exist"** → `CREATE EXTENSION vector;` — ensure `vector` is in `azure.extensions` allowlist.
-2. **"azure_openai.create_embeddings does not exist"** → azure_ai extension not installed or not configured. See `azure-postgresql/azure-ai/`.
-3. **Dimension error on INSERT/UPDATE** → Column declared as `vector(1536)` but embedding has different length. Check model dimensions.
-4. **429 rate limit** → Reduce batch size, increase `pg_sleep()` delay between batches.
-5. **Hybrid search returns no FTS results** → Verify `tsvector` column is populated and `GIN` index exists.
-6. **Poor retrieval quality** → Try smaller chunks (300-500 tokens), add metadata pre-filters, or switch to hybrid search if using vector-only.
+1. **Dimension mismatch**: `text-embedding-3-small` = 1536, `text-embedding-3-large` = 3072, `text-embedding-ada-002` = 1536. Column `vector(N)` must match model output.
+2. **Silent truncation**: Models truncate input beyond their token limit without error. Pre-chunk long documents (500-1000 tokens per chunk recommended).
+3. **Mixing distance operators**: `<=>` (cosine), `<->` (L2), `<#>` (inner product). Use `<=>` for normalized embeddings (most common). Index must match: `vector_cosine_ops` for `<=>`.
+4. **Forgetting FTS index for hybrid search**: Without `GIN` index on `tsvector`, keyword search degrades to sequential scan.
+5. **Rate limiting on batch embed**: Start with batches of 50-100 rows with `pg_sleep(1)` between batches. Monitor for 429 errors.
+6. **Context window overflow**: GPT-4o supports ~128K tokens. Budget: 80% for context, 20% for response. Track token count when aggregating retrieved chunks.
+7. **RRF constant k=60**: The standard value. Changing it biases toward one ranking signal. Only tune if you have evaluation data.
+8. **External vs in-database choice**: Use in-database (Path A) when data lives in PostgreSQL and you want SQL-only workflows. Use external (Path B) when your app already calls an embedding API or you need non-Azure embedding models.
+9. **"type vector does not exist"**: `CREATE EXTENSION vector;` — ensure `vector` is in `azure.extensions` allowlist.
+10. **"azure_openai.create_embeddings does not exist"**: azure_ai extension not installed or not configured. See `azure-postgresql/azure-ai/`.
+11. **Dimension error on INSERT/UPDATE**: Column declared as `vector(1536)` but embedding has different length. Check model dimensions.
+12. **Hybrid search returns no FTS results**: Verify `tsvector` column is populated and `GIN` index exists.
+13. **Poor retrieval quality**: Try smaller chunks (300-500 tokens), add metadata pre-filters, or switch to hybrid search if using vector-only.

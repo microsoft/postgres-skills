@@ -1,37 +1,36 @@
 ---
 name: table-partitioning
 description: "PostgreSQL native table partitioning with range, list, and hash strategies including partition pruning"
-version: "1.0.0"
 tags: [postgresql, partitioning, range, list, hash, pruning]
-execution_mode: mutate
-requires_confirmation: false
 platform_scope: postgresql
+activation:
+  user_intent:
+    - "how to partition a large table"
+    - "table growing beyond 50-100 million rows"
+    - "archiving old data without bloat"
+    - "bulk DELETE causes bloat and long locks"
+    - "VACUUM runs too long on large tables"
+    - "queries filter by date range or tenant ID"
+  technical_keywords:
+    - PARTITION BY RANGE
+    - PARTITION BY LIST
+    - PARTITION BY HASH
+    - CREATE TABLE PARTITION OF
+    - DETACH PARTITION
+    - partition pruning
+    - pg_partman
+    - publish_via_partition_root
+    - DEFAULT partition
+  exclusion_conditions:
+    - "when table is small (< 10M rows) and performs fine, do not use this skill"
+    - "when user needs Azure-specific partition management, use `azure-postgresql/upgrades-maintenance/` instead"
+    - "when random access patterns with no consistent filter column, do not use this skill"
+  adjacent_skills:
+    - "`postgresql/query-performance/`"
+    - "`postgresql/advanced-indexing/`"
 ---
 
 # Table Partitioning
-
-## When to Use
-
-**Trigger when:**
-- User has a table growing beyond 50-100 million rows
-- Queries filter by date range, tenant ID, or category
-- User asks "how to partition" or "archiving old data"
-- Bulk DELETE of old data causes bloat and long locks
-- VACUUM runs too long on large tables
-
-**Do NOT use when:**
-- Table is small (< 10M rows) and performs fine
-- User needs Azure-specific partition management (use `azure-postgresql/upgrades-maintenance/`)
-- Random access patterns with no consistent filter column
-
-**Overlaps with:**
-- `postgresql/query-performance/` (partition pruning improves query speed)
-- `postgresql/advanced-indexing/` (indexes on partitioned tables)
-
-## Prerequisites
-
-- PostgreSQL 12+ (for declarative partitioning with all features)
-- `psql` or MCP `execute_sql` tool
 
 ## Instructions
 
@@ -78,17 +77,7 @@ ALTER TABLE events DETACH PARTITION events_2023_01;
 -- This acquires ACCESS EXCLUSIVE lock briefly
 ```
 
-## Common Mistakes
-
-1. **Default partition traps data**: Once rows land in DEFAULT, creating a new partition for that range fails. Pre-create partitions ahead of time. Move trapped rows: `INSERT INTO events_2024_03 SELECT * FROM events_default WHERE created_at >= '2024-03-01' AND created_at < '2024-04-01'; DELETE FROM events_default WHERE ...`
-2. **Partition pruning failure with casts**: `WHERE created_at > '2024-01-01'::date` on a `timestamptz` partition key prevents pruning. Match types exactly: `WHERE created_at > '2024-01-01 00:00:00+00'::timestamptz`
-3. **Too many partitions**: >200 partitions increase planning time. Keep 50-200 partitions. Merge old monthly partitions into yearly ones
-4. **UNIQUE/PK must include partition key**: Cannot create unique index without partition key: `PRIMARY KEY (id, created_at)` not just `PRIMARY KEY (id)`. This also affects foreign keys pointing to partitioned tables
-5. **pg_partman automation**: For time-series, `pg_partman` auto-creates/drops partitions. Without it, inserts fail when next period's partition doesn't exist. Setup: `CREATE EXTENSION pg_partman; SELECT partman.create_parent('public.events', 'created_at', 'native', 'monthly')`
-6. **publish_via_partition_root for replication**: Logical replication requires `ALTER PUBLICATION pub SET (publish_via_partition_root = true)` or subscriber sees individual partition names instead of parent table
-7. **`DETACH PARTITION CONCURRENTLY`**: Available in PostgreSQL 14+. For PG13 and earlier, `DETACH PARTITION` takes an `ACCESS EXCLUSIVE` lock. Plan a maintenance window for older versions
-
-## Verification
+### Verify
 
 ```sql
 -- Confirm partitions exist
@@ -99,8 +88,15 @@ EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at = '2024-01-15';
 -- Look for: "Partitions selected: 1" (not all)
 ```
 
-## Failure Recovery
+## Common Mistakes
 
-- **Insert fails "no partition"**: Add a DEFAULT partition or create the missing range partition
-- **Cannot detach concurrently**: On PostgreSQL < 14, use `ALTER TABLE ... DETACH PARTITION` (acquires brief ACCESS EXCLUSIVE lock). On 14+, CONCURRENTLY option is available but ensure session stays connected until completion
-- **Wrong partition boundaries**: Attach a new partition with correct bounds, migrate rows, detach wrong one
+1. **Default partition traps data**: Once rows land in DEFAULT, creating a new partition for that range fails. Pre-create partitions ahead of time. Move trapped rows: `INSERT INTO events_2024_03 SELECT * FROM events_default WHERE created_at >= '2024-03-01' AND created_at < '2024-04-01'; DELETE FROM events_default WHERE ...`
+2. **Partition pruning failure with casts**: `WHERE created_at > '2024-01-01'::date` on a `timestamptz` partition key prevents pruning. Match types exactly: `WHERE created_at > '2024-01-01 00:00:00+00'::timestamptz`
+3. **Too many partitions**: >200 partitions increase planning time. Keep 50-200 partitions. Merge old monthly partitions into yearly ones
+4. **UNIQUE/PK must include partition key**: Cannot create unique index without partition key: `PRIMARY KEY (id, created_at)` not just `PRIMARY KEY (id)`. This also affects foreign keys pointing to partitioned tables
+5. **pg_partman automation**: For time-series, `pg_partman` auto-creates/drops partitions. Without it, inserts fail when next period's partition doesn't exist. Setup: `CREATE EXTENSION pg_partman; SELECT partman.create_parent('public.events', 'created_at', 'native', 'monthly')`
+6. **publish_via_partition_root for replication**: Logical replication requires `ALTER PUBLICATION pub SET (publish_via_partition_root = true)` or subscriber sees individual partition names instead of parent table
+7. **`DETACH PARTITION CONCURRENTLY`**: Available in PostgreSQL 14+. For PG13 and earlier, `DETACH PARTITION` takes an `ACCESS EXCLUSIVE` lock. Plan a maintenance window for older versions
+8. **Insert fails "no partition"**: Add a DEFAULT partition or create the missing range partition
+9. **Cannot detach concurrently on older PG**: On PostgreSQL < 14, use `ALTER TABLE ... DETACH PARTITION` (acquires brief ACCESS EXCLUSIVE lock). On 14+, CONCURRENTLY option is available but ensure session stays connected until completion
+10. **Wrong partition boundaries**: Attach a new partition with correct bounds, migrate rows, detach wrong one
