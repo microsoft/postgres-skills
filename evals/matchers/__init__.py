@@ -52,11 +52,22 @@ class PatternMatcher:
 
 
 class HallucinationDetector:
-    """Detects common managed-service hallucinations in agent output."""
+    """Detects hallucinations in agent output with context-aware scoping."""
 
-    HALLUCINATION_PATTERNS = [
+    # Universal patterns: wrong in ANY PostgreSQL context (self-hosted or managed)
+    UNIVERSAL_PATTERNS = [
+        (r"CREATE\s+EXTENSION\s+(?!IF\s+NOT\s+EXISTS)(?!pgcrypto|uuid-ossp|pg_stat_statements|vector|age|postgis|pg_trgm|btree_gin|btree_gist|hstore|citext|ltree|intarray|fuzzystrmatch|unaccent|tablefunc|earthdistance|cube|pg_prewarm|pg_buffercache|postgres_fdw|dblink|amcheck|pageinspect|pg_visibility|bloom|rum|timescaledb|citus|pgrouting|plpgsql|plpython3u|pltcl|plperl|xml2|pgaudit|pg_cron|pg_partman|pg_repack|pg_hint_plan|hypopg|decoderbufs|wal2json|pglogical|orafce|mysql_fdw|tds_fdw|file_fdw|log_fdw|azure_ai|azure_storage|pgvector)\w*\b",
+         "References non-existent PostgreSQL extension"),
+        (r"pg_catalog\.(?!pg_class|pg_attribute|pg_namespace|pg_type|pg_index|pg_stat_user_tables|pg_stat_user_indexes|pg_stat_activity|pg_locks|pg_settings|pg_roles|pg_database|pg_tablespace|pg_constraint|pg_trigger|pg_proc|pg_depend|pg_description|pg_am|pg_operator|pg_opclass|pg_statistic|pg_replication_slots|pg_stat_replication|pg_stat_wal_receiver|pg_publication|pg_subscription|pg_stat_progress_vacuum|pg_stat_bgwriter|pg_stat_archiver)\w+",
+         "References non-existent pg_catalog object"),
+        (r"SET\s+(?:shared_preload_libraries|shared_buffers|max_connections|wal_level|max_wal_senders|max_replication_slots|hot_standby|archive_mode)\s*=",
+         "SET cannot change postmaster-level GUC at runtime (requires restart)"),
+    ]
+
+    # Azure-managed patterns: only wrong when platform_scope is "azure"
+    # These are perfectly valid for generic/self-hosted PostgreSQL
+    AZURE_MANAGED_PATTERNS = [
         (r"ALTER\s+SYSTEM\s+SET", "ALTER SYSTEM not available on Azure managed PostgreSQL"),
-        (r"CREATE\s+\w+\s+SUPERUSER", "Superuser role does not exist on Azure"),
         (r"GRANT\s+.*superuser", "Cannot grant superuser on Azure"),
         (r"pg_hba\.conf", "pg_hba.conf not directly editable on Azure"),
         (r"postgresql\.conf", "postgresql.conf not directly editable on Azure"),
@@ -67,24 +78,51 @@ class HallucinationDetector:
     ]
 
     # Patterns where the match should be suppressed if preceded by negation context
-    NEGATION_EXEMPT_PATTERNS = {r"GRANT\s+.*superuser"}
+    NEGATION_EXEMPT_PATTERNS = {
+        r"GRANT\s+.*superuser",
+        r"ALTER\s+SYSTEM\s+SET",
+        r"pg_hba\.conf",
+        r"postgresql\.conf",
+        r"pg_basebackup",
+    }
     NEGATION_CONTEXT = re.compile(
-        r"(cannot|does not allow|not\s+possible|not\s+allowed|not\s+supported|not\s+available|do not|never)\s+",
+        r"(cannot|does not allow|not\s+possible|not\s+allowed|not\s+supported|not\s+available"
+        r"|do not|never|don't|doesn't|isn't|aren't|instead of|rather than|avoid|unlike)\s+",
+        re.IGNORECASE
+    )
+    # Also suppress when the match appears in a "warning" or "note" context
+    WARNING_CONTEXT = re.compile(
+        r"(note:|warning:|important:|caution:|⚠|not.*on azure|not.*on managed|unavailable)",
         re.IGNORECASE
     )
 
-    def check(self, output: str) -> list[dict]:
-        """Returns list of hallucination findings."""
+    def check(self, output: str, platform_scope: str = "azure") -> list[dict]:
+        """Returns list of hallucination findings.
+        
+        Args:
+            output: The agent's response text
+            platform_scope: "generic" for self-hosted PostgreSQL challenges,
+                          "azure" for Azure-managed challenges (applies stricter rules)
+        """
         findings = []
-        for pattern, reason in self.HALLUCINATION_PATTERNS:
+
+        # Always check universal patterns
+        patterns_to_check = list(self.UNIVERSAL_PATTERNS)
+
+        # Only add Azure-managed patterns for Azure-scoped challenges
+        if platform_scope == "azure":
+            patterns_to_check.extend(self.AZURE_MANAGED_PATTERNS)
+
+        for pattern, reason in patterns_to_check:
             matches = list(re.finditer(pattern, output, re.IGNORECASE))
             if matches:
-                # Filter out matches preceded by negation context (within 60 chars)
+                # Filter out matches preceded by negation/warning context (within 80 chars)
                 if pattern in self.NEGATION_EXEMPT_PATTERNS:
                     real_matches = []
                     for m in matches:
-                        preceding = output[max(0, m.start() - 60):m.start()]
-                        if not self.NEGATION_CONTEXT.search(preceding):
+                        preceding = output[max(0, m.start() - 80):m.start()]
+                        if (not self.NEGATION_CONTEXT.search(preceding)
+                                and not self.WARNING_CONTEXT.search(preceding)):
                             real_matches.append(m.group())
                     if not real_matches:
                         continue

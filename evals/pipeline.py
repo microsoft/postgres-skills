@@ -301,8 +301,8 @@ class EvalPipeline:
             challenge.anti_patterns
         )
 
-        # Check hallucinations
-        hallucinations = self.hallucination_detector.check(output)
+        # Check hallucinations (scoped by platform context)
+        hallucinations = self.hallucination_detector.check(output, challenge.platform_scope)
 
         # SQL validation
         sql_result = self.sql_validator.validate(output)
