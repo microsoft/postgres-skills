@@ -1,10 +1,10 @@
 # PostgreSQL Agent Skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Skills: 21](https://img.shields.io/badge/Skills-21-green.svg)](#skill-catalog)
+[![Skills: 19](https://img.shields.io/badge/Skills-19-green.svg)](#skill-catalog)
 [![Platforms: 4](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex_|_Cursor-purple.svg)](#get-started-in-60-seconds)
 
-**Ship production PostgreSQL faster.** These 21 expert-curated agent skills give your AI coding assistant the deep PostgreSQL and Azure Database for PostgreSQL knowledge it doesn't have out of the box, so you get safe, version-aware, production-ready answers instead of Stack Overflow snippets.
+**Ship production PostgreSQL faster.** These 19 expert-curated agent skills give your AI coding assistant the deep PostgreSQL and Azure Database for PostgreSQL knowledge it doesn't have out of the box, so you get safe, version-aware, production-ready answers instead of Stack Overflow snippets.
 
 ## What you get
 
@@ -63,7 +63,7 @@ These skills work with any PostgreSQL deployment, whether self-hosted, managed, 
 | **full-text-search** | tsvector, tsquery, ranking, multilingual search | Phrase search (PG9.6+), custom dictionaries, weighted ranking |
 | **row-level-security** | Multi-tenant RLS policies | Policy stacking, leaky view anti-patterns, performance with 1000+ tenants |
 
-### Azure Database for PostgreSQL (13 skills)
+### Azure Database for PostgreSQL (11 skills)
 
 These skills are purpose-built for Azure Database for PostgreSQL Flexible Server, covering managed-service workflows, Azure AI integrations, and platform-specific safety guardrails.
 

@@ -62,48 +62,41 @@ Generate `SKILL.md` bodies for all P0 skills in our spec. Use the inventory matr
 
 #### Skill Format Reference
 
-Each `SKILL.md` must follow this structure (AgentSkills.io format):
+Each `SKILL.md` must follow this structure:
 
 ```markdown
 ---
 name: skill-name
-description: One-line description for agent activation matching
-version: 1.0.0
+description: "Precise one-liner with exact product names and key terms"
 tags: [postgresql, indexing, performance]
-execution_mode: read | mutate | destructive | control-plane
-requires_confirmation: true | false
 platform_scope: postgresql | azure-postgresql
+activation:
+  user_intent: ["phrase1", "phrase2"]
+  technical_keywords: ["keyword1", "keyword2"]
+  exclusion_conditions: ["when X, use skill Y instead"]
+  adjacent_skills: ["sibling-skill"]
 ---
 
 # Skill Title
 
-## When to Use
-
-**Trigger when:**
-[Positive triggers: exact product names, CLI commands, function names, extension names, error messages, and scenarios that activate this skill.]
-
-**Do NOT use when:**
-[Negative triggers: adjacent products, overlapping skills, scenarios that belong to a different skill.]
-
-**Overlaps with:**
-[Name sibling skills that cover adjacent territory so the agent knows alternatives exist. Use relative repo paths.]
-
-## Prerequisites
-[Tools/extensions required: psql, az cli, specific PG extensions]
+## Prerequisites  ← AZURE SKILLS ONLY; omit for generic PG skills
+[Only Azure-specific: azure_pg_admin, extension allowlist, server config, etc.]
 
 ## Instructions
-[Step-by-step guidance the agent follows. Use SQL examples, CLI commands, decision trees.]
+[Step-by-step guidance. SQL examples, CLI commands, decision trees.
+ End with a ### Verify subsection showing how to confirm success.]
 
 ## Common Mistakes
-[What agents get wrong without this skill. Maps to "Why Agents Fail" in the spec.]
-
-## Verification
-[How to confirm the task succeeded. Maps to "Acceptance Criteria" in the spec.]
-
-## Failure Recovery
-[Fallback paths for: missing extension, unsupported PG version, insufficient permissions, unavailable CLI, unsupported Azure SKU. Each fallback must give the agent a concrete next step, not just an error message.]
-
+[Numbered list. Each item tagged [CRITICAL], [HIGH], or [MEDIUM].
+ Top 2-3 items include ❌ Wrong / ✅ Right code pairs.
+ Includes Azure error recovery (403, allowlist, RBAC) where applicable.]
 ```
+
+**Section rules:**
+- Generic PG skills: 2 body sections (Instructions, Common Mistakes)
+- Azure skills: 3 body sections (Prerequisites, Instructions, Common Mistakes)
+- Activation logic lives entirely in frontmatter `activation` block
+- Impact tags: CRITICAL = data loss/security, HIGH = perf/reliability, MEDIUM = suboptimal
 
 ---
 

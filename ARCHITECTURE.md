@@ -4,34 +4,34 @@ This document defines the skill inventory matrix, dependency graph, and naming c
 
 ## Skill Inventory Matrix (P0)
 
-### PostgreSQL (Generic Foundation)
+### PostgreSQL (Generic Foundation) — 8 skills
 
-| Skill ID | Skill Name | Folder Path | FRs Covered | Execution Mode | Token Tier |
-|----------|-----------|-------------|-------------|----------------|------------|
-| advanced-indexing | Advanced Indexing | `postgresql/advanced-indexing/` | F1a, F1b, F1c | sequential | 800-1200 |
-| jsonb-patterns | JSONB Patterns | `postgresql/jsonb-patterns/` | F2a, F2b | sequential | 800-1200 |
-| query-performance | Query Performance | `postgresql/query-performance/` | F3a, F3b | sequential | 800-1200 |
-| table-partitioning | Table Partitioning | `postgresql/table-partitioning/` | F4a, F4b | sequential | 800-1200 |
-| row-level-security | Row-Level Security | `postgresql/row-level-security/` | F5a, F5b | sequential | 800-1200 |
-| full-text-search | Full-Text Search | `postgresql/full-text-search/` | F6a | sequential | 800-1200 |
-| connection-management | Connection Management | `postgresql/connection-management/` | F7a, F7b | sequential | 800-1200 |
-| logical-replication | Logical Replication | `postgresql/logical-replication/` | F8a, F8b | sequential | 800-1200 |
+| Skill ID | Skill Name | Folder Path | FRs Covered | Token Tier |
+|----------|-----------|-------------|-------------|------------|
+| advanced-indexing | Advanced Indexing | `postgresql/advanced-indexing/` | F1a, F1b, F1c | 800-1200 |
+| jsonb-patterns | JSONB Patterns | `postgresql/jsonb-patterns/` | F2a, F2b | 800-1200 |
+| query-performance | Query Performance | `postgresql/query-performance/` | F3a, F3b | 800-1200 |
+| table-partitioning | Table Partitioning | `postgresql/table-partitioning/` | F4a, F4b | 800-1200 |
+| row-level-security | Row-Level Security | `postgresql/row-level-security/` | F5a, F5b | 800-1200 |
+| full-text-search | Full-Text Search | `postgresql/full-text-search/` | F6a | 800-1200 |
+| connection-management | Connection Management | `postgresql/connection-management/` | F7a, F7b | 800-1200 |
+| logical-replication | Logical Replication | `postgresql/logical-replication/` | F8a, F8b | 800-1200 |
 
-### Azure Database for PostgreSQL
+### Azure Database for PostgreSQL — 11 skills
 
-| Skill ID | Skill Name | Folder Path | FRs Covered | Execution Mode | Token Tier |
-|----------|-----------|-------------|-------------|----------------|------------|
-| extension-lifecycle | Extension Lifecycle | `azure-postgresql/extension-lifecycle/` | 0a, 0b, 0c, 0d, 0e, 3c, 6n | sequential | 1500-1800 |
-| provisioning | Provisioning | `azure-postgresql/provisioning/` | 1, 1a, 1b, 1c | sequential | 1500-1800 |
-| ha-disaster-recovery | HA & Disaster Recovery | `azure-postgresql/ha-disaster-recovery/` | 2, 2a, 2b, 2c | requires_confirmation | 1500-1800 |
-| entra-id-auth | Entra ID Auth | `azure-postgresql/entra-id-auth/` | 3, 6l, 6l-ii | sequential | 1500-1800 |
-| networking-ssl | Networking & SSL | `azure-postgresql/networking-ssl/` | 3a, 3b, 6m | sequential | 1500-1800 |
-| connection-pooling | Connection Pooling | `azure-postgresql/connection-pooling/` | 6b, 6b-ii | sequential | 800-1200 |
-| intelligent-tuning | Intelligent Tuning | `azure-postgresql/intelligent-tuning/` | 4, 4a, 6k, 6k-ii, 6k-iii | sequential | 1500-1800 |
-| upgrades-maintenance | Upgrades & Maintenance | `azure-postgresql/upgrades-maintenance/` | 4b, 4c, 4d | requires_confirmation | 1500-1800 |
-| vector-diskann | Vector & DiskANN | `azure-postgresql/vector-diskann/` | 7, 7a, 7b, 7c, 9 | sequential | 1500-1800 |
-| azure-ai | Azure AI (Setup + Functions) | `azure-postgresql/azure-ai/` | 8a, 8a-ii, 8a-iv, 8b, 10, 10a-10e | sequential | 1500-1800 |
-| genai-patterns | GenAI Patterns (Embeddings + RAG) | `azure-postgresql/genai-patterns/` | 8, 8-ii, 11, 12, 12-ii | sequential | 1500-1800 |
+| Skill ID | Skill Name | Folder Path | FRs Covered | Token Tier |
+|----------|-----------|-------------|-------------|------------|
+| extension-lifecycle | Extension Lifecycle | `azure-postgresql/extension-lifecycle/` | 0a, 0b, 0c, 0d, 0e, 3c, 6n | 1500-1800 |
+| provisioning | Provisioning | `azure-postgresql/provisioning/` | 1, 1a, 1b, 1c | 1500-1800 |
+| ha-disaster-recovery | HA & Disaster Recovery | `azure-postgresql/ha-disaster-recovery/` | 2, 2a, 2b, 2c | 1500-1800 |
+| entra-id-auth | Entra ID Auth | `azure-postgresql/entra-id-auth/` | 3, 6l, 6l-ii | 1500-1800 |
+| networking-ssl | Networking & SSL | `azure-postgresql/networking-ssl/` | 3a, 3b, 6m | 1500-1800 |
+| connection-pooling | Connection Pooling | `azure-postgresql/connection-pooling/` | 6b, 6b-ii | 800-1200 |
+| intelligent-tuning | Intelligent Tuning | `azure-postgresql/intelligent-tuning/` | 4, 4a, 6k, 6k-ii, 6k-iii | 1500-1800 |
+| upgrades-maintenance | Upgrades & Maintenance | `azure-postgresql/upgrades-maintenance/` | 4b, 4c, 4d | 1500-1800 |
+| vector-diskann | Vector & DiskANN | `azure-postgresql/vector-diskann/` | 7, 7a, 7b, 7c, 9 | 1500-1800 |
+| azure-ai | Azure AI (Setup + Functions) | `azure-postgresql/azure-ai/` | 8a, 8a-ii, 8a-iv, 8b, 10, 10a-10e | 1500-1800 |
+| genai-patterns | GenAI Patterns (Embeddings + RAG) | `azure-postgresql/genai-patterns/` | 8, 8-ii, 11, 12, 12-ii | 1500-1800 |
 
 ### Cross-Cutting FRs (Encoded as Constraints, Not Standalone Skills)
 
@@ -116,17 +116,13 @@ Two valid values only:
 - `postgresql` for generic skills
 - `azure-postgresql` for Azure-specific skills
 
-### Execution Mode
+### Activation Block
 
-- `sequential` (default): Instructions are followed step-by-step
-- `requires_confirmation`: Agent must ask user before executing destructive operations (PITR, failover, major version upgrade)
-
-### Version
-
-- Semantic versioning: `MAJOR.MINOR.PATCH`
-- Start all skills at `1.0.0` on first publish
-- Bump MINOR for new instructions within a skill
-- Bump MAJOR for breaking changes to activation patterns
+Each skill's frontmatter contains an `activation` block with:
+- `user_intent`: Natural-language phrases that trigger the skill
+- `technical_keywords`: Exact function/command/extension names
+- `exclusion_conditions`: When to route to a different skill instead
+- `adjacent_skills`: Related skills the agent should be aware of
 
 ## File Tree
 
@@ -180,8 +176,8 @@ postgresql-agent-skills/
 
 2. **Flat azure-postgresql/ structure:** No sub-folders within azure-postgresql/. Each skill gets its own top-level folder. Simpler navigation, no ambiguity.
 
-3. **FR consolidation:** Multiple FRs merged into one skill when they share activation patterns (e.g., all Entra ID auth FRs in one skill, not split by token type). Keeps total skill count manageable (21 skills) while covering all P0 requirements.
+3. **FR consolidation:** Multiple FRs merged into one skill when they share activation patterns (e.g., all Entra ID auth FRs in one skill, not split by token type). Keeps total skill count manageable (19 skills) while covering all P0 requirements.
 
 4. **Cross-cutting FRs as constraints:** FRs like "execute SQL" (6) and "destructive op confirmation" (6j) are encoded as constraints across skills, not standalone skills. They describe agent behavior, not teachable techniques.
 
-5. **requires_confirmation for destructive ops:** Skills that trigger PITR, failover, or major version upgrades use `requires_confirmation: true` so the agent pauses for user approval.
+5. **Destructive ops:** Skills covering PITR, failover, or major version upgrades include confirmation guidance in their Instructions section. Agents determine confirmation behavior from content, not frontmatter flags.
