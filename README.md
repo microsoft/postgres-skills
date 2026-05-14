@@ -1,10 +1,10 @@
 # PostgreSQL Agent Skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Skills: 19](https://img.shields.io/badge/Skills-19-green.svg)](#skill-catalog)
+[![Skills: 21](https://img.shields.io/badge/Skills-21-green.svg)](#skill-catalog)
 [![Platforms: 4](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex_|_Cursor-purple.svg)](#get-started-in-60-seconds)
 
-**Ship production PostgreSQL faster.** These 19 expert-curated agent skills give your AI coding assistant the deep PostgreSQL and Azure Database for PostgreSQL knowledge it doesn't have out of the box, so you get safe, version-aware, production-ready answers instead of Stack Overflow snippets.
+**Ship production PostgreSQL faster.** These 21 expert-curated agent skills give your AI coding assistant the deep PostgreSQL and Azure Database for PostgreSQL knowledge it doesn't have out of the box, so you get safe, version-aware, production-ready answers instead of Stack Overflow snippets.
 
 ## What you get
 
@@ -99,17 +99,20 @@ Here are tasks where skills make a measurable difference in answer quality:
 
 ## Eval-tested quality
 
-Every skill is continuously evaluated against 97 test challenges covering activation accuracy, anti-pattern detection, and safety guardrails.
+Every skill is continuously evaluated against 107 test challenges covering activation accuracy, anti-pattern detection, and safety guardrails.
 
 | Metric | What it measures | Latest |
 |--------|-----------------|--------|
-| **Precision** | Skills fire only when relevant (no noise) | 89.1% |
-| **Recall** | Skills fire when needed (no misses) | 94.3% |
-| **F1 Score** | Overall activation accuracy | 91.6% |
+| **Precision** | Skills fire only when relevant (no noise) | 90.4% |
+| **Recall** | Skills fire when needed (no misses) | 96.9% |
+| **F1 Score** | Overall activation accuracy | 93.5% |
+| **Win Rate** | Skill-augmented response beats baseline | 91.8% |
+| **Cohen's d** | Effect size of skill injection | 1.005 (large) |
+| **Hallucination Rate** | Azure-specific facts fabricated | 5/107 (4.7%) |
 
 ```bash
 # Run evals yourself
-python evals/pipeline.py --model gpt-4o --provider azure_openai
+python evals/pipeline.py --model gpt-4o-mini --concurrency 5
 
 # Dry run (no API calls)
 python evals/pipeline.py --dry-run
@@ -123,7 +126,7 @@ See [evals/README.md](evals/README.md) for details.
 postgresql-agent-skills/
 ├── postgresql/                 # 8 foundational PostgreSQL skills
 ├── azure-postgresql/           # 11 Azure-specific skills
-├── evals/                      # Evaluation pipeline (97 challenges)
+├── evals/                      # Evaluation pipeline (107 challenges)
 ├── .skills.json                # Skill routing manifest
 ├── marketplace.json            # Claude Code manifest
 ├── plugin.json                 # Codex CLI manifest
