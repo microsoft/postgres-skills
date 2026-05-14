@@ -4,6 +4,7 @@ Measures skill quality via control vs test group comparison.
 
 Usage:
     python evals/pipeline.py [--challenges PATH] [--output PATH] [--model MODEL]
+                             [--concurrency N] [--no-judge] [--dry-run]
 """
 import json
 import math
@@ -11,7 +12,9 @@ import os
 import random
 import sys
 import time
+import threading
 import yaml
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -252,6 +255,7 @@ class EvalPipeline:
         self.skill_metrics: dict[str, SkillMetrics] = {}
         self.winrate_results: list[dict] = []  # Paired win-rate verdicts
         self._judge_agent_fn = None  # Set during run() for judge LLM calls
+        self._lock = threading.Lock()  # Guards shared state during parallel execution
 
     def load_challenges(self) -> list[Challenge]:
         """Load challenge definitions from YAML."""
@@ -359,7 +363,8 @@ class EvalPipeline:
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
 
-        self.results.append(result)
+        with self._lock:
+            self.results.append(result)
         return result
 
     def compute_skill_metrics(self) -> dict[str, SkillMetrics]:
@@ -546,7 +551,36 @@ class EvalPipeline:
         print(f"Results saved: {results_path}")
         return report_path, results_path
 
-    def run(self, agent_fn, model: str = "gpt-4o", use_judge: bool = True):
+    def _run_single_challenge(self, challenge: Challenge, agent_fn, model: str, index: int, total: int):
+        """Run control + test + judge for one challenge. Thread-safe."""
+        label = f"[{index}/{total}] {challenge.id} ({challenge.difficulty})"
+
+        # Control group (no skill)
+        control_result = self.run_challenge(challenge, agent_fn, "control", model)
+
+        # Test group (with skill)
+        test_result = self.run_challenge(challenge, agent_fn, "test", model)
+
+        # Paired win-rate comparison
+        if (challenge.expected_activation and self._judge_agent_fn
+                and control_result.output and test_result.output
+                and not control_result.output.startswith("[MOCK]")):
+            def _call_winrate_llm(prompt: str) -> str:
+                return self._judge_agent_fn(prompt, "", model)
+            verdict = self.judge.judge_paired_winrate(
+                task=challenge.task,
+                control_output=control_result.output,
+                test_output=test_result.output,
+                call_llm_fn=_call_winrate_llm,
+            )
+            verdict["challenge_id"] = challenge.id
+            verdict["target_skill"] = challenge.target_skill
+            with self._lock:
+                self.winrate_results.append(verdict)
+
+        print(f"  {label} done")
+
+    def run(self, agent_fn, model: str = "gpt-4o-mini", use_judge: bool = True, concurrency: int = 5):
         """Execute full pipeline: control + test for all challenges."""
         self.load_challenges()
 
@@ -557,36 +591,37 @@ class EvalPipeline:
             self._judge_agent_fn = None
 
         judge_status = "enabled (LLM-as-judge)" if self._judge_agent_fn else "disabled (pattern-only)"
+        mode = f"parallel (concurrency={concurrency})" if concurrency > 1 else "sequential"
         print(f"\n{'='*60}")
         print(f"Running eval pipeline: {len(self.challenges)} challenges x 2 groups")
         print(f"Model: {model}")
         print(f"Judge: {judge_status}")
+        print(f"Execution: {mode}")
         print(f"{'='*60}\n")
 
-        for i, challenge in enumerate(self.challenges):
-            print(f"[{i+1}/{len(self.challenges)}] {challenge.id} ({challenge.difficulty})")
+        total = len(self.challenges)
+        start_time = time.time()
 
-            # Control group (no skill)
-            control_result = self.run_challenge(challenge, agent_fn, "control", model)
+        if concurrency > 1:
+            with ThreadPoolExecutor(max_workers=concurrency) as executor:
+                futures = {
+                    executor.submit(
+                        self._run_single_challenge, challenge, agent_fn, model, i + 1, total
+                    ): challenge
+                    for i, challenge in enumerate(self.challenges)
+                }
+                for future in as_completed(futures):
+                    challenge = futures[future]
+                    try:
+                        future.result()
+                    except Exception as e:
+                        print(f"  ERROR on {challenge.id}: {e}")
+        else:
+            for i, challenge in enumerate(self.challenges):
+                self._run_single_challenge(challenge, agent_fn, model, i + 1, total)
 
-            # Test group (with skill)
-            test_result = self.run_challenge(challenge, agent_fn, "test", model)
-
-            # Paired win-rate comparison (only for positive challenges with real agent)
-            if (challenge.expected_activation and self._judge_agent_fn
-                    and control_result.output and test_result.output
-                    and not control_result.output.startswith("[MOCK]")):
-                def _call_winrate_llm(prompt: str) -> str:
-                    return self._judge_agent_fn(prompt, "", model)
-                verdict = self.judge.judge_paired_winrate(
-                    task=challenge.task,
-                    control_output=control_result.output,
-                    test_output=test_result.output,
-                    call_llm_fn=_call_winrate_llm,
-                )
-                verdict["challenge_id"] = challenge.id
-                verdict["target_skill"] = challenge.target_skill
-                self.winrate_results.append(verdict)
+        elapsed = time.time() - start_time
+        print(f"\nCompleted in {elapsed:.1f}s ({elapsed/total:.1f}s per challenge)")
 
         # Generate and save report
         report = self.generate_report()
@@ -644,7 +679,7 @@ def azure_openai_agent(task: str, skill_context: str, model: str) -> str:
         print("  Example:")
         print("    $env:AZURE_OPENAI_ENDPOINT = 'https://your-resource.openai.azure.com'")
         print("    $env:AZURE_OPENAI_API_KEY = '<key>'")
-        print("    $env:AZURE_OPENAI_DEPLOYMENT = 'gpt-4o'  # optional, defaults to --model")
+        print("    $env:AZURE_OPENAI_DEPLOYMENT = 'gpt-4o-mini'  # optional, defaults to --model")
         sys.exit(1)
 
     client = AzureOpenAI(
@@ -709,12 +744,14 @@ if __name__ == "__main__":
     parser.add_argument("--challenges", default="evals/challenges/challenges.yaml")
     parser.add_argument("--skills-root", default=".")
     parser.add_argument("--output", default="evals/results")
-    parser.add_argument("--model", default="gpt-4o")
+    parser.add_argument("--model", default="gpt-4o-mini")
     parser.add_argument("--dry-run", action="store_true", help="Use mock agent")
     parser.add_argument("--provider", default="auto", choices=["auto", "azure", "openai"],
                         help="LLM provider: azure, openai, or auto (detect from env vars)")
     parser.add_argument("--no-judge", action="store_true",
                         help="Disable LLM-as-judge scoring (faster, uses pattern-only delta)")
+    parser.add_argument("--concurrency", type=int, default=5,
+                        help="Number of challenges to run in parallel (default: 5, use 1 for sequential)")
     args = parser.parse_args()
 
     pipeline = EvalPipeline(
@@ -724,7 +761,7 @@ if __name__ == "__main__":
     )
 
     if args.dry_run:
-        pipeline.run(mock_agent, model=args.model, use_judge=False)
+        pipeline.run(mock_agent, model=args.model, use_judge=False, concurrency=1)
     else:
         # Auto-detect provider
         provider = args.provider
@@ -750,7 +787,7 @@ if __name__ == "__main__":
         use_judge = not args.no_judge
         if provider == "azure":
             print(f"Using Azure OpenAI (deployment: {os.environ.get('AZURE_OPENAI_DEPLOYMENT', args.model)})")
-            pipeline.run(azure_openai_agent, model=args.model, use_judge=use_judge)
+            pipeline.run(azure_openai_agent, model=args.model, use_judge=use_judge, concurrency=args.concurrency)
         else:
             print(f"Using OpenAI ({args.model})")
-            pipeline.run(openai_agent, model=args.model, use_judge=use_judge)
+            pipeline.run(openai_agent, model=args.model, use_judge=use_judge, concurrency=args.concurrency)
