@@ -112,15 +112,57 @@ ORDER BY created_time DESC LIMIT 5;
 
 ## Common Mistakes
 
-1. **Reading `query_store.qs_view` without join**: The `qs_view` contains only metrics (calls, total_time, rows). Join with `query_store.query_texts_view` on `query_text_id` to get actual SQL text: `SELECT qt.query_sql_text, qs.calls, qs.mean_time FROM query_store.qs_view qs JOIN query_store.query_texts_view qt ON qs.query_text_id = qt.query_text_id ORDER BY qs.total_time DESC LIMIT 20`
-2. **Ignoring wait event analysis**: `query_store.pgms_wait_sampling_view` shows WHERE time is spent. Column `event_type` values: `LWLock` = contention, `IO` = storage bottleneck (upgrade SKU), `Lock` = blocking queries. Query: `SELECT event_type, event, sum(count) FROM query_store.pgms_wait_sampling_view GROUP BY 1,2 ORDER BY 3 DESC`
-3. **Auto-index recommendation lifecycle**: Recommendations go through states: `Recommended` > `Verified` > `Applied`. Check `SELECT * FROM intelligent_performance.index_recommendations`. Reverted indexes show `Reverted` state. Manually apply with the provided DDL if auto-apply is off
-4. **Query Store retention eating storage**: Default retention is 7 days. On high-QPS servers, QS storage grows to GBs. Set `pg_qs.retention_period_in_days = 3` on busy systems and `pg_qs.store_query_plans = off` to reduce overhead
-5. **Not enabling `pg_qs.track_utility`**: By default, utility commands (COPY, CREATE, VACUUM) are not tracked. Enable to catch slow bulk loads: `az postgres flexible-server parameter set --name pg_qs.track_utility --value on`
-6. **Burstable tier overhead**: Query Store adds ~5% CPU on B-series. Disable on dev/test with `pg_qs.query_capture_mode = none`. Re-enable for production profiling sessions only
-7. **Missing normalized query identification**: Same query with different literal values gets one `query_text_id`. Use `query_store.qs_view.query_id` to group by plan shape, then `mean_time` variance to detect plan instability
-8. **Not correlating with Azure Metrics**: Cross-reference QS `total_time` spikes with Azure Monitor `cpu_percent` and `iops` metrics to determine if bottleneck is compute, storage, or query logic
-9. **Query Store empty**: Check `pg_qs.query_capture_mode` is not 'none'. Allow 1+ hours after enabling for data collection to begin
-10. **Recommendations not appearing**: Requires sufficient query volume and repeated patterns. Check after 48+ hours of consistent workload
-11. **Performance regression after auto-index**: Revert with `DROP INDEX` on the recommended index. Check `intelligent_performance.index_recommendations` for the index name and DDL
-12. **403 / permission denied on intelligent_performance views**: Verify role membership: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` If false, grant via Azure Portal > Server > Roles
+1. **[HIGH] Reading `query_store.qs_view` without join**: The `qs_view` contains only metrics (calls, total_time, rows). Join with `query_store.query_texts_view` on `query_text_id` to get actual SQL text: `SELECT qt.query_sql_text, qs.calls, qs.mean_time FROM query_store.qs_view qs JOIN query_store.query_texts_view qt ON qs.query_text_id = qt.query_text_id ORDER BY qs.total_time DESC LIMIT 20`
+
+   ❌ Wrong:
+   ```sql
+   SELECT * FROM query_store.qs_view ORDER BY total_time DESC LIMIT 10;
+   -- Returns queryid and metrics but NO SQL text — useless for debugging
+   ```
+
+   ✅ Right:
+   ```sql
+   SELECT qt.query_sql_text, qs.calls, qs.mean_time
+   FROM query_store.qs_view qs
+   JOIN query_store.query_texts_view qt ON qs.query_text_id = qt.query_text_id
+   ORDER BY qs.total_time DESC LIMIT 10;
+   ```
+
+2. **[HIGH] Ignoring wait event analysis**: `query_store.pgms_wait_sampling_view` shows WHERE time is spent. Column `event_type` values: `LWLock` = contention, `IO` = storage bottleneck (upgrade SKU), `Lock` = blocking queries. Query: `SELECT event_type, event, sum(count) FROM query_store.pgms_wait_sampling_view GROUP BY 1,2 ORDER BY 3 DESC`
+3. **[MEDIUM] Auto-index recommendation lifecycle**: Recommendations go through states: `Recommended` > `Verified` > `Applied`. Check `SELECT * FROM intelligent_performance.index_recommendations`. Reverted indexes show `Reverted` state. Manually apply with the provided DDL if auto-apply is off
+4. **[HIGH] Query Store retention eating storage**: Default retention is 7 days. On high-QPS servers, QS storage grows to GBs. Set `pg_qs.retention_period_in_days = 3` on busy systems and `pg_qs.store_query_plans = off` to reduce overhead
+
+   ❌ Wrong:
+   ```bash
+   # Default 7-day retention on high-QPS server — GBs of storage consumed
+   # No action taken until disk alert fires
+   ```
+
+   ✅ Right:
+   ```bash
+   az postgres flexible-server parameter set --name pg_qs.retention_period_in_days --value 3
+   az postgres flexible-server parameter set --name pg_qs.store_query_plans --value off
+   ```
+
+5. **[MEDIUM] Not enabling `pg_qs.track_utility`**: By default, utility commands (COPY, CREATE, VACUUM) are not tracked. Enable to catch slow bulk loads: `az postgres flexible-server parameter set --name pg_qs.track_utility --value on`
+6. **[MEDIUM] Burstable tier overhead**: Query Store adds ~5% CPU on B-series. Disable on dev/test with `pg_qs.query_capture_mode = none`. Re-enable for production profiling sessions only
+7. **[MEDIUM] Missing normalized query identification**: Same query with different literal values gets one `query_text_id`. Use `query_store.qs_view.query_id` to group by plan shape, then `mean_time` variance to detect plan instability
+8. **[MEDIUM] Not correlating with Azure Metrics**: Cross-reference QS `total_time` spikes with Azure Monitor `cpu_percent` and `iops` metrics to determine if bottleneck is compute, storage, or query logic
+9. **[HIGH] Query Store empty**: Check `pg_qs.query_capture_mode` is not 'none'. Allow 1+ hours after enabling for data collection to begin
+10. **[MEDIUM] Recommendations not appearing**: Requires sufficient query volume and repeated patterns. Check after 48+ hours of consistent workload
+11. **[HIGH] Performance regression after auto-index**: Revert with `DROP INDEX` on the recommended index. Check `intelligent_performance.index_recommendations` for the index name and DDL
+12. **[CRITICAL] 403 / permission denied on intelligent_performance views**: Verify role membership: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` If false, grant via Azure Portal > Server > Roles
+
+   ❌ Wrong:
+   ```sql
+   -- As a non-admin user
+   SELECT * FROM intelligent_performance.index_recommendations;
+   -- ERROR: permission denied for relation index_recommendations
+   ```
+
+   ✅ Right:
+   ```sql
+   -- Verify and fix role membership
+   SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');
+   -- If false: GRANT azure_pg_admin TO myuser; (as server admin)
+   ```

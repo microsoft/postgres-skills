@@ -119,14 +119,50 @@ SELECT pg_size_pretty(pg_relation_size('idx_docs_embedding_diskann'));
 
 ## Common Mistakes
 
-1. **DiskANN availability**: `pg_diskann` requires Flexible Server. Verify with `SELECT * FROM pg_available_extensions WHERE name = 'pg_diskann'` before using in code
-2. **Wrong operator class**: Must match distance operator to class. `vector_cosine_ops` for `<=>`, `vector_l2_ops` for `<->`, `vector_ip_ops` for `<#>`. Mismatched class silently returns wrong ordering
-3. **HNSW `ef_search` tuning**: `SET hnsw.ef_search = 200` for query-time recall. Default is 40. Higher = better recall but slower
-4. **DiskANN filtered search advantage**: DiskANN handles WHERE clause pre-filtering natively (graph traversal with label filter). HNSW post-filters and may return fewer results than LIMIT. For multi-tenant apps, DiskANN is significantly faster
-5. **Missing allowlist entries**: Both `vector` AND `pg_diskann` must be in `azure.extensions` server parameter. Forgetting `pg_diskann` gives `ERROR: access to library "pg_diskann" is not allowed`
-6. **Wrong distance operator for use case**: `<=>` (cosine) for normalized text embeddings, `<->` (L2) for image embeddings, `<#>` (negative inner product) for pre-normalized vectors
-7. **Index build monitoring**: For large tables, monitor DiskANN build progress: `SELECT * FROM pg_stat_progress_create_index`. Use `CREATE INDEX CONCURRENTLY` to avoid blocking writes
-8. **Index not used**: Set `SET enable_seqscan = off` to test. If it works, the planner estimates are wrong. Increase `LIMIT` or run `ANALYZE`
-9. **Low recall**: For HNSW, increase `hnsw.ef_search` (default 40). For DiskANN, increase search list size
-10. **Build out of memory (HNSW)**: Increase `maintenance_work_mem` or switch to DiskANN
-11. **403 / permission denied on CREATE EXTENSION**: Verify your role has `azure_pg_admin`: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` Also verify both `vector` and `pg_diskann` are in `azure.extensions` server parameter
+1. **[MEDIUM] DiskANN availability**: `pg_diskann` requires Flexible Server. Verify with `SELECT * FROM pg_available_extensions WHERE name = 'pg_diskann'` before using in code
+2. **[CRITICAL] Wrong operator class**: Must match distance operator to class. `vector_cosine_ops` for `<=>`, `vector_l2_ops` for `<->`, `vector_ip_ops` for `<#>`. Mismatched class silently returns wrong ordering
+
+   ❌ Wrong:
+   ```sql
+   CREATE INDEX ON docs USING diskann (embedding vector_cosine_ops);
+   -- Then query with L2 operator — index NOT used, wrong results
+   SELECT * FROM docs ORDER BY embedding <-> $1::vector LIMIT 10;
+   ```
+
+   ✅ Right:
+   ```sql
+   CREATE INDEX ON docs USING diskann (embedding vector_cosine_ops);
+   -- Use matching cosine operator
+   SELECT * FROM docs ORDER BY embedding <=> $1::vector LIMIT 10;
+   ```
+
+3. **[HIGH] HNSW `ef_search` tuning**: `SET hnsw.ef_search = 200` for query-time recall. Default is 40. Higher = better recall but slower
+4. **[HIGH] DiskANN filtered search advantage**: DiskANN handles WHERE clause pre-filtering natively (graph traversal with label filter). HNSW post-filters and may return fewer results than LIMIT. For multi-tenant apps, DiskANN is significantly faster
+5. **[CRITICAL] Missing allowlist entries**: Both `vector` AND `pg_diskann` must be in `azure.extensions` server parameter. Forgetting `pg_diskann` gives `ERROR: access to library "pg_diskann" is not allowed`
+
+   ❌ Wrong:
+   ```bash
+   # Only allowlisted vector, forgot pg_diskann
+   az postgres flexible-server parameter set --name azure.extensions --value "vector"
+   ```
+   ```sql
+   CREATE EXTENSION pg_diskann;
+   -- ERROR: access to library "pg_diskann" is not allowed
+   ```
+
+   ✅ Right:
+   ```bash
+   # Allowlist BOTH extensions
+   az postgres flexible-server parameter set --name azure.extensions --value "vector,pg_diskann"
+   ```
+   ```sql
+   CREATE EXTENSION vector;
+   CREATE EXTENSION pg_diskann;
+   ```
+
+6. **[HIGH] Wrong distance operator for use case**: `<=>` (cosine) for normalized text embeddings, `<->` (L2) for image embeddings, `<#>` (negative inner product) for pre-normalized vectors
+7. **[MEDIUM] Index build monitoring**: For large tables, monitor DiskANN build progress: `SELECT * FROM pg_stat_progress_create_index`. Use `CREATE INDEX CONCURRENTLY` to avoid blocking writes
+8. **[HIGH] Index not used**: Set `SET enable_seqscan = off` to test. If it works, the planner estimates are wrong. Increase `LIMIT` or run `ANALYZE`
+9. **[HIGH] Low recall**: For HNSW, increase `hnsw.ef_search` (default 40). For DiskANN, increase search list size
+10. **[HIGH] Build out of memory (HNSW)**: Increase `maintenance_work_mem` or switch to DiskANN
+11. **[CRITICAL] 403 / permission denied on CREATE EXTENSION**: Verify your role has `azure_pg_admin`: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` Also verify both `vector` and `pg_diskann` are in `azure.extensions` server parameter

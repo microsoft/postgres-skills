@@ -127,15 +127,56 @@ SELECT azure_openai.create('<deployment>', 'Reply with: OK', 'test');
 
 ## Common Mistakes
 
-1. **Extension not in allowlist**: `CREATE EXTENSION` fails → add `azure_ai` to `azure.extensions` server parameter (requires `azure_pg_admin` role). If you see 403: verify you hold the `azure_pg_admin` role: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'MEMBER');`
-2. **Wrong endpoint format**: Must be `https://<resource>.openai.azure.com` — no trailing slash, no `/openai/` path.
-3. **Deployment name ≠ model name**: Pass the *deployment* name (e.g., `my-gpt4o`), not the model name (`gpt-4o`).
-4. **Rate limiting (429)**: Batch with `LIMIT` + `pg_sleep()` between batches. Start with batches of 50-100 rows.
-5. **Managed identity RBAC chain**: Server identity → "Cognitive Services OpenAI User" on OpenAI resource. Takes up to 10 minutes to propagate.
-6. **Key rotation**: Update via `azure_ai.set_setting()` — no server restart needed, but value is per-session if not persisted.
-7. **Confusing create() vs create_embeddings()**: `azure_openai.create()` = text generation (returns text). `azure_openai.create_embeddings()` = vector embeddings (returns vector). For embeddings, use `azure-postgresql/genai-patterns/`.
-8. **Temperature for classification**: Always set `temperature => 0.0` for deterministic classification/scoring tasks.
-9. **"extension azure_ai does not exist"**: Not in allowlist. Check `SHOW azure.extensions;` and add `azure_ai`.
-10. **403 Forbidden**: RBAC not assigned. Verify managed identity has "Cognitive Services OpenAI User" on the OpenAI resource.
-11. **Timeout on large batches**: Use `LIMIT` + loop pattern; set `statement_timeout` higher if needed.
-12. **NULL results**: Check deployment name matches exactly (case-sensitive), endpoint is correct, and model is deployed.
+1. **[CRITICAL] Extension not in allowlist**: `CREATE EXTENSION` fails → add `azure_ai` to `azure.extensions` server parameter (requires `azure_pg_admin` role). If you see 403: verify you hold the `azure_pg_admin` role: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'MEMBER');`
+
+   ❌ Wrong:
+   ```sql
+   -- As a non-admin user or without allowlisting
+   CREATE EXTENSION azure_ai;
+   -- ERROR: extension "azure_ai" is not allowlisted
+   ```
+
+   ✅ Right:
+   ```bash
+   # First allowlist, then create as azure_pg_admin
+   az postgres flexible-server parameter set --name azure.extensions --value "azure_ai,vector"
+   ```
+   ```sql
+   CREATE EXTENSION azure_ai;
+   ```
+
+2. **[HIGH] Wrong endpoint format**: Must be `https://<resource>.openai.azure.com` — no trailing slash, no `/openai/` path.
+
+   ❌ Wrong:
+   ```sql
+   SELECT azure_ai.set_setting('azure_openai.endpoint', 'https://myresource.openai.azure.com/openai/');
+   ```
+
+   ✅ Right:
+   ```sql
+   SELECT azure_ai.set_setting('azure_openai.endpoint', 'https://myresource.openai.azure.com');
+   ```
+
+3. **[HIGH] Deployment name ≠ model name**: Pass the *deployment* name (e.g., `my-gpt4o`), not the model name (`gpt-4o`).
+
+   ❌ Wrong:
+   ```sql
+   SELECT azure_openai.create('gpt-4o', 'Summarize', content);
+   -- Returns NULL or error — no deployment named "gpt-4o"
+   ```
+
+   ✅ Right:
+   ```sql
+   SELECT azure_openai.create('my-gpt4o-deployment', 'Summarize', content);
+   -- Use the deployment name from Azure OpenAI Studio
+   ```
+
+4. **[MEDIUM] Rate limiting (429)**: Batch with `LIMIT` + `pg_sleep()` between batches. Start with batches of 50-100 rows.
+5. **[CRITICAL] Managed identity RBAC chain**: Server identity → "Cognitive Services OpenAI User" on OpenAI resource. Takes up to 10 minutes to propagate.
+6. **[MEDIUM] Key rotation**: Update via `azure_ai.set_setting()` — no server restart needed, but value is per-session if not persisted.
+7. **[MEDIUM] Confusing create() vs create_embeddings()**: `azure_openai.create()` = text generation (returns text). `azure_openai.create_embeddings()` = vector embeddings (returns vector). For embeddings, use `azure-postgresql/genai-patterns/`.
+8. **[MEDIUM] Temperature for classification**: Always set `temperature => 0.0` for deterministic classification/scoring tasks.
+9. **[CRITICAL] "extension azure_ai does not exist"**: Not in allowlist. Check `SHOW azure.extensions;` and add `azure_ai`.
+10. **[CRITICAL] 403 Forbidden**: RBAC not assigned. Verify managed identity has "Cognitive Services OpenAI User" on the OpenAI resource.
+11. **[MEDIUM] Timeout on large batches**: Use `LIMIT` + loop pattern; set `statement_timeout` higher if needed.
+12. **[HIGH] NULL results**: Check deployment name matches exactly (case-sensitive), endpoint is correct, and model is deployed.

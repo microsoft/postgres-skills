@@ -34,47 +34,37 @@ activation:
 
 ## Instructions
 
-**Step 1: Choose partition strategy**
+**Step 1: Strategy selection**
 
-| Strategy | Best For | Partition Key Example |
+| Strategy | Best For | Partition Key |
 |----------|----------|---------------------|
-| RANGE | Time-series, logs, events | `created_at`, `order_date` |
-| LIST | Multi-tenant, categories | `tenant_id`, `region` |
-| HASH | Even distribution, no natural range | `user_id` |
+| RANGE | Time-series, logs | `created_at` |
+| LIST | Multi-tenant | `tenant_id` |
+| HASH | Even distribution | `user_id` |
 
-**Step 2: Create partitioned table**
+**Step 2: Verify partition pruning works**
 
 ```sql
--- Range partitioning by month
-CREATE TABLE events (
-    id bigint GENERATED ALWAYS AS IDENTITY,
-    created_at timestamptz NOT NULL,
-    payload jsonb
-) PARTITION BY RANGE (created_at);
-
--- Create partitions
-CREATE TABLE events_2024_01 PARTITION OF events
-    FOR VALUES FROM ('2024-01-01') TO ('2024-02-01');
-CREATE TABLE events_2024_02 PARTITION OF events
-    FOR VALUES FROM ('2024-02-01') TO ('2024-03-01');
-
--- Default partition catches everything else
-CREATE TABLE events_default PARTITION OF events DEFAULT;
+EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at >= '2024-01-15';
+-- Must show: "Partitions selected: 1" (not all)
+-- If pruning fails: check type mismatch on partition key
 ```
 
-**Step 3: Verify partition pruning**
+**Step 3: Detach for archival (PG 14+ CONCURRENTLY)**
 
 ```sql
-EXPLAIN SELECT * FROM events WHERE created_at >= '2024-01-15';
--- Must show: only relevant partitions scanned (not all)
-```
+-- PG 14+: non-blocking detach
+ALTER TABLE events DETACH PARTITION events_2023_01 CONCURRENTLY;
 
-**Step 4: Detach old partitions for archival (near-instant)**
-
-```sql
--- Detach instead of DELETE (no bloat, no long locks)
+-- PG 13 and earlier: brief ACCESS EXCLUSIVE lock
 ALTER TABLE events DETACH PARTITION events_2023_01;
--- This acquires ACCESS EXCLUSIVE lock briefly
+```
+
+**Step 4: Always create DEFAULT partition**
+
+```sql
+CREATE TABLE events_default PARTITION OF events DEFAULT;
+-- Without this, inserts fail when no matching partition exists
 ```
 
 ### Verify
@@ -90,13 +80,61 @@ EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at = '2024-01-15';
 
 ## Common Mistakes
 
-1. **Default partition traps data**: Once rows land in DEFAULT, creating a new partition for that range fails. Pre-create partitions ahead of time. Move trapped rows: `INSERT INTO events_2024_03 SELECT * FROM events_default WHERE created_at >= '2024-03-01' AND created_at < '2024-04-01'; DELETE FROM events_default WHERE ...`
-2. **Partition pruning failure with casts**: `WHERE created_at > '2024-01-01'::date` on a `timestamptz` partition key prevents pruning. Match types exactly: `WHERE created_at > '2024-01-01 00:00:00+00'::timestamptz`
-3. **Too many partitions**: >200 partitions increase planning time. Keep 50-200 partitions. Merge old monthly partitions into yearly ones
-4. **UNIQUE/PK must include partition key**: Cannot create unique index without partition key: `PRIMARY KEY (id, created_at)` not just `PRIMARY KEY (id)`. This also affects foreign keys pointing to partitioned tables
-5. **pg_partman automation**: For time-series, `pg_partman` auto-creates/drops partitions. Without it, inserts fail when next period's partition doesn't exist. Setup: `CREATE EXTENSION pg_partman; SELECT partman.create_parent('public.events', 'created_at', 'native', 'monthly')`
-6. **publish_via_partition_root for replication**: Logical replication requires `ALTER PUBLICATION pub SET (publish_via_partition_root = true)` or subscriber sees individual partition names instead of parent table
-7. **`DETACH PARTITION CONCURRENTLY`**: Available in PostgreSQL 14+. For PG13 and earlier, `DETACH PARTITION` takes an `ACCESS EXCLUSIVE` lock. Plan a maintenance window for older versions
-8. **Insert fails "no partition"**: Add a DEFAULT partition or create the missing range partition
-9. **Cannot detach concurrently on older PG**: On PostgreSQL < 14, use `ALTER TABLE ... DETACH PARTITION` (acquires brief ACCESS EXCLUSIVE lock). On 14+, CONCURRENTLY option is available but ensure session stays connected until completion
-10. **Wrong partition boundaries**: Attach a new partition with correct bounds, migrate rows, detach wrong one
+1. **[CRITICAL] Default partition traps data**: Once rows land in DEFAULT, creating a new partition for that range fails. Pre-create partitions ahead of time
+
+   ❌ Wrong:
+   ```sql
+   -- Rows for March already in DEFAULT partition
+   CREATE TABLE events_2024_03 PARTITION OF events
+       FOR VALUES FROM ('2024-03-01') TO ('2024-04-01');
+   -- ERROR: updated partition constraint for default would be violated
+   ```
+
+   ✅ Right:
+   ```sql
+   -- Move trapped rows first, then create partition
+   INSERT INTO events_2024_03 SELECT * FROM events_default
+       WHERE created_at >= '2024-03-01' AND created_at < '2024-04-01';
+   DELETE FROM events_default
+       WHERE created_at >= '2024-03-01' AND created_at < '2024-04-01';
+   -- Or: pre-create partitions with pg_partman before data arrives
+   ```
+
+2. **[HIGH] Partition pruning failure with casts**: Type mismatch prevents pruning
+
+   ❌ Wrong:
+   ```sql
+   -- timestamptz partition key but date literal
+   WHERE created_at > '2024-01-01'::date  -- scans ALL partitions
+   ```
+
+   ✅ Right:
+   ```sql
+   WHERE created_at > '2024-01-01 00:00:00+00'::timestamptz  -- prunes correctly
+   ```
+
+3. **[MEDIUM] Too many partitions**: >200 partitions increase planning time. Keep 50-200. Merge old monthly into yearly
+
+4. **[HIGH] UNIQUE/PK must include partition key**: Cannot create unique index without partition key
+
+   ❌ Wrong:
+   ```sql
+   PRIMARY KEY (id)  -- ERROR: unique constraint must include partition key
+   ```
+
+   ✅ Right:
+   ```sql
+   PRIMARY KEY (id, created_at)  -- partition key included
+   ```
+
+5. **[HIGH] pg_partman automation**: Without it, inserts fail when next period's partition doesn't exist. Setup: `CREATE EXTENSION pg_partman; SELECT partman.create_parent('public.events', 'created_at', 'native', 'monthly')`
+
+6. **[HIGH] publish_via_partition_root for replication**: `ALTER PUBLICATION pub SET (publish_via_partition_root = true)` or subscriber sees individual partition names
+
+7. **[MEDIUM] `DETACH PARTITION CONCURRENTLY`**: PG 14+ only. On PG 13 and earlier, plan a maintenance window (ACCESS EXCLUSIVE lock)
+
+8. **[MEDIUM] Insert fails "no partition"**: Add DEFAULT partition or create the missing range partition
+
+9. **[MEDIUM] Cannot detach concurrently on older PG**: On PG < 14, brief ACCESS EXCLUSIVE lock. On 14+, session must stay connected until completion
+
+10. **[MEDIUM] Wrong partition boundaries**: Attach new partition with correct bounds, migrate rows, detach wrong one

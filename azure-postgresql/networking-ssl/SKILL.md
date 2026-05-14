@@ -108,14 +108,54 @@ az postgres flexible-server firewall-rule list \
 
 ## Common Mistakes
 
-1. **DigiCert CA, not Baltimore**: Azure Flexible Server uses DigiCert Global Root G2 CA since 2022. Old Baltimore CyberTrust Root is deprecated. Download: `https://dl.cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem`. Using old cert gives `SSL certificate verify failed`
-2. **VNet disables firewall completely**: Once private access (VNet integration) is enabled, ALL firewall rules are ignored (including "Allow Azure services"). Access is VNet-only. Cannot have hybrid (some firewall + VNet)
-3. **Private DNS zone requirement**: VNet-integrated servers require a Private DNS zone (e.g., `privatelink.postgres.database.azure.com`) linked to the VNet. Without it, hostname resolution fails even though network connectivity exists
-4. **Private DNS zone naming**: Zone MUST be `<servername>.private.postgres.database.azure.com` or `privatelink.postgres.database.azure.com`. Custom zone names break Azure's automatic DNS record management
-5. **"Allow Azure services" is wider than expected**: This checkbox allows traffic from ANY Azure subscription's public IPs, not just your resources. Use Private Endpoints or VNet rules for isolation. Only enable temporarily for Azure Data Factory/Functions without VNet integration
-6. **Cross-VNet connectivity**: Two VNet-integrated servers in different VNets cannot connect by default. Requires VNet peering + DNS forwarding. For cross-region, use Global VNet peering (additional latency)
-7. **`verify-full` connection string**: `sslmode=verify-full sslrootcert=/path/to/DigiCertGlobalRootG2.crt.pem` — the hostname in the cert matches `*.postgres.database.azure.com`. Custom server names via CNAME still validate against the Azure-issued cert's SAN
-8. **TLS version enforcement**: Azure enforces TLS 1.2 minimum. Clients using TLS 1.0/1.1 get connection refused. Check client library TLS support. Python psycopg2 on older systems may need `ssl_context` configuration
-9. **Certificate error after migration**: Download fresh DigiCert root CA. The old Baltimore CyberTrust Root cert was retired in 2022. Update `sslrootcert` path in all connection strings
-10. **Cannot connect after VNet integration**: Ensure client is in the same VNet or has peering/VPN configured. VNet integration removes all public access
-11. **"no pg_hba.conf entry" error**: Add client IP to firewall rules (for public access) or verify private endpoint DNS resolution is working correctly (for private access)
+1. **[CRITICAL] DigiCert CA, not Baltimore**: Azure Flexible Server uses DigiCert Global Root G2 CA since 2022. Old Baltimore CyberTrust Root is deprecated. Download: `https://dl.cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem`. Using old cert gives `SSL certificate verify failed`
+
+   ❌ Wrong:
+   ```bash
+   psql "sslmode=verify-full sslrootcert=BaltimoreCyberTrustRoot.crt.pem ..."
+   # ERROR: SSL certificate verify failed — cert expired/deprecated
+   ```
+
+   ✅ Right:
+   ```bash
+   curl -o DigiCertGlobalRootG2.crt.pem https://dl.cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem
+   psql "sslmode=verify-full sslrootcert=DigiCertGlobalRootG2.crt.pem ..."
+   ```
+
+2. **[CRITICAL] VNet disables firewall completely**: Once private access (VNet integration) is enabled, ALL firewall rules are ignored (including "Allow Azure services"). Access is VNet-only. Cannot have hybrid (some firewall + VNet)
+
+   ❌ Wrong:
+   ```bash
+   # VNet-integrated server — adding firewall rules has NO effect
+   az postgres flexible-server firewall-rule create --name myserver \
+       --rule-name AllowMyIP --start-ip-address 203.0.113.10 --end-ip-address 203.0.113.10
+   # Rule is created but NEVER evaluated — VNet-only access enforced
+   ```
+
+   ✅ Right:
+   ```bash
+   # For VNet-integrated servers, connect FROM within the VNet
+   # Or use VNet peering / VPN for external access
+   ```
+
+3. **[HIGH] Private DNS zone requirement**: VNet-integrated servers require a Private DNS zone (e.g., `privatelink.postgres.database.azure.com`) linked to the VNet. Without it, hostname resolution fails even though network connectivity exists
+4. **[HIGH] Private DNS zone naming**: Zone MUST be `<servername>.private.postgres.database.azure.com` or `privatelink.postgres.database.azure.com`. Custom zone names break Azure's automatic DNS record management
+5. **[CRITICAL] "Allow Azure services" is wider than expected**: This checkbox allows traffic from ANY Azure subscription's public IPs, not just your resources. Use Private Endpoints or VNet rules for isolation. Only enable temporarily for Azure Data Factory/Functions without VNet integration
+6. **[HIGH] Cross-VNet connectivity**: Two VNet-integrated servers in different VNets cannot connect by default. Requires VNet peering + DNS forwarding. For cross-region, use Global VNet peering (additional latency)
+7. **[HIGH] `verify-full` connection string**: `sslmode=verify-full sslrootcert=/path/to/DigiCertGlobalRootG2.crt.pem` — the hostname in the cert matches `*.postgres.database.azure.com`. Custom server names via CNAME still validate against the Azure-issued cert's SAN
+
+   ❌ Wrong:
+   ```bash
+   psql "sslmode=require ..."  # Encrypts but does NOT verify server identity
+   ```
+
+   ✅ Right:
+   ```bash
+   psql "sslmode=verify-full sslrootcert=DigiCertGlobalRootG2.crt.pem ..."
+   # Encrypts AND verifies server certificate — prevents MITM
+   ```
+
+8. **[HIGH] TLS version enforcement**: Azure enforces TLS 1.2 minimum. Clients using TLS 1.0/1.1 get connection refused. Check client library TLS support. Python psycopg2 on older systems may need `ssl_context` configuration
+9. **[HIGH] Certificate error after migration**: Download fresh DigiCert root CA. The old Baltimore CyberTrust Root cert was retired in 2022. Update `sslrootcert` path in all connection strings
+10. **[HIGH] Cannot connect after VNet integration**: Ensure client is in the same VNet or has peering/VPN configured. VNet integration removes all public access
+11. **[MEDIUM] "no pg_hba.conf entry" error**: Add client IP to firewall rules (for public access) or verify private endpoint DNS resolution is working correctly (for private access)

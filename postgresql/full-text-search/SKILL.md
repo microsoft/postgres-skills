@@ -36,7 +36,7 @@ activation:
 
 ## Instructions
 
-**Step 1: Add a stored tsvector column (recommended for performance)**
+**Step 1: Stored tsvector column + GIN index**
 
 ```sql
 ALTER TABLE articles ADD COLUMN search_vector tsvector
@@ -48,24 +48,24 @@ ALTER TABLE articles ADD COLUMN search_vector tsvector
 CREATE INDEX idx_articles_search ON articles USING gin(search_vector);
 ```
 
-**Step 2: Query with ranking**
+**Step 2: tsquery function selection**
+
+| Function | Use Case |
+|----------|----------|
+| `websearch_to_tsquery` | User-facing search (handles special chars) |
+| `phraseto_tsquery` | Exact adjacent phrase |
+| `to_tsquery` | Boolean operators (& \| !) |
+| `plainto_tsquery` | Simple AND of all words |
+
+**Step 3: Phrase proximity with `<->` operator**
 
 ```sql
-SELECT title, ts_rank(search_vector, query) AS rank
-FROM articles, websearch_to_tsquery('english', 'postgresql performance') AS query
-WHERE search_vector @@ query
-ORDER BY rank DESC
-LIMIT 10;
+-- Adjacent words only
+SELECT * FROM articles WHERE search_vector @@ phraseto_tsquery('big data');
+
+-- Allow N words between (use <N> operator)
+SELECT * FROM articles WHERE search_vector @@ to_tsquery('big <2> data');
 ```
-
-**Step 3: Choose the right tsquery function**
-
-| Function | Input | Use Case |
-|----------|-------|----------|
-| `plainto_tsquery` | plain text | Simple keyword search |
-| `websearch_to_tsquery` | Google-like syntax | User-facing search box |
-| `phraseto_tsquery` | exact phrase | "exact phrase" matching |
-| `to_tsquery` | operators (& \| !) | Advanced boolean search |
 
 ### Verify
 
@@ -82,12 +82,44 @@ ORDER BY rank DESC LIMIT 5;
 
 ## Common Mistakes
 
-1. **`websearch_to_tsquery` not used for user input**: `to_tsquery` throws syntax errors on user input with special chars. Use `websearch_to_tsquery('english', user_input)` which handles Google-like syntax
-2. **Phrase search proximity**: `phraseto_tsquery('big data')` requires adjacent. Use distance operator: `to_tsquery('big <2> data')` allows one word between
-3. **No hybrid FTS + trigram for typo tolerance**: FTS requires exact stemmed matches. Combine with `pg_trgm` for fuzzy: `WHERE search_vector @@ q OR similarity(title, input) > 0.3`
-4. **Multilingual content in single config**: Using 'english' config on French content strips wrong stop words. Use `'simple'` for mixed-language
-5. **ts_headline performance**: `ts_headline` rescans full document text. For large docs, highlight a stored summary column instead
-6. **Zero results from wrong language config**: Check language config matches content language. `SELECT to_tsvector('english', 'running')` should stem to `run`
-7. **Index not used**: Ensure query uses `@@` operator against the indexed tsvector column, not a function call
-8. **Slow on write-heavy tables**: GIN index updates are batched. For write-heavy tables, tune `gin_pending_list_limit`
-9. **Unsupported PG version for websearch_to_tsquery**: `websearch_to_tsquery()` requires PostgreSQL 11+. For older versions, use `plainto_tsquery()` or `to_tsquery()` with manual AND/OR syntax
+1. **[HIGH] `websearch_to_tsquery` not used for user input**: `to_tsquery` throws syntax errors on special chars
+
+   ❌ Wrong:
+   ```sql
+   -- User types "c++ programming" → syntax error
+   SELECT * FROM articles WHERE search_vector @@ to_tsquery('c++ programming');
+   ```
+
+   ✅ Right:
+   ```sql
+   -- Handles special chars, Google-like syntax (PG 11+)
+   SELECT * FROM articles WHERE search_vector @@ websearch_to_tsquery('english', 'c++ programming');
+   ```
+
+2. **[HIGH] Phrase search proximity**: `phraseto_tsquery` requires adjacent words only
+
+   ❌ Wrong:
+   ```sql
+   -- Misses "big enterprise data" — requires exactly adjacent
+   WHERE search_vector @@ phraseto_tsquery('big data')
+   ```
+
+   ✅ Right:
+   ```sql
+   -- Allow 1 word between
+   WHERE search_vector @@ to_tsquery('big <2> data')
+   ```
+
+3. **[MEDIUM] No hybrid FTS + trigram for typo tolerance**: FTS needs exact stems. Combine with `pg_trgm`: `WHERE search_vector @@ q OR similarity(title, input) > 0.3`
+
+4. **[HIGH] Multilingual content in single config**: 'english' config on French content strips wrong stop words. Use `'simple'` for mixed-language
+
+5. **[MEDIUM] ts_headline performance**: Rescans full document. For large docs, highlight a stored summary column instead
+
+6. **[MEDIUM] Zero results from wrong language config**: `SELECT to_tsvector('english', 'running')` should stem to `run` — verify config matches content
+
+7. **[MEDIUM] Index not used**: Ensure query uses `@@` against the indexed tsvector column, not a function call
+
+8. **[MEDIUM] Slow on write-heavy tables**: GIN updates are batched. Tune `gin_pending_list_limit`
+
+9. **[MEDIUM] Unsupported PG version for websearch_to_tsquery**: Requires PG 11+. Older versions: use `plainto_tsquery()`

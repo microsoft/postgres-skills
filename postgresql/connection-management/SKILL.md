@@ -34,50 +34,42 @@ activation:
 
 ## Instructions
 
-**Step 1: Diagnose current connection usage**
+**Step 1: Diagnose connection state**
 
 ```sql
--- Current connection count by state
 SELECT state, count(*) FROM pg_stat_activity GROUP BY state;
 
--- Identify idle connections holding resources
 SELECT pid, now() - state_change AS idle_time, query, application_name
 FROM pg_stat_activity
 WHERE state = 'idle in transaction'
 ORDER BY idle_time DESC;
 ```
 
-**Step 2: Set safety timeouts**
+**Step 2: Safety timeouts**
 
-For self-managed PostgreSQL:
 ```sql
--- Kill connections idle in transaction for > 5 minutes
 ALTER DATABASE mydb SET idle_in_transaction_session_timeout = '5min';
-
--- Kill completely idle connections after 30 minutes (PostgreSQL 14+)
-ALTER DATABASE mydb SET idle_session_timeout = '30min';
+ALTER DATABASE mydb SET idle_session_timeout = '30min';  -- PG 14+
 ```
 
-For managed PostgreSQL (Azure, RDS, etc.) use `ALTER DATABASE` or the cloud portal server parameters page. Do NOT use `ALTER SYSTEM SET` (unavailable on managed services).
+> On managed PG: use `ALTER DATABASE` or portal. `ALTER SYSTEM SET` is unavailable.
 
-**Step 3: Right-size max_connections**
+**Step 3: max_connections formula**
 
-Rule of thumb: `max_connections` = 2-4x CPU cores for OLTP workloads. Higher values increase lock contention and memory usage.
-
-```sql
-SHOW max_connections;  -- Default: 100
--- Each connection uses ~5-10MB RAM (work_mem + sort buffers)
+```
+max_connections = 2-4x CPU cores (OLTP)
+Each connection ≈ 5-10MB RAM (work_mem + sort buffers)
+total_app_connections = pool_size_per_instance × num_instances
 ```
 
-> **⚠️ `max_connections` and `shared_buffers` are postmaster-level parameters** requiring a server restart.
-> `SET` and `ALTER SYSTEM` do not work for these on managed services. On Azure Flexible Server,
-> change them via the **Server Parameters** blade in the portal or `az postgres flexible-server parameter set`.
+> `max_connections` is postmaster-level — requires restart. Cannot use `SET`.
 
-**Step 4: Connection pooling decision tree**
+**Step 4: Pooling decision tree**
 
-- **< 50 connections**: No pooler needed
-- **50-200 connections + simple queries**: Transaction-mode pooling (PgBouncer)
-- **> 200 connections or serverless**: External pooler required (PgBouncer, pgpool-II)
+- **< 50 connections**: No pooler
+- **50-200 + simple queries**: PgBouncer transaction mode
+- **> 200 or serverless**: External pooler required
+- **Prepared statements needed**: PgBouncer session mode OR PG 14+ protocol-level prepared statements
 
 ### Verify
 
@@ -94,15 +86,63 @@ FROM pg_stat_activity;
 
 ## Common Mistakes
 
-1. **Session-mode pooling with serverless**: Session mode holds connections open per client. Use transaction mode for Lambda/Cloud Functions: connections return to pool after each transaction
-2. **Transaction-mode pooling breaks prepared statements**: PgBouncer transaction mode cannot route `PREPARE`/`EXECUTE` across different backends. Fix: use `DEALLOCATE ALL` in `server_reset_query`, or switch to session mode, or use protocol-level prepared statements (PG 14+ `statement_timeout` setting in pgbouncer.ini)
-3. **Application pool per-process adds up**: HikariCP pool_size=10 across 20 pods = 200 server connections. Always calculate: `total = pool_size_per_instance × num_instances`. Set server-side pooler as central bottleneck
-4. **Missing `idle_in_transaction_session_timeout`**: Crashed clients leave open transactions that hold locks and prevent VACUUM. Always set: `ALTER DATABASE mydb SET idle_in_transaction_session_timeout = '5min'`
-5. **`idle_session_timeout` (PG 14+) not used**: Completely idle connections (not in transaction) still consume a backend slot. Set to 30min for non-pooled connections to auto-reclaim slots
-6. **Using `ALTER SYSTEM SET` on managed PostgreSQL**: This command is unavailable on Azure/RDS/Cloud SQL. Use `ALTER DATABASE` or the server parameters UI instead
-7. **Using `SET` for postmaster-level params**: `SET max_connections` or `SET shared_buffers` has no effect (session-level SET only works for runtime parameters). These require a server restart. Change via portal or CLI on managed services
-7. **Connection storm after restart**: All app instances reconnect simultaneously. Use exponential backoff with jitter in connection retry logic, and set PgBouncer `min_pool_size` to pre-warm connections
-8. **"too many clients" emergency**: Terminate idle connections: `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND now() - state_change > interval '10 min'`
-9. **Cannot change max_connections immediately**: Requires restart. Use pooler as immediate fix
-10. **idle_in_transaction connections accumulating**: Set `idle_in_transaction_session_timeout = '30s'` at database level: `ALTER DATABASE mydb SET idle_in_transaction_session_timeout = '30s';`
-11. **Permission denied on pg_terminate_backend**: Requires `pg_signal_backend` role or ownership of the backend's session. On Azure, `azure_pg_admin` has this privilege
+1. **[HIGH] Session-mode pooling with serverless**: Session mode holds connections open per client. Use transaction mode for Lambda/Cloud Functions
+
+   ❌ Wrong:
+   ```ini
+   ; pgbouncer.ini — session mode with serverless
+   pool_mode = session
+   ```
+
+   ✅ Right:
+   ```ini
+   ; pgbouncer.ini — transaction mode for serverless
+   pool_mode = transaction
+   server_reset_query = DEALLOCATE ALL; DISCARD ALL;
+   ```
+
+2. **[CRITICAL] Transaction-mode pooling breaks prepared statements**: PgBouncer transaction mode cannot route `PREPARE`/`EXECUTE` across backends
+
+   ❌ Wrong:
+   ```sql
+   -- App uses PREPARE then EXECUTE across pooled connections
+   PREPARE get_user(int) AS SELECT * FROM users WHERE id = $1;
+   EXECUTE get_user(42);  -- may hit different backend
+   ```
+
+   ✅ Right:
+   ```ini
+   ; pgbouncer.ini — add DEALLOCATE ALL to reset query
+   server_reset_query = DEALLOCATE ALL; DISCARD ALL; RESET ALL;
+   ; OR use session mode if prepared statements are critical
+   ```
+
+3. **[HIGH] Application pool per-process adds up**: HikariCP pool_size=10 across 20 pods = 200 server connections. Calculate: `total = pool_size_per_instance × num_instances`. Use server-side pooler as central bottleneck
+
+4. **[CRITICAL] Missing `idle_in_transaction_session_timeout`**: Crashed clients leave open transactions holding locks and preventing VACUUM
+
+   ❌ Wrong:
+   ```sql
+   -- No timeout set; crashed client blocks VACUUM indefinitely
+   ```
+
+   ✅ Right:
+   ```sql
+   ALTER DATABASE mydb SET idle_in_transaction_session_timeout = '5min';
+   ```
+
+5. **[MEDIUM] `idle_session_timeout` (PG 14+) not used**: Idle connections consume backend slots. Set to 30min for non-pooled connections
+
+6. **[MEDIUM] Using `ALTER SYSTEM SET` on managed PostgreSQL**: Unavailable on Azure/RDS/Cloud SQL. Use `ALTER DATABASE` or server parameters UI
+
+7. **[MEDIUM] Using `SET` for postmaster-level params**: `SET max_connections` has no effect. Requires restart via portal/CLI
+
+8. **[HIGH] Connection storm after restart**: All instances reconnect simultaneously. Use exponential backoff with jitter; set PgBouncer `min_pool_size` to pre-warm
+
+9. **[MEDIUM] "too many clients" emergency**: `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND now() - state_change > interval '10 min'`
+
+10. **[MEDIUM] Cannot change max_connections immediately**: Requires restart. Use pooler as immediate fix
+
+11. **[MEDIUM] idle_in_transaction connections accumulating**: `ALTER DATABASE mydb SET idle_in_transaction_session_timeout = '30s'`
+
+12. **[MEDIUM] Permission denied on pg_terminate_backend**: Requires `pg_signal_backend` role. On Azure, `azure_pg_admin` has this

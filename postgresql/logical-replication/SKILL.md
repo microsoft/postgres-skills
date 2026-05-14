@@ -39,43 +39,33 @@ activation:
 **Step 1: Configure publisher**
 
 ```sql
--- Verify wal_level (if not 'logical', requires restart to change)
-SHOW wal_level;
-
--- Create publication for specific tables
+SHOW wal_level;  -- Must be 'logical'; requires restart to change
 CREATE PUBLICATION my_pub FOR TABLE orders, customers;
-
--- Or for all tables
-CREATE PUBLICATION my_pub FOR ALL TABLES;
 ```
 
-> **Note:** On managed PostgreSQL (Azure, RDS), change `wal_level` via the cloud portal or server parameters API, not `postgresql.conf` directly. Use `SHOW` commands to verify current settings.
+> On managed PG: change `wal_level` via portal/API, not `postgresql.conf`.
 
-**Step 2: Configure subscriber**
-
-```sql
--- On the subscriber server
-CREATE SUBSCRIPTION my_sub
-    CONNECTION 'host=publisher_host dbname=mydb user=repl_user password=...'
-    PUBLICATION my_pub;
-```
-
-**Step 3: Handle tables without primary keys**
+**Step 2: Handle tables without primary keys**
 
 ```sql
--- Set replica identity for tables without PK
+-- Required for UPDATE/DELETE replication on tables without PK
 ALTER TABLE audit_log REPLICA IDENTITY FULL;
--- WARNING: FULL identity sends entire row on UPDATE/DELETE (slower)
+-- WARNING: sends entire row on UPDATE/DELETE (slower)
 ```
 
-**Step 4: Monitor replication lag**
+**Step 3: Monitor replication lag**
 
 ```sql
--- On publisher: check replication slots
-SELECT slot_name, active, 
+SELECT slot_name, active,
        pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn) AS lag_bytes
 FROM pg_replication_slots;
 ```
+
+**Step 4: Critical gotchas**
+
+- **Sequences NOT replicated** — reset on subscriber after failover
+- **DDL NOT replicated** — apply on subscriber FIRST, then publisher
+- **Conflicts halt replication** — subscriber must resolve duplicates manually
 
 ### Verify
 
@@ -94,15 +84,68 @@ FROM pg_replication_slots;
 
 ## Common Mistakes
 
-1. **Missing primary key**: Without PK or REPLICA IDENTITY, UPDATE/DELETE fail: "cannot update/delete from table without primary key or replica identity". Fix: `ALTER TABLE t REPLICA IDENTITY FULL` (slow) or add a PK
-2. **Slot bloat consuming all disk**: Inactive replication slots prevent WAL cleanup indefinitely. Monitor: `SELECT slot_name, pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)) AS retained_wal FROM pg_replication_slots WHERE NOT active`. Drop orphaned slots immediately
-3. **Schema changes (DDL) not replicated**: `ALTER TABLE ADD COLUMN` is NOT replicated. Apply DDL on subscriber FIRST (new column with default), then on publisher. Reverse order breaks replication with column mismatch error
-4. **Initial table sync fails silently**: `CREATE SUBSCRIPTION` copies existing rows. If table is large, initial sync can take hours and consumes `max_wal_senders` slot the entire time. Monitor: `SELECT * FROM pg_stat_subscription`
-5. **Conflict resolution on subscriber**: Duplicate key or constraint violation halts replication. Fix: `ALTER SUBSCRIPTION my_sub DISABLE; DELETE conflicting row; ALTER SUBSCRIPTION my_sub ENABLE` or use `ALTER SUBSCRIPTION SET (disable_on_error = true)` (PG 16+)
-6. **publish_via_partition_root not set**: Partitioned tables default to publishing as individual partition names. Subscriber expects parent table. Fix: `ALTER PUBLICATION pub SET (publish_via_partition_root = true)`
-7. **max_replication_slots too low**: Each subscription uses one slot. Default is 10. If you hit limit, new subscriptions silently fail. Check with `SHOW max_replication_slots` and increase before adding more subscribers
-8. **wal2json vs pgoutput**: `pgoutput` is built-in (PG 10+) and efficient. `wal2json` is third-party and outputs JSON but adds decode overhead. Use `pgoutput` unless you need Debezium/Kafka Connect JSON format
-9. **Subscription stuck**: `ALTER SUBSCRIPTION my_sub DISABLE; ALTER SUBSCRIPTION my_sub ENABLE;`
-10. **Slot consuming disk after subscriber is gone**: If subscriber is gone, drop the orphaned slot: `SELECT pg_drop_replication_slot('my_sub')`
-11. **wal_level not set to logical**: Requires `wal_level = logical` (restart needed). On Azure Flexible Server, change via Server Parameters blade then restart
-12. **Sequence values not replicated**: Logical replication does not replicate sequences. After failover, reset sequences on subscriber: `SELECT setval('my_seq', (SELECT max(id) FROM my_table) + 1)`
+1. **[HIGH] Missing primary key**: Without PK or REPLICA IDENTITY, UPDATE/DELETE fail. Fix: `ALTER TABLE t REPLICA IDENTITY FULL` (slow) or add PK
+
+2. **[CRITICAL] Slot bloat consuming all disk**: Inactive slots prevent WAL cleanup indefinitely
+
+   ❌ Wrong:
+   ```sql
+   -- Subscriber removed but slot left behind — WAL grows unbounded
+   SELECT slot_name, pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn))
+   FROM pg_replication_slots WHERE NOT active;
+   -- Shows: orphaned_slot | 50 GB
+   ```
+
+   ✅ Right:
+   ```sql
+   -- Monitor and drop orphaned slots immediately
+   SELECT pg_drop_replication_slot('orphaned_slot');
+   -- Set up alerting on: pg_wal_lsn_diff > threshold
+   ```
+
+3. **[CRITICAL] Schema changes (DDL) not replicated**: `ALTER TABLE ADD COLUMN` is NOT replicated
+
+   ❌ Wrong:
+   ```sql
+   -- Add column on publisher first
+   ALTER TABLE orders ADD COLUMN priority int;  -- publisher
+   -- Subscriber now gets rows with unknown column → replication breaks
+   ```
+
+   ✅ Right:
+   ```sql
+   -- Step 1: Add column on SUBSCRIBER first (with default)
+   ALTER TABLE orders ADD COLUMN priority int DEFAULT 0;  -- subscriber
+   -- Step 2: Then add on publisher
+   ALTER TABLE orders ADD COLUMN priority int DEFAULT 0;  -- publisher
+   ```
+
+4. **[HIGH] Initial table sync fails silently**: Large table sync takes hours and consumes `max_wal_senders` slot. Monitor: `SELECT * FROM pg_stat_subscription`
+
+5. **[HIGH] Conflict resolution on subscriber**: Duplicate key halts replication. Fix: `ALTER SUBSCRIPTION my_sub DISABLE; DELETE conflicting row; ALTER SUBSCRIPTION my_sub ENABLE` or `disable_on_error = true` (PG 16+)
+
+6. **[HIGH] publish_via_partition_root not set**: Partitioned tables publish as individual partition names. Fix: `ALTER PUBLICATION pub SET (publish_via_partition_root = true)`
+
+7. **[MEDIUM] max_replication_slots too low**: Default 10. New subscriptions silently fail at limit. Check: `SHOW max_replication_slots`
+
+8. **[MEDIUM] wal2json vs pgoutput**: `pgoutput` is built-in and efficient. Use `wal2json` only for Debezium/Kafka JSON format
+
+9. **[MEDIUM] Subscription stuck**: `ALTER SUBSCRIPTION my_sub DISABLE; ALTER SUBSCRIPTION my_sub ENABLE;`
+
+10. **[MEDIUM] Slot consuming disk after subscriber gone**: Drop orphaned: `SELECT pg_drop_replication_slot('my_sub')`
+
+11. **[HIGH] wal_level not set to logical**: Requires restart. On Azure, change via Server Parameters then restart
+
+12. **[CRITICAL] Sequence values not replicated**: Logical replication does NOT replicate sequences
+
+   ❌ Wrong:
+   ```sql
+   -- After failover to subscriber, sequences still at 1
+   INSERT INTO orders(id) VALUES (DEFAULT);  -- duplicate key!
+   ```
+
+   ✅ Right:
+   ```sql
+   -- After failover, reset sequences on new primary
+   SELECT setval('orders_id_seq', (SELECT max(id) FROM orders) + 1);
+   ```

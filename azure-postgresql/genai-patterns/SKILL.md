@@ -179,16 +179,59 @@ FROM documents ORDER BY distance LIMIT 3;
 
 ## Common Mistakes
 
-1. **Dimension mismatch**: `text-embedding-3-small` = 1536, `text-embedding-3-large` = 3072, `text-embedding-ada-002` = 1536. Column `vector(N)` must match model output.
-2. **Silent truncation**: Models truncate input beyond their token limit without error. Pre-chunk long documents (500-1000 tokens per chunk recommended).
-3. **Mixing distance operators**: `<=>` (cosine), `<->` (L2), `<#>` (inner product). Use `<=>` for normalized embeddings (most common). Index must match: `vector_cosine_ops` for `<=>`.
-4. **Forgetting FTS index for hybrid search**: Without `GIN` index on `tsvector`, keyword search degrades to sequential scan.
-5. **Rate limiting on batch embed**: Start with batches of 50-100 rows with `pg_sleep(1)` between batches. Monitor for 429 errors.
-6. **Context window overflow**: GPT-4o supports ~128K tokens. Budget: 80% for context, 20% for response. Track token count when aggregating retrieved chunks.
-7. **RRF constant k=60**: The standard value. Changing it biases toward one ranking signal. Only tune if you have evaluation data.
-8. **External vs in-database choice**: Use in-database (Path A) when data lives in PostgreSQL and you want SQL-only workflows. Use external (Path B) when your app already calls an embedding API or you need non-Azure embedding models.
-9. **"type vector does not exist"**: `CREATE EXTENSION vector;` — ensure `vector` is in `azure.extensions` allowlist.
-10. **"azure_openai.create_embeddings does not exist"**: azure_ai extension not installed or not configured. See `azure-postgresql/azure-ai/`.
-11. **Dimension error on INSERT/UPDATE**: Column declared as `vector(1536)` but embedding has different length. Check model dimensions.
-12. **Hybrid search returns no FTS results**: Verify `tsvector` column is populated and `GIN` index exists.
-13. **Poor retrieval quality**: Try smaller chunks (300-500 tokens), add metadata pre-filters, or switch to hybrid search if using vector-only.
+1. **[CRITICAL] Dimension mismatch**: `text-embedding-3-small` = 1536, `text-embedding-3-large` = 3072, `text-embedding-ada-002` = 1536. Column `vector(N)` must match model output.
+
+   ❌ Wrong:
+   ```sql
+   ALTER TABLE documents ADD COLUMN embedding vector(1536);
+   -- Then insert text-embedding-3-large output (3072 dims)
+   -- ERROR: expected 1536 dimensions, not 3072
+   ```
+
+   ✅ Right:
+   ```sql
+   -- Match column dimension to your model's output
+   ALTER TABLE documents ADD COLUMN embedding vector(3072);  -- for text-embedding-3-large
+   ```
+
+2. **[HIGH] Silent truncation**: Models truncate input beyond their token limit without error. Pre-chunk long documents (500-1000 tokens per chunk recommended).
+3. **[CRITICAL] Mixing distance operators**: `<=>` (cosine), `<->` (L2), `<#>` (inner product). Use `<=>` for normalized embeddings (most common). Index must match: `vector_cosine_ops` for `<=>`.
+
+   ❌ Wrong:
+   ```sql
+   CREATE INDEX ON docs USING hnsw (embedding vector_cosine_ops);
+   -- Then query with L2 distance — index is NOT used
+   SELECT * FROM docs ORDER BY embedding <-> $1::vector LIMIT 10;
+   ```
+
+   ✅ Right:
+   ```sql
+   CREATE INDEX ON docs USING hnsw (embedding vector_cosine_ops);
+   -- Query with matching cosine operator
+   SELECT * FROM docs ORDER BY embedding <=> $1::vector LIMIT 10;
+   ```
+
+4. **[HIGH] Forgetting FTS index for hybrid search**: Without `GIN` index on `tsvector`, keyword search degrades to sequential scan.
+5. **[MEDIUM] Rate limiting on batch embed**: Start with batches of 50-100 rows with `pg_sleep(1)` between batches. Monitor for 429 errors.
+6. **[HIGH] Context window overflow**: GPT-4o supports ~128K tokens. Budget: 80% for context, 20% for response. Track token count when aggregating retrieved chunks.
+7. **[MEDIUM] RRF constant k=60**: The standard value. Changing it biases toward one ranking signal. Only tune if you have evaluation data.
+8. **[MEDIUM] External vs in-database choice**: Use in-database (Path A) when data lives in PostgreSQL and you want SQL-only workflows. Use external (Path B) when your app already calls an embedding API or you need non-Azure embedding models.
+9. **[CRITICAL] "type vector does not exist"**: `CREATE EXTENSION vector;` — ensure `vector` is in `azure.extensions` allowlist.
+
+   ❌ Wrong:
+   ```sql
+   -- Trying to use vector type without extension
+   ALTER TABLE docs ADD COLUMN embedding vector(1536);
+   -- ERROR: type "vector" does not exist
+   ```
+
+   ✅ Right:
+   ```sql
+   CREATE EXTENSION vector;  -- must be in azure.extensions allowlist
+   ALTER TABLE docs ADD COLUMN embedding vector(1536);
+   ```
+
+10. **[CRITICAL] "azure_openai.create_embeddings does not exist"**: azure_ai extension not installed or not configured. See `azure-postgresql/azure-ai/`.
+11. **[HIGH] Dimension error on INSERT/UPDATE**: Column declared as `vector(1536)` but embedding has different length. Check model dimensions.
+12. **[HIGH] Hybrid search returns no FTS results**: Verify `tsvector` column is populated and `GIN` index exists.
+13. **[MEDIUM] Poor retrieval quality**: Try smaller chunks (300-500 tokens), add metadata pre-filters, or switch to hybrid search if using vector-only.

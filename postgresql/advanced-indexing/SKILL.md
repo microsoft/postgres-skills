@@ -38,32 +38,29 @@ activation:
 
 ## Instructions
 
-**Step 1: Identify the correct index type**
+**Step 1: Index type decision tree**
 
-| Data Type / Query Pattern | Index Type | Example |
+| Query Pattern | Index Type | When NOT to use |
 |--------------------------|-----------|---------|
-| Equality, range on scalars | B-tree (default) | `CREATE INDEX ON orders(created_at)` |
-| JSONB containment (@>), arrays | GIN | `CREATE INDEX ON docs USING gin(data)` |
-| JSONB with only @> queries | GIN (jsonb_path_ops) | `CREATE INDEX ON docs USING gin(data jsonb_path_ops)` |
-| Geometric, range overlap | GiST | `CREATE INDEX ON geo USING gist(location)` |
-| Time-ordered append-only | BRIN | `CREATE INDEX ON logs USING brin(created_at)` |
-| Full-text search (tsvector) | GIN | `CREATE INDEX ON posts USING gin(search_vector)` |
+| Equality, range on scalars | B-tree | — |
+| JSONB `@>`, arrays, tsvector | GIN | Write-heavy tables (batch updates) |
+| JSONB only `@>` (no `?` ops) | GIN (jsonb_path_ops) | Need key-existence queries |
+| Range overlap, geometric | GiST | Large result sets |
+| Time-ordered append-only | BRIN | `correlation < 0.9` (check `pg_stats`) |
 
-**Step 2: Partial indexes for filtered queries**
-
-If the query always includes a constant predicate:
+**Step 2: Partial indexes (constant predicates)**
 
 ```sql
--- Query: SELECT * FROM orders WHERE status = 'active' AND created_at > ...
+-- Only indexes 'active' rows — 10x smaller if 90% are inactive
 CREATE INDEX idx_orders_active ON orders(created_at)
   WHERE status = 'active';
 ```
 
-**Step 3: Expression indexes for computed predicates**
+**Step 3: Expression indexes**
 
 ```sql
--- Query: SELECT * FROM users WHERE lower(email) = '...'
 CREATE INDEX idx_users_email_lower ON users(lower(email));
+-- Expression must EXACTLY match query predicate
 ```
 
 ### Verify
@@ -79,13 +76,46 @@ SELECT pg_size_pretty(pg_relation_size('idx_orders_active'));
 
 ## Common Mistakes
 
-1. **Missing expression match**: Expression index must exactly match the expression in the query (e.g., `lower(email)` index won't help `UPPER(email)` query)
-2. **BRIN on randomly-ordered data**: BRIN only works when physical row order correlates with column values. Check correlation: `SELECT correlation FROM pg_stats WHERE tablename='t' AND attname='col'` (needs > 0.9)
-3. **Ignoring index-only scans**: Add `INCLUDE` columns to avoid heap fetches: `CREATE INDEX ON orders(status) INCLUDE (total, created_at)` — PG 12+ covering index
-4. **Not detecting unused indexes**: Query `pg_stat_user_indexes` for `idx_scan = 0` to find indexes wasting write amplification and storage
-5. **Partial index predicate mismatch**: The WHERE clause in the query must be a superset of the partial index predicate or the planner won't use it
-6. **REINDEX without CONCURRENTLY**: `REINDEX INDEX idx` locks the table. Use `REINDEX INDEX CONCURRENTLY idx` (PG 12+) to rebuild without blocking
-7. **Multi-column B-tree column order**: Leftmost column must appear in the query's WHERE clause or the index is unusable. Column order matters: put equality filters first, range filters last
-8. **Index not used after creation**: Run `ANALYZE <table>` to update statistics, then re-check EXPLAIN
-9. **Index build too slow on large table**: Use `CREATE INDEX CONCURRENTLY` to avoid locking writes
-10. **Wrong index type error**: GIN/GiST require the correct operator class; check `pg_opclass` for available classes
+1. **[HIGH] Missing expression match**: Expression index must exactly match the query expression (`lower(email)` index won't help `UPPER(email)` query)
+
+2. **[HIGH] BRIN on randomly-ordered data**: BRIN only works when physical row order correlates with column values
+
+   ❌ Wrong:
+   ```sql
+   -- user_id is randomly distributed across heap pages
+   CREATE INDEX idx_users_brin ON users USING brin(user_id);
+   ```
+
+   ✅ Right:
+   ```sql
+   -- Check correlation first
+   SELECT correlation FROM pg_stats WHERE tablename='users' AND attname='user_id';
+   -- Only use BRIN if correlation > 0.9
+   CREATE INDEX idx_logs_brin ON logs USING brin(created_at);  -- append-only, correlation ~1.0
+   ```
+
+3. **[MEDIUM] Ignoring index-only scans**: Add `INCLUDE` columns to avoid heap fetches: `CREATE INDEX ON orders(status) INCLUDE (total, created_at)` (PG 12+)
+
+4. **[MEDIUM] Not detecting unused indexes**: Query `pg_stat_user_indexes` for `idx_scan = 0` to find indexes wasting write amplification
+
+5. **[HIGH] Partial index predicate mismatch**: Query WHERE must be a superset of the partial index predicate or planner won't use it
+
+6. **[CRITICAL] REINDEX without CONCURRENTLY**: `REINDEX INDEX idx` locks the table for writes
+
+   ❌ Wrong:
+   ```sql
+   REINDEX INDEX idx_orders_status;  -- ACCESS EXCLUSIVE lock
+   ```
+
+   ✅ Right:
+   ```sql
+   REINDEX INDEX CONCURRENTLY idx_orders_status;  -- PG 12+, no lock
+   ```
+
+7. **[HIGH] Multi-column B-tree column order**: Leftmost column must appear in WHERE or index is unusable. Equality filters first, range filters last
+
+8. **[MEDIUM] Index not used after creation**: Run `ANALYZE <table>` to update statistics, then re-check EXPLAIN
+
+9. **[MEDIUM] Index build too slow on large table**: Use `CREATE INDEX CONCURRENTLY` to avoid locking writes
+
+10. **[MEDIUM] Wrong index type error**: GIN/GiST require correct operator class; check `pg_opclass`

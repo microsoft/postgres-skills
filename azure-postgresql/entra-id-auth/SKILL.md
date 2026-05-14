@@ -111,12 +111,51 @@ az postgres flexible-server ad-admin list --resource-group myRG --server-name my
 
 ## Common Mistakes
 
-1. **Token resource scope**: The resource for PostgreSQL tokens is `https://ossrdbms-aad.database.windows.net/.default` — not the generic `https://management.azure.com`. Wrong scope gives valid token that is rejected by PostgreSQL
-2. **Token refresh before expiry**: Entra tokens expire in ~1 hour. Cache and refresh when `expires_on - time.time() < 300`. Stale tokens give `FATAL: password authentication failed` with no hint about expiry
-3. **`pgaadauth_create_principal` required**: Azure Contributor role manages the server resource but does NOT grant database login. Must run `SELECT * FROM pgaadauth_create_principal('myapp', false, false)` as Entra admin for each identity
-4. **Group-based role mapping**: Create Entra group, then `SELECT pgaadauth_create_principal('group-name', false, true)` (last param = isGroup). All members inherit the PostgreSQL role without per-user grants
-5. **PgBouncer session mode required**: Token auth fails in transaction pooling mode because auth context is per-connection. Set `pgbouncer.pool_mode = session` for token auth, or use password auth for PgBouncer
-6. **Username format matrix**: Managed identity = client ID or object ID. User = `user@domain.com`. Service principal = application (client) ID. Group = display name. Mismatch gives generic auth failure
-7. **Hybrid migration path**: Enable both `password_auth` and `active_directory_auth`. Migrate apps one-by-one. Track remaining password connections: `SELECT * FROM pg_stat_activity` filtered by application_name
-8. **Token expired mid-session**: Refresh with `az account get-access-token --resource-type oss-rdbms`. For long-running applications, implement token refresh logic that acquires a new token before the current one expires
-9. **Principal not found after granting Contributor**: Run `pgaadauth_create_principal()` as Entra admin. Azure resource-level permissions do not automatically create database-level principals
+1. **[CRITICAL] Token resource scope**: The resource for PostgreSQL tokens is `https://ossrdbms-aad.database.windows.net/.default` — not the generic `https://management.azure.com`. Wrong scope gives valid token that is rejected by PostgreSQL
+
+   ❌ Wrong:
+   ```python
+   token = credential.get_token("https://management.azure.com/.default")
+   # Valid token but REJECTED by PostgreSQL — wrong audience
+   ```
+
+   ✅ Right:
+   ```python
+   token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default")
+   # Correct scope for Azure Database for PostgreSQL
+   ```
+
+2. **[HIGH] Token refresh before expiry**: Entra tokens expire in ~1 hour. Cache and refresh when `expires_on - time.time() < 300`. Stale tokens give `FATAL: password authentication failed` with no hint about expiry
+3. **[CRITICAL] `pgaadauth_create_principal` required**: Azure Contributor role manages the server resource but does NOT grant database login. Must run `SELECT * FROM pgaadauth_create_principal('myapp', false, false)` as Entra admin for each identity
+
+   ❌ Wrong:
+   ```sql
+   -- Assuming Azure RBAC Contributor = database access
+   -- App connects → FATAL: password authentication failed for user "myapp"
+   ```
+
+   ✅ Right:
+   ```sql
+   -- As Entra admin, explicitly create the database principal
+   SELECT * FROM pgaadauth_create_principal('myapp', false, false);
+   GRANT CONNECT ON DATABASE mydb TO "myapp";
+   ```
+
+4. **[MEDIUM] Group-based role mapping**: Create Entra group, then `SELECT pgaadauth_create_principal('group-name', false, true)` (last param = isGroup). All members inherit the PostgreSQL role without per-user grants
+5. **[HIGH] PgBouncer session mode required**: Token auth fails in transaction pooling mode because auth context is per-connection. Set `pgbouncer.pool_mode = session` for token auth, or use password auth for PgBouncer
+6. **[HIGH] Username format matrix**: Managed identity = client ID or object ID. User = `user@domain.com`. Service principal = application (client) ID. Group = display name. Mismatch gives generic auth failure
+
+   ❌ Wrong:
+   ```python
+   conn = psycopg2.connect(user="my-managed-identity")  # display name
+   # FATAL: password authentication failed
+   ```
+
+   ✅ Right:
+   ```python
+   conn = psycopg2.connect(user="a1b2c3d4-e5f6-...")  # client ID or object ID
+   ```
+
+7. **[MEDIUM] Hybrid migration path**: Enable both `password_auth` and `active_directory_auth`. Migrate apps one-by-one. Track remaining password connections: `SELECT * FROM pg_stat_activity` filtered by application_name
+8. **[HIGH] Token expired mid-session**: Refresh with `az account get-access-token --resource-type oss-rdbms`. For long-running applications, implement token refresh logic that acquires a new token before the current one expires
+9. **[HIGH] Principal not found after granting Contributor**: Run `pgaadauth_create_principal()` as Entra admin. Azure resource-level permissions do not automatically create database-level principals

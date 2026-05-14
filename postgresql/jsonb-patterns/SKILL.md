@@ -36,45 +36,44 @@ activation:
 
 ## Instructions
 
-**Step 1: Choose the correct operator**
-
-| Need | Operator | Returns | Example |
-|------|----------|---------|---------|
-| Extract JSON object | `->` | jsonb | `data -> 'address'` |
-| Extract as text | `->>` | text | `data ->> 'name'` |
-| Containment check | `@>` | boolean | `data @> '{"type":"premium"}'` |
-| Path query | `jsonb_path_query()` | setof jsonb | `jsonb_path_query(data, '$.items[*].price')` |
-
-**Step 2: Fix type casting for comparisons**
+**Step 1: GIN indexing strategies**
 
 ```sql
--- WRONG: string comparison ('30' > '100' is TRUE lexically)
-WHERE data ->> 'age' > '30'
-
--- CORRECT: explicit cast
-WHERE (data ->> 'age')::int > 30
-```
-
-**Step 3: Index with GIN**
-
-```sql
--- General JSONB queries (supports @>, ?, ?|, ?& operators)
+-- General queries (@>, ?, ?|, ?& operators)
 CREATE INDEX idx_data_gin ON docs USING gin(data);
 
--- Only @> containment queries (2-3x smaller index)
+-- Only @> containment (2-3x smaller index, faster writes)
 CREATE INDEX idx_data_pathops ON docs USING gin(data jsonb_path_ops);
 ```
 
-**Step 4: In-place updates (avoid read-modify-write)**
+**Decision**: Use `jsonb_path_ops` when all queries are `@>` containment. Use default GIN if you need `?` (key existence), `?|`, or `?&`.
+
+**Step 2: Type casting — critical for correctness**
 
 ```sql
--- Update a nested field
+-- WRONG: lexical comparison ('9' > '100' is TRUE)
+WHERE (data ->> 'price') > '9'
+
+-- CORRECT: numeric cast
+WHERE (data ->> 'price')::numeric > 9
+```
+
+**Step 3: Partial indexes on JSONB paths**
+
+```sql
+-- Index only active documents (small + fast)
+CREATE INDEX idx_active_docs ON docs USING gin(data jsonb_path_ops)
+    WHERE data @> '{"status":"active"}';
+```
+
+**Step 4: In-place updates (avoid full-document rewrite)**
+
+```sql
 UPDATE users SET profile = jsonb_set(profile, '{address,city}', '"Seattle"')
 WHERE id = 1;
 
 -- Merge top-level keys
-UPDATE users SET profile = profile || '{"verified": true}'
-WHERE id = 1;
+UPDATE users SET profile = profile || '{"verified": true}' WHERE id = 1;
 ```
 
 ### Verify
@@ -90,12 +89,68 @@ EXPLAIN SELECT * FROM docs WHERE data @> '{"nested":{"key":"val"}}';
 
 ## Common Mistakes
 
-1. **Missing type cast**: `(data ->> 'price') > '9'` does lexical comparison. Always cast: `(data ->> 'price')::numeric > 9`
-2. **Full-document replacement**: `UPDATE SET data = <entire_json>` rewrites the entire TOAST tuple. Use `jsonb_set()` or `||` for partial updates
-3. **jsonb_path_ops vs default GIN**: `jsonb_path_ops` is 2-3x smaller but only supports `@>`. Use default GIN if you need `?`, `?|`, `?&`
-4. **Generated column for indexed expressions**: Instead of expression index, use `GENERATED ALWAYS AS (data ->> 'status') STORED` + B-tree — survives `pg_dump` and visible in `\d`
-5. **JSONB subscript syntax (PG 14+)**: `data['address']['city']` replaces `data -> 'address' -> 'city'` and supports UPDATE: `UPDATE t SET data['score'] = '42'`
-6. **Toast compression (PG 14+)**: Large JSONB benefits from `ALTER TABLE t ALTER COLUMN data SET COMPRESSION lz4` — 2x faster vs pglz default
-7. **GIN index not used for `->>` queries**: GIN indexes only support `@>`, `?`, `?|`, `?&`. For `->>` equality, create a B-tree expression index: `CREATE INDEX ON docs((data ->> 'status'))`
-8. **jsonb_path_ops too restrictive**: Switch to default GIN operator class if you need `?` (key existence) queries
-9. **Large JSONB documents slow**: Consider partial indexes on frequently-queried paths
+1. **[CRITICAL] Missing type cast**: `->>` returns text; comparisons are lexical without cast
+
+   ❌ Wrong:
+   ```sql
+   SELECT * FROM products WHERE (data ->> 'price') > '9';
+   -- Returns wrong results: '9' > '100' is TRUE lexically
+   ```
+
+   ✅ Right:
+   ```sql
+   SELECT * FROM products WHERE (data ->> 'price')::numeric > 9;
+   ```
+
+2. **[HIGH] Full-document replacement**: Rewrites entire TOAST tuple
+
+   ❌ Wrong:
+   ```sql
+   UPDATE users SET profile = '{"name":"Jo","city":"NYC","verified":true}'
+   WHERE id = 1;  -- rewrites entire JSONB even if only city changed
+   ```
+
+   ✅ Right:
+   ```sql
+   UPDATE users SET profile = jsonb_set(profile, '{city}', '"NYC"')
+   WHERE id = 1;  -- partial update, no full rewrite
+   ```
+
+3. **[HIGH] jsonb_path_ops vs default GIN**: `jsonb_path_ops` is 2-3x smaller but ONLY supports `@>`
+
+   ❌ Wrong:
+   ```sql
+   CREATE INDEX ON docs USING gin(data jsonb_path_ops);
+   -- Then query: SELECT * FROM docs WHERE data ? 'email';  -- index NOT used!
+   ```
+
+   ✅ Right:
+   ```sql
+   -- Use default GIN if you need ?, ?|, ?& operators
+   CREATE INDEX ON docs USING gin(data);
+   -- Or use jsonb_path_ops only when ALL queries use @> containment
+   ```
+
+4. **[MEDIUM] Generated column for indexed expressions**: Instead of expression index, use `GENERATED ALWAYS AS (data ->> 'status') STORED` + B-tree — survives `pg_dump`
+
+5. **[MEDIUM] JSONB subscript syntax (PG 14+)**: `data['address']['city']` replaces `data -> 'address' -> 'city'` and supports UPDATE
+
+6. **[MEDIUM] Toast compression (PG 14+)**: Large JSONB benefits from `ALTER TABLE t ALTER COLUMN data SET COMPRESSION lz4` — 2x faster
+
+7. **[HIGH] GIN index not used for `->>` queries**: GIN only supports `@>`, `?`, `?|`, `?&`
+
+   ❌ Wrong:
+   ```sql
+   -- GIN index exists but ->> query does seq scan
+   SELECT * FROM docs WHERE data ->> 'status' = 'active';
+   ```
+
+   ✅ Right:
+   ```sql
+   -- Create B-tree expression index for ->> equality
+   CREATE INDEX ON docs((data ->> 'status'));
+   ```
+
+8. **[MEDIUM] jsonb_path_ops too restrictive**: Switch to default GIN if you need `?` key-existence queries
+
+9. **[MEDIUM] Large JSONB documents slow**: Use partial indexes on frequently-queried paths

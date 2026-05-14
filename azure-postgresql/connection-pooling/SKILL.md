@@ -102,13 +102,54 @@ psql "host=myserver.postgres.database.azure.com port=6432 \
 
 ## Common Mistakes
 
-1. **`pgbouncer.*` parameter namespace**: All PgBouncer settings use server parameters prefixed with `pgbouncer.`. Set via: `az postgres flexible-server parameter set --name pgbouncer.default_pool_size --value 50`. NOT via SQL `SHOW` commands
-2. **Port 6432 is mandatory**: Built-in PgBouncer always listens on 6432. Cannot change it. Connection strings MUST use port 6432. Using 5432 bypasses PgBouncer entirely (direct to PostgreSQL)
-3. **Pool math overflow**: `default_pool_size` (default=50) applies per user/database pair. Formula: `max_backend_connections = default_pool_size * num_databases * num_users`. Set `pgbouncer.max_client_conn = 5000` and verify `max_connections` on the backend supports the pool's demand
-4. **Entra token + transaction mode conflict**: Transaction mode reassigns backends per transaction but Entra tokens bind to the original auth handshake. Use `pgbouncer.pool_mode = session` when ANY client uses token auth, or route token clients to port 5432 directly
-5. **`SHOW POOLS` unavailable**: Azure built-in PgBouncer does NOT expose the admin console. No `SHOW POOLS`, `SHOW STATS`, `SHOW CLIENTS`. Use `pg_stat_activity` (shows backend connections) and Azure Monitor metrics (`pgbouncer_active_connections`, `pgbouncer_waiting_connections`) instead
-6. **Prepared statement workaround**: Transaction mode breaks server-side prepared statements. Solutions: (a) `pgbouncer.pool_mode = session` for that user, (b) client-side prepared statements, (c) `DEALLOCATE ALL` at transaction start
-7. **Connection storm recovery**: When PgBouncer queue fills (`pgbouncer.max_client_conn` reached), new connections get `ERROR: no more connections allowed`. Add exponential backoff with jitter in application retry logic. Monitor `pgbouncer_waiting_connections` metric for early warning
-8. **Session-level state leakage**: `SET statement_timeout` in one transaction leaks to the next client in transaction mode. Azure's built-in PgBouncer runs `DISCARD ALL` as `server_reset_query` automatically, but custom GUCs set with `SET LOCAL` only are safe
-9. **Connection refused on 6432**: Verify PgBouncer is enabled via `az postgres flexible-server parameter show --name pgbouncer.enabled`. If value is `false`, enable it and wait for the parameter to take effect
-10. **Pool exhaustion**: When `default_pool_size` is too low for your workload, increase it or reduce application connection hold time. Monitor `pgbouncer_waiting_connections` metric as early warning
+1. **[MEDIUM] `pgbouncer.*` parameter namespace**: All PgBouncer settings use server parameters prefixed with `pgbouncer.`. Set via: `az postgres flexible-server parameter set --name pgbouncer.default_pool_size --value 50`. NOT via SQL `SHOW` commands
+2. **[HIGH] Port 6432 is mandatory**: Built-in PgBouncer always listens on 6432. Cannot change it. Connection strings MUST use port 6432. Using 5432 bypasses PgBouncer entirely (direct to PostgreSQL)
+
+   ❌ Wrong:
+   ```bash
+   psql "host=myserver.postgres.database.azure.com port=5432 dbname=postgres"
+   # Connects directly to PostgreSQL — PgBouncer bypassed entirely
+   ```
+
+   ✅ Right:
+   ```bash
+   psql "host=myserver.postgres.database.azure.com port=6432 dbname=postgres"
+   # Routes through PgBouncer for connection pooling
+   ```
+
+3. **[HIGH] Pool math overflow**: `default_pool_size` (default=50) applies per user/database pair. Formula: `max_backend_connections = default_pool_size * num_databases * num_users`. Set `pgbouncer.max_client_conn = 5000` and verify `max_connections` on the backend supports the pool's demand
+4. **[CRITICAL] Entra token + transaction mode conflict**: Transaction mode reassigns backends per transaction but Entra tokens bind to the original auth handshake. Use `pgbouncer.pool_mode = session` when ANY client uses token auth, or route token clients to port 5432 directly
+
+   ❌ Wrong:
+   ```bash
+   # Transaction mode + Entra token auth = auth failures
+   az postgres flexible-server parameter set --name pgbouncer.default_pool_mode --value transaction
+   # Then connect with Entra token → FATAL: password authentication failed
+   ```
+
+   ✅ Right:
+   ```bash
+   # Use session mode when ANY client uses token auth
+   az postgres flexible-server parameter set --name pgbouncer.default_pool_mode --value session
+   ```
+
+5. **[MEDIUM] `SHOW POOLS` unavailable**: Azure built-in PgBouncer does NOT expose the admin console. No `SHOW POOLS`, `SHOW STATS`, `SHOW CLIENTS`. Use `pg_stat_activity` (shows backend connections) and Azure Monitor metrics (`pgbouncer_active_connections`, `pgbouncer_waiting_connections`) instead
+6. **[HIGH] Prepared statement workaround**: Transaction mode breaks server-side prepared statements. Solutions: (a) `pgbouncer.pool_mode = session` for that user, (b) client-side prepared statements, (c) `DEALLOCATE ALL` at transaction start
+
+   ❌ Wrong:
+   ```sql
+   -- In transaction mode, prepared statements break across transactions
+   PREPARE my_query AS SELECT * FROM users WHERE id = $1;
+   EXECUTE my_query(1);  -- may fail: prepared statement does not exist
+   ```
+
+   ✅ Right:
+   ```sql
+   -- Use SET LOCAL or client-side prepared statements in transaction mode
+   DEALLOCATE ALL;  -- at transaction start to clear stale state
+   ```
+
+7. **[HIGH] Connection storm recovery**: When PgBouncer queue fills (`pgbouncer.max_client_conn` reached), new connections get `ERROR: no more connections allowed`. Add exponential backoff with jitter in application retry logic. Monitor `pgbouncer_waiting_connections` metric for early warning
+8. **[HIGH] Session-level state leakage**: `SET statement_timeout` in one transaction leaks to the next client in transaction mode. Azure's built-in PgBouncer runs `DISCARD ALL` as `server_reset_query` automatically, but custom GUCs set with `SET LOCAL` only are safe
+9. **[MEDIUM] Connection refused on 6432**: Verify PgBouncer is enabled via `az postgres flexible-server parameter show --name pgbouncer.enabled`. If value is `false`, enable it and wait for the parameter to take effect
+10. **[HIGH] Pool exhaustion**: When `default_pool_size` is too low for your workload, increase it or reduce application connection hold time. Monitor `pgbouncer_waiting_connections` metric as early warning

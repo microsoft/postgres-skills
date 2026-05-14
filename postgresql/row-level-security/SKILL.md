@@ -35,32 +35,26 @@ activation:
 
 ## Instructions
 
-**Step 1: Enable RLS on table**
+**Step 1: Enable RLS + set tenant context per transaction**
 
 ```sql
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
--- Table owner bypasses RLS by default. To enforce on owner too:
-ALTER TABLE orders FORCE ROW LEVEL SECURITY;
+ALTER TABLE orders FORCE ROW LEVEL SECURITY;  -- also enforce on owner
+
+-- With connection poolers: SET LOCAL (transaction-scoped, not session)
+BEGIN;
+SET LOCAL app.current_tenant = 'tenant_123';
+-- ... queries ...
+COMMIT;
 ```
 
-**Step 2: Create policy using session variable**
+**Step 2: Policy with pooler-safe pattern**
 
 ```sql
--- Set tenant context per connection
-SET app.current_tenant = 'tenant_123';
-
--- Policy filters rows by tenant
 CREATE POLICY tenant_isolation ON orders
     USING (tenant_id = current_setting('app.current_tenant'));
-```
 
-**Step 3: Multi-operation policies**
-
-```sql
--- Separate policies for SELECT vs INSERT
-CREATE POLICY read_own ON orders FOR SELECT
-    USING (tenant_id = current_setting('app.current_tenant'));
-
+-- Separate INSERT policy
 CREATE POLICY insert_own ON orders FOR INSERT
     WITH CHECK (tenant_id = current_setting('app.current_tenant'));
 ```
@@ -82,13 +76,52 @@ SELECT * FROM pg_policies WHERE tablename = 'orders';
 
 ## Common Mistakes
 
-1. **Forgetting FORCE on owner**: Table owner bypasses RLS silently. Always add `ALTER TABLE t FORCE ROW LEVEL SECURITY` if owners also query the table
-2. **`current_setting` with connection poolers**: PgBouncer transaction-mode resets session variables between transactions. Set `app.current_tenant` in EVERY transaction, not once per connection: `BEGIN; SET LOCAL app.current_tenant = '...'; SELECT ...; COMMIT;`
-3. **Policy stacking logic**: Multiple policies on the same table for the same command are OR'd together (any match allows access). Use a SINGLE policy with combined logic if you need AND behavior
-4. **Leakproof function requirement**: If a policy calls a user-defined function, the planner may reorder filters and leak rows. Mark security functions as `LEAKPROOF` or the query may expose filtered data via error messages
-5. **RLS + pg_dump/pg_restore**: `pg_dump` runs as superuser and bypasses RLS. But `COPY` in application code respects RLS. Mismatched expectations cause data loss during restore if roles differ
-6. **Permissive vs Restrictive policies (PG 10+)**: Default is PERMISSIVE (OR'd). Use `CREATE POLICY ... AS RESTRICTIVE` to add mandatory constraints that AND with other policies — essential for compliance rules
-7. **SECURITY DEFINER functions bypass RLS**: Functions marked `SECURITY DEFINER` run as the function owner (often superuser), silently bypassing RLS. Use `SECURITY INVOKER` for functions that should respect row policies
-8. **Locked out (no rows returned)**: Policy is too restrictive. Connect as table owner (bypasses RLS) and fix policy
-9. **Performance degradation from RLS**: Add index on policy column. Check EXPLAIN for "Filter: (tenant_id = ...)" on seq scan
-10. **Policy blocks migrations**: Temporarily `ALTER TABLE t DISABLE ROW LEVEL SECURITY` during schema migrations, re-enable after
+1. **[CRITICAL] Forgetting FORCE on owner**: Table owner bypasses RLS silently. Always `ALTER TABLE t FORCE ROW LEVEL SECURITY`
+
+2. **[CRITICAL] `current_setting` with connection poolers**: PgBouncer transaction-mode resets session variables between transactions
+
+   ❌ Wrong:
+   ```sql
+   -- Set once per connection (lost on next transaction in pool)
+   SET app.current_tenant = 'tenant_A';
+   SELECT * FROM orders;
+   ```
+
+   ✅ Right:
+   ```sql
+   -- SET LOCAL scoped to transaction; safe with poolers
+   BEGIN;
+   SET LOCAL app.current_tenant = 'tenant_A';
+   SELECT * FROM orders;
+   COMMIT;
+   ```
+
+3. **[HIGH] Policy stacking logic**: Multiple policies for same command are OR'd. Use a SINGLE policy with combined logic for AND behavior
+
+4. **[HIGH] Leakproof function requirement**: Non-LEAKPROOF functions in policies may leak rows via error messages. Mark security functions as `LEAKPROOF`
+
+5. **[CRITICAL] RLS + pg_dump/pg_restore**: `pg_dump` runs as superuser (bypasses RLS). `COPY` in application code respects RLS. Mismatched expectations cause data loss
+
+6. **[HIGH] Permissive vs Restrictive policies (PG 10+)**: Default is PERMISSIVE (OR'd). Use `CREATE POLICY ... AS RESTRICTIVE` for mandatory AND constraints
+
+7. **[CRITICAL] SECURITY DEFINER functions bypass RLS**: Functions run as function owner, silently bypassing RLS
+
+   ❌ Wrong:
+   ```sql
+   CREATE FUNCTION get_all_orders() RETURNS SETOF orders
+   LANGUAGE sql SECURITY DEFINER  -- runs as owner, bypasses RLS!
+   AS $$ SELECT * FROM orders; $$;
+   ```
+
+   ✅ Right:
+   ```sql
+   CREATE FUNCTION get_all_orders() RETURNS SETOF orders
+   LANGUAGE sql SECURITY INVOKER  -- respects caller's RLS policies
+   AS $$ SELECT * FROM orders; $$;
+   ```
+
+8. **[MEDIUM] Locked out (no rows returned)**: Connect as table owner (bypasses RLS) and fix policy
+
+9. **[MEDIUM] Performance degradation from RLS**: Add index on policy column. Check EXPLAIN for seq scan with filter
+
+10. **[MEDIUM] Policy blocks migrations**: Temporarily `ALTER TABLE t DISABLE ROW LEVEL SECURITY` during migrations
