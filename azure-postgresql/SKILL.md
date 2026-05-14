@@ -10,11 +10,11 @@ activation:
   adjacent_skills: ["provisioning", "networking-ssl", "extension-lifecycle", "entra-id-auth"]
 ---
 
-# Azure Database for PostgreSQL — Core Principles
+# Azure Database for PostgreSQL — Ground Rules
 
-## 1. Features vary by PostgreSQL version, server tier, and extension allowlist — verify before implementing.
+## 1. Check your environment before writing SQL.
 
-Do not assume a feature or extension is available. Check all three:
+Azure PostgreSQL behavior depends on three things: the PostgreSQL version, the server tier, and the extension allowlist. Never assume.
 
 ```sql
 -- PostgreSQL version (determines SQL feature availability)
@@ -30,9 +30,9 @@ SHOW azure.extensions;
 
 Extension installation on Azure requires an explicit allowlist step via the Azure Portal or CLI **before** `CREATE EXTENSION` will succeed. This is the most common failure agents encounter. See the `extension-lifecycle` skill for the full workflow.
 
-## 2. Verify your work.
+## 2. Confirm every change with a query.
 
-After implementing any change, run a verification query. A change without verification is incomplete.
+Do not assume a command succeeded. Run a follow-up check:
 
 - **Extension installed?** → `SELECT * FROM pg_extension WHERE extname = 'your_ext';`
 - **Server parameter changed?** → `SHOW parameter_name;` (some require restart — check `pg_settings.pending_restart`)
@@ -44,9 +44,9 @@ Some server parameter changes require a server restart. Always check:
 SELECT name, setting, pending_restart FROM pg_settings WHERE pending_restart = true;
 ```
 
-## 3. Recover from errors, don't loop.
+## 3. When stuck, diagnose — do not retry blindly.
 
-If an approach fails after 2-3 attempts, stop and reconsider. Common Azure-specific failure patterns:
+If something fails twice, the problem is not transient. Use this lookup table:
 
 | Error pattern | Likely cause | Fix |
 |---|---|---|
@@ -58,9 +58,9 @@ If an approach fails after 2-3 attempts, stop and reconsider. Common Azure-speci
 
 Check Azure Monitor metrics (`cpu_percent`, `memory_percent`, `iops`) and Activity Log for server-level issues before retrying application-level fixes.
 
-## Azure CLI
+## Azure CLI Quick Reference
 
-Discover commands via `--help` — never guess flag names. The `az postgres flexible-server` namespace is deep.
+Use `--help` at every level — the `az postgres flexible-server` namespace is deep and flag names are not always intuitive.
 
 ```bash
 az postgres flexible-server --help                    # All server commands

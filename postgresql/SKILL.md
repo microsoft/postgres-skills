@@ -10,11 +10,11 @@ activation:
   adjacent_skills: ["advanced-indexing", "query-performance", "connection-management"]
 ---
 
-# PostgreSQL — Core Principles
+# PostgreSQL — Ground Rules
 
-## 1. Features vary by PostgreSQL version — verify before implementing.
+## 1. Know your PostgreSQL version before writing SQL.
 
-Do not assume a feature is available. Check the version first:
+Never assume a feature exists. Check first:
 
 ```sql
 SELECT version();
@@ -22,18 +22,18 @@ SELECT version();
 
 Many syntax features are version-gated (e.g., `MERGE` requires PG 15+, `json_table` requires PG 17+). If a statement fails with a syntax error, check the version before debugging further.
 
-## 2. Verify your work.
+## 2. Confirm every change with a query.
 
-After implementing any change, run a verification query. A change without verification is incomplete.
+Do not assume a command succeeded. Run a follow-up check:
 
 - **Extension installed?** → `SELECT * FROM pg_extension WHERE extname = 'your_ext';`
 - **Table/index created?** → `\dt` or `\di` in psql, or query `pg_class`
 - **Parameter changed?** → `SHOW parameter_name;` (some require restart — check `pg_settings.pending_restart`)
 - **Schema change applied?** → Query `information_schema.columns`
 
-## 3. Recover from errors, don't loop.
+## 3. When stuck, diagnose — do not retry blindly.
 
-If an approach fails after 2-3 attempts, stop and reconsider. Common failure patterns:
+If something fails twice, the problem is not transient. Use this lookup table:
 
 | Error pattern | Likely cause | Fix |
 |---|---|---|
