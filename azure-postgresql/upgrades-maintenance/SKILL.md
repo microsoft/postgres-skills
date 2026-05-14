@@ -123,9 +123,9 @@ ORDER BY mean_time DESC LIMIT 10;
    az postgres flexible-server upgrade --name myserver --version 16
    ```
 
-2. **[HIGH] MVU snapshot verification**: Azure takes an automatic snapshot before MVU. Verify it exists: `az postgres flexible-server backup list --resource-group rg --name server` — look for a backup with timestamp just before upgrade start. Keep manual backup as additional safety net
+2. **[HIGH] MVU snapshot verification**: Azure takes an automatic snapshot before MVU. Verify with: `az postgres flexible-server backup list --resource-group rg --name server`. Keep manual backup as additional safety net
 3. **[HIGH] Extension compatibility matrix**: Not all extensions support all PG versions. Check BEFORE upgrade: `SELECT e.extname, e.extversion FROM pg_extension e` then verify target version supports each. `pg_partman` and `postgis` are common blockers
-4. **[HIGH] Post-MVU `ANALYZE` requirement**: After major version upgrade, `pg_statistic` is stale. All query plans may regress. Run: `vacuumdb --all --analyze-in-place` immediately post-upgrade. On large databases, prioritize critical tables first
+4. **[HIGH] Post-MVU `ANALYZE` requirement**: After major version upgrade, `pg_statistic` is stale. Run `ANALYZE;` on priority tables immediately, then `vacuumdb --all --analyze-in-place` for the full database
 
    ❌ Wrong:
    ```bash
@@ -134,16 +134,14 @@ ORDER BY mean_time DESC LIMIT 10;
    ```
 
    ✅ Right:
-   ```bash
-   # Immediately after upgrade completes:
-   vacuumdb --all --analyze-in-place --host=myserver.postgres.database.azure.com
-   # Then verify critical query plans before releasing traffic
+   ```sql
+   -- Immediately after upgrade completes:
+   ANALYZE;
+   -- Then verify critical query plans before releasing traffic
    ```
 
-5. **[HIGH] Post-MVU extension updates**: After upgrading PG version (e.g., 15→16), extension versions may have newer compatible releases. Run: `ALTER EXTENSION vector UPDATE; ALTER EXTENSION postgis UPDATE;` for each extension to get version compatible with new PG major
-6. **[MEDIUM] Maintenance window control**: MVU takes 5-15 minutes of downtime. Schedule with `--planned-maintenance-window`: `az postgres flexible-server update --maintenance-window "Mon:02:00"`. MVU itself must be triggered manually but respects the window for automatic restarts
-7. **[HIGH] Application connection handling during MVU**: Server restarts during upgrade. Applications get `FATAL: the database system is shutting down`. Implement retry with 30s timeout and exponential backoff. Connection pools (PgBouncer) will queue requests during the brief outage
-8. **[CRITICAL] Rollback strategy**: MVU is one-way (cannot downgrade). If upgrade causes issues, restore from pre-upgrade PITR backup (creates NEW server at old version). Test upgrade on a read replica first: promote replica, upgrade it, validate, then upgrade primary
+5. **[HIGH] Post-MVU extension updates**: Run `ALTER EXTENSION vector UPDATE; ALTER EXTENSION postgis UPDATE;` for each extension to get version compatible with new PG major
+6. **[CRITICAL] Rollback strategy**: MVU is one-way (cannot downgrade). If upgrade causes issues, restore from pre-upgrade PITR backup using `az postgres flexible-server restore` (creates NEW server at old version)
 
    ❌ Wrong:
    ```bash
@@ -160,9 +158,8 @@ ORDER BY mean_time DESC LIMIT 10;
    # Restores to old version on a NEW server
    ```
 
-9. **[MEDIUM] Upgrade failed**: Server rolls back to previous version automatically. Check Activity Log for root cause
-10. **[HIGH] Performance regression post-upgrade**: Run `ANALYZE` on all tables. Check if planner settings changed between versions
-11. **[HIGH] Extension broken after upgrade**: `ALTER EXTENSION ... UPDATE` to get version compatible with new PostgreSQL version
+7. **[HIGH] Application connection handling during MVU**: Server restarts during upgrade. Applications get `FATAL: the database system is shutting down`. Implement retry with 30s timeout and exponential backoff
+8. **[MEDIUM] Do NOT use `ALTER SYSTEM SET` or edit `postgresql.conf` directly**: On Azure managed PostgreSQL, use `az postgres flexible-server parameter set` or the Azure Portal to change server parameters. OS-level tools like `pg_basebackup` are also unavailable; use Azure PITR instead
 
 ## References
 - [Major version upgrades in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-major-version-upgrade)

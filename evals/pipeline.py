@@ -496,7 +496,7 @@ class EvalPipeline:
                 "recall": round(recall, 3),
                 "f1_score": round(f1, 3),
                 "hallucination_rate": total_hallucinations,
-                "false_activation_rate": round(total_fp / (total_fp + total_tn), 3) if (total_fp + total_tn) > 0 else 0,
+                "false_activation_rate": round(total_fp / len(self.challenges), 3) if len(self.challenges) > 0 else 0,
             },
             "delta": {
                 "method": delta_method,
@@ -649,7 +649,8 @@ class EvalPipeline:
             wilcox_sig = " (SIGNIFICANT)" if wilcox['significant'] else " (not significant)"
             print(f"Wilcoxon: W={wilcox['W_statistic']}, p={wilcox['p_value_approx']}{wilcox_sig}")
         print(f"Hallucinations: {report['summary']['hallucination_rate']}")
-        print(f"False Activation Rate: {report['summary']['false_activation_rate']}")
+        far = report['summary']['false_activation_rate']
+        print(f"False Activation Rate: {far:.1%}")
 
         return report
 

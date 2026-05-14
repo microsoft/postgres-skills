@@ -11,6 +11,8 @@ activation:
     - "update nested JSON fields in place"
     - "type mismatch comparing JSONB values"
     - "schema-less design with JSONB"
+    - "SQL/JSON path expression for JSONB"
+    - "jsonb subscript syntax"
   technical_keywords:
     - "->"
     - "->>"
@@ -23,6 +25,10 @@ activation:
     - TOAST
     - "data['key']"
     - "GENERATED ALWAYS AS"
+    - jsonb_path_exists
+    - jsonb_to_recordset
+    - jsonb_array_elements
+    - json_table
   exclusion_conditions:
     - "when data is relational and should use normalized tables, do not use this skill"
     - "when user needs full-text search on JSON text values, use `postgresql/full-text-search/` instead"

@@ -9,6 +9,8 @@ activation:
     - combine vector search with keyword search
     - store embeddings from my application
     - hybrid search with reciprocal rank fusion
+    - semantic search on my PostgreSQL data
+    - embed user query in SQL and search similar documents
   technical_keywords:
     - create_embeddings
     - embedding
@@ -19,6 +21,9 @@ activation:
     - vector similarity
     - pgvector
     - azure_openai.create_embeddings
+    - vector(1536)
+    - reciprocal rank fusion
+    - semantic search
   exclusion_conditions:
     - "when user needs vector indexing or DiskANN/HNSW tuning only, use `azure-postgresql/vector-diskann/` instead"
     - "when user needs text generation / classification / extraction, use `azure-postgresql/azure-ai/` instead"
