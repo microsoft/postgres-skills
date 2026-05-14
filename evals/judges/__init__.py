@@ -53,6 +53,40 @@ A wrong or hallucinated answer should score 0-2 on Correctness regardless of oth
 }}
 """
 
+PAIRED_WINRATE_JUDGE = """
+You are comparing two AI responses to the same PostgreSQL task.
+One response was generated WITHOUT specialized skill context (Control).
+The other was generated WITH specialized skill context (Test).
+
+## Task
+{task}
+
+## Response A (Control - no skill context)
+{control_output}
+
+## Response B (Test - with skill context)
+{test_output}
+
+## Comparison Criteria
+1. **Correctness**: Which response has fewer errors, hallucinations, or incorrect syntax?
+2. **Depth**: Which provides more actionable, production-grade guidance?
+3. **Specificity**: Which includes more concrete settings, thresholds, or version-aware caveats?
+4. **Safety**: Which better addresses failure modes and dangerous operations?
+
+## Instructions
+- If Response B is meaningfully better (more correct, deeper, more specific), choose "B_wins"
+- If Response A is meaningfully better, choose "A_wins"
+- If they are roughly equivalent in quality, choose "tie"
+- A response with hallucinated syntax should ALWAYS lose, regardless of depth
+
+## Output Format (JSON)
+{{
+  "winner": "<A_wins|B_wins|tie>",
+  "reasoning": "<1-2 sentence explanation>",
+  "confidence": "<high|medium|low>"
+}}
+"""
+
 ACTIVATION_PRECISION_JUDGE = """
 You are evaluating whether an AI agent correctly identified which skill to activate.
 
@@ -132,6 +166,30 @@ class SkillJudge:
         return HALLUCINATION_JUDGE.format(
             task=task, output=output, platform_scope=platform_scope
         )
+
+    def build_paired_winrate_prompt(self, task: str, control_output: str, test_output: str) -> str:
+        return PAIRED_WINRATE_JUDGE.format(
+            task=task, control_output=control_output, test_output=test_output
+        )
+
+    def judge_paired_winrate(self, task: str, control_output: str, test_output: str, call_llm_fn) -> dict:
+        """Head-to-head comparison: does the skill-augmented response win?"""
+        prompt = self.build_paired_winrate_prompt(task, control_output, test_output)
+        raw = call_llm_fn(prompt)
+
+        try:
+            import json as _json
+            text = raw.strip()
+            if text.startswith("```"):
+                text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+            parsed = _json.loads(text)
+            return {
+                "winner": parsed.get("winner", "tie"),
+                "reasoning": parsed.get("reasoning", ""),
+                "confidence": parsed.get("confidence", "medium"),
+            }
+        except Exception:
+            return {"winner": "tie", "reasoning": f"Parse error: {raw[:80]}", "confidence": "low"}
 
     def judge_quality(self, task: str, output: str, skill_name: str, call_llm_fn) -> JudgeVerdict:
         """Run LLM-as-judge quality evaluation and return structured verdict."""

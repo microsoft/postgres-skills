@@ -6,7 +6,9 @@ Usage:
     python evals/pipeline.py [--challenges PATH] [--output PATH] [--model MODEL]
 """
 import json
+import math
 import os
+import random
 import sys
 import time
 import yaml
@@ -64,6 +66,170 @@ class SkillMetrics:
     hallucination_count: int = 0
 
 
+# ─── Statistical Analysis ────────────────────────────────────────────────────
+
+class StatisticalAnalyzer:
+    """Industry-standard delta metrics: Cohen's d, bootstrap CI, Wilcoxon."""
+
+    @staticmethod
+    def cohens_d(test_scores: list[float], control_scores: list[float]) -> float:
+        """Compute Cohen's d effect size (pooled std deviation normalization)."""
+        if len(test_scores) < 2 or len(control_scores) < 2:
+            return 0.0
+        mean_t = sum(test_scores) / len(test_scores)
+        mean_c = sum(control_scores) / len(control_scores)
+        var_t = sum((x - mean_t) ** 2 for x in test_scores) / (len(test_scores) - 1)
+        var_c = sum((x - mean_c) ** 2 for x in control_scores) / (len(control_scores) - 1)
+        pooled_std = math.sqrt((var_t + var_c) / 2)
+        if pooled_std == 0:
+            return 0.0
+        return (mean_t - mean_c) / pooled_std
+
+    @staticmethod
+    def cohens_d_interpretation(d: float) -> str:
+        """Standard interpretation of Cohen's d magnitude."""
+        abs_d = abs(d)
+        if abs_d < 0.2:
+            return "negligible"
+        elif abs_d < 0.5:
+            return "small"
+        elif abs_d < 0.8:
+            return "medium"
+        else:
+            return "large"
+
+    @staticmethod
+    def bootstrap_ci(
+        test_scores: list[float],
+        control_scores: list[float],
+        n_bootstrap: int = 1000,
+        confidence: float = 0.95,
+        seed: int = 42,
+    ) -> dict:
+        """Bootstrap confidence interval for mean delta."""
+        if not test_scores or not control_scores:
+            return {"lower": 0.0, "upper": 0.0, "mean": 0.0, "significant": False}
+
+        rng = random.Random(seed)
+        deltas = []
+        n_test = len(test_scores)
+        n_control = len(control_scores)
+
+        for _ in range(n_bootstrap):
+            boot_test = [rng.choice(test_scores) for _ in range(n_test)]
+            boot_control = [rng.choice(control_scores) for _ in range(n_control)]
+            boot_delta = sum(boot_test) / n_test - sum(boot_control) / n_control
+            deltas.append(boot_delta)
+
+        deltas.sort()
+        alpha = 1 - confidence
+        lower_idx = int(alpha / 2 * n_bootstrap)
+        upper_idx = int((1 - alpha / 2) * n_bootstrap)
+
+        lower = deltas[lower_idx]
+        upper = deltas[min(upper_idx, n_bootstrap - 1)]
+        mean_delta = sum(deltas) / len(deltas)
+
+        # Significant if CI doesn't cross zero
+        significant = (lower > 0) or (upper < 0)
+
+        return {
+            "lower": round(lower, 4),
+            "upper": round(upper, 4),
+            "mean": round(mean_delta, 4),
+            "significant": significant,
+        }
+
+    @staticmethod
+    def wilcoxon_signed_rank(paired_diffs: list[float]) -> dict:
+        """Wilcoxon signed-rank test for paired differences (no scipy dependency)."""
+        # Remove zeros
+        diffs = [d for d in paired_diffs if d != 0]
+        n = len(diffs)
+        if n < 5:
+            return {"W_statistic": 0, "p_value_approx": 1.0, "significant": False, "n_pairs": n}
+
+        # Rank absolute differences
+        abs_diffs = [(abs(d), i) for i, d in enumerate(diffs)]
+        abs_diffs.sort(key=lambda x: x[0])
+
+        ranks = [0.0] * n
+        i = 0
+        while i < n:
+            j = i
+            while j < n and abs_diffs[j][0] == abs_diffs[i][0]:
+                j += 1
+            avg_rank = (i + j + 1) / 2  # 1-based average rank for ties
+            for k in range(i, j):
+                ranks[abs_diffs[k][1]] = avg_rank
+            i = j
+
+        # Sum positive and negative ranks
+        W_plus = sum(ranks[i] for i in range(n) if diffs[i] > 0)
+        W_minus = sum(ranks[i] for i in range(n) if diffs[i] < 0)
+        W = min(W_plus, W_minus)
+
+        # Normal approximation for p-value (valid for n >= 10)
+        mean_W = n * (n + 1) / 4
+        std_W = math.sqrt(n * (n + 1) * (2 * n + 1) / 24)
+        if std_W == 0:
+            z = 0
+        else:
+            z = (W - mean_W) / std_W
+
+        # Two-tailed p-value approximation using standard normal CDF
+        p_value = 2 * StatisticalAnalyzer._normal_cdf(z)
+
+        return {
+            "W_statistic": round(W, 2),
+            "W_plus": round(W_plus, 2),
+            "W_minus": round(W_minus, 2),
+            "z_score": round(z, 3),
+            "p_value_approx": round(p_value, 4),
+            "significant": p_value < 0.05,
+            "n_pairs": n,
+        }
+
+    @staticmethod
+    def _normal_cdf(z: float) -> float:
+        """Approximate standard normal CDF (Abramowitz & Stegun)."""
+        if z < -6:
+            return 0.0
+        if z > 6:
+            return 1.0
+        a1 = 0.254829592
+        a2 = -0.284496736
+        a3 = 1.421413741
+        a4 = -1.453152027
+        a5 = 1.061405429
+        p = 0.3275911
+        sign = 1 if z >= 0 else -1
+        x = abs(z) / math.sqrt(2)
+        t = 1.0 / (1.0 + p * x)
+        y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * math.exp(-x * x)
+        return 0.5 * (1.0 + sign * y)
+
+    @staticmethod
+    def paired_winrate(winrate_results: list[dict]) -> dict:
+        """Aggregate paired win-rate results."""
+        wins = sum(1 for r in winrate_results if r.get("winner") == "B_wins")
+        losses = sum(1 for r in winrate_results if r.get("winner") == "A_wins")
+        ties = sum(1 for r in winrate_results if r.get("winner") == "tie")
+        total = len(winrate_results)
+        if total == 0:
+            return {"win_rate": 0, "loss_rate": 0, "tie_rate": 0, "total": 0, "net_wins": 0}
+        return {
+            "win_rate": round(wins / total, 3),
+            "loss_rate": round(losses / total, 3),
+            "tie_rate": round(ties / total, 3),
+            "wins": wins,
+            "losses": losses,
+            "ties": ties,
+            "total": total,
+            "net_wins": wins - losses,
+        }
+
+
 # ─── Pipeline ───────────────────────────────────────────────────────────────
 
 class EvalPipeline:
@@ -84,6 +250,7 @@ class EvalPipeline:
         self.challenges: list[Challenge] = []
         self.results: list[EvalResult] = []
         self.skill_metrics: dict[str, SkillMetrics] = {}
+        self.winrate_results: list[dict] = []  # Paired win-rate verdicts
         self._judge_agent_fn = None  # Set during run() for judge LLM calls
 
     def load_challenges(self) -> list[Challenge]:
@@ -279,6 +446,42 @@ class EvalPipeline:
             delta_method = "pattern"
         delta = avg_test - avg_control
 
+        # ─── Statistical Analysis (Industry-Standard) ────────────────────────
+        stats = StatisticalAnalyzer()
+
+        # Cohen's d (normalized effect size)
+        if delta_method == "judge":
+            cohens_d = stats.cohens_d(test_judge_scores, control_judge_scores)
+        else:
+            cohens_d = stats.cohens_d(test_pattern_scores, control_pattern_scores)
+
+        # Bootstrap 95% CI
+        if delta_method == "judge":
+            bootstrap_ci = stats.bootstrap_ci(test_judge_scores, control_judge_scores)
+        else:
+            bootstrap_ci = stats.bootstrap_ci(test_pattern_scores, control_pattern_scores)
+
+        # Wilcoxon signed-rank on paired differences (same challenge, test - control)
+        paired_diffs = []
+        for challenge in self.challenges:
+            if not challenge.expected_activation:
+                continue
+            control_r = next(
+                (r for r in self.results if r.challenge_id == challenge.id and r.group == "control"
+                 and r.judge_verdict and "score" in r.judge_verdict), None
+            )
+            test_r = next(
+                (r for r in self.results if r.challenge_id == challenge.id and r.group == "test"
+                 and r.judge_verdict and "score" in r.judge_verdict), None
+            )
+            if control_r and test_r:
+                paired_diffs.append(test_r.judge_verdict["score"] - control_r.judge_verdict["score"])
+
+        wilcoxon = stats.wilcoxon_signed_rank(paired_diffs)
+
+        # Paired win-rate
+        winrate_summary = stats.paired_winrate(self.winrate_results)
+
         report = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "summary": {
@@ -296,6 +499,11 @@ class EvalPipeline:
                 "test_avg_score": round(avg_test, 3),
                 "improvement": round(delta, 3),
                 "pattern_delta": round(avg_test_pattern - avg_control_pattern, 3),
+                "cohens_d": round(cohens_d, 3),
+                "cohens_d_interpretation": StatisticalAnalyzer.cohens_d_interpretation(cohens_d),
+                "bootstrap_95_ci": bootstrap_ci,
+                "wilcoxon_test": wilcoxon,
+                "paired_winrate": winrate_summary,
             },
             "per_skill": {
                 skill: {
@@ -359,10 +567,26 @@ class EvalPipeline:
             print(f"[{i+1}/{len(self.challenges)}] {challenge.id} ({challenge.difficulty})")
 
             # Control group (no skill)
-            self.run_challenge(challenge, agent_fn, "control", model)
+            control_result = self.run_challenge(challenge, agent_fn, "control", model)
 
             # Test group (with skill)
-            self.run_challenge(challenge, agent_fn, "test", model)
+            test_result = self.run_challenge(challenge, agent_fn, "test", model)
+
+            # Paired win-rate comparison (only for positive challenges with real agent)
+            if (challenge.expected_activation and self._judge_agent_fn
+                    and control_result.output and test_result.output
+                    and not control_result.output.startswith("[MOCK]")):
+                def _call_winrate_llm(prompt: str) -> str:
+                    return self._judge_agent_fn(prompt, "", model)
+                verdict = self.judge.judge_paired_winrate(
+                    task=challenge.task,
+                    control_output=control_result.output,
+                    test_output=test_result.output,
+                    call_llm_fn=_call_winrate_llm,
+                )
+                verdict["challenge_id"] = challenge.id
+                verdict["target_skill"] = challenge.target_skill
+                self.winrate_results.append(verdict)
 
         # Generate and save report
         report = self.generate_report()
@@ -378,6 +602,17 @@ class EvalPipeline:
         print(f"Delta ({report['delta']['method']}): {report['delta']['improvement']}")
         if report['delta']['method'] == 'judge':
             print(f"Delta (pattern, legacy): {report['delta']['pattern_delta']}")
+        print(f"Cohen's d: {report['delta']['cohens_d']} ({report['delta']['cohens_d_interpretation']})")
+        ci = report['delta']['bootstrap_95_ci']
+        sig_marker = "*" if ci['significant'] else ""
+        print(f"95% CI: [{ci['lower']}, {ci['upper']}]{sig_marker}")
+        wr = report['delta']['paired_winrate']
+        if wr['total'] > 0:
+            print(f"Win Rate: {wr['win_rate']:.1%} wins, {wr['loss_rate']:.1%} losses, {wr['tie_rate']:.1%} ties ({wr['total']} matchups)")
+        wilcox = report['delta']['wilcoxon_test']
+        if wilcox['n_pairs'] >= 5:
+            wilcox_sig = " (SIGNIFICANT)" if wilcox['significant'] else " (not significant)"
+            print(f"Wilcoxon: W={wilcox['W_statistic']}, p={wilcox['p_value_approx']}{wilcox_sig}")
         print(f"Hallucinations: {report['summary']['hallucination_rate']}")
         print(f"False Activation Rate: {report['summary']['false_activation_rate']}")
 
