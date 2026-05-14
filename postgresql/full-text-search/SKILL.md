@@ -22,11 +22,11 @@ platform_scope: postgresql
 **Do NOT use when:**
 - User needs vector similarity search (use `azure-postgresql/vector-diskann/`)
 - Exact substring matching is sufficient (use `LIKE` or trigram `pg_trgm`)
-- User needs Azure hybrid search combining FTS + vectors (use `azure-postgresql/rag-pipeline/`)
+- User needs Azure hybrid search combining FTS + vectors (use `azure-postgresql/genai-patterns/`)
 
 **Overlaps with:**
 - `postgresql/advanced-indexing/` (GIN index on tsvector column)
-- `azure-postgresql/rag-pipeline/` (hybrid search combines FTS with vector)
+- `azure-postgresql/genai-patterns/` (hybrid search combines FTS with vector)
 
 ## Prerequisites
 

@@ -20,12 +20,12 @@ platform_scope: azure-postgresql
 - User asks which extensions are available
 
 **Do NOT use when:**
-- User asks about azure_ai extension specifically (use `azure-postgresql/azure-ai-extension/`)
+- User asks about azure_ai extension specifically (use `azure-postgresql/azure-ai/`)
 - User needs general CREATE INDEX patterns (use `postgresql/advanced-indexing/`)
 - User asks about custom/community extensions not in the Azure allowlist (not supported)
 
 **Overlaps with:**
-- `azure-postgresql/azure-ai-extension/` (specific azure_ai extension setup)
+- `azure-postgresql/azure-ai/` (specific azure_ai extension setup)
 - `postgresql/advanced-indexing/` (extensions like btree_gin, btree_gist)
 
 ## Prerequisites

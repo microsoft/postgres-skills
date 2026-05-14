@@ -30,10 +30,8 @@ This document defines the skill inventory matrix, dependency graph, and naming c
 | intelligent-tuning | Intelligent Tuning | `azure-postgresql/intelligent-tuning/` | 4, 4a, 6k, 6k-ii, 6k-iii | sequential | 1500-1800 |
 | upgrades-maintenance | Upgrades & Maintenance | `azure-postgresql/upgrades-maintenance/` | 4b, 4c, 4d | requires_confirmation | 1500-1800 |
 | vector-diskann | Vector & DiskANN | `azure-postgresql/vector-diskann/` | 7, 7a, 7b, 7c, 9 | sequential | 1500-1800 |
-| embeddings-azure-ai | Embeddings (Azure AI) | `azure-postgresql/embeddings-azure-ai/` | 8, 8-ii | sequential | 1500-1800 |
-| rag-pipeline | RAG Pipeline | `azure-postgresql/rag-pipeline/` | 11, 12, 12-ii | sequential | 1500-1800 |
-| azure-ai-extension | Azure AI Extension | `azure-postgresql/azure-ai-extension/` | 8a, 8a-ii, 8a-iv, 8b | sequential | 1500-1800 |
-| ai-functions | AI Functions | `azure-postgresql/ai-functions/` | 10, 10a, 10b, 10c, 10d, 10e | sequential | 1500-1800 |
+| azure-ai | Azure AI (Setup + Functions) | `azure-postgresql/azure-ai/` | 8a, 8a-ii, 8a-iv, 8b, 10, 10a-10e | sequential | 1500-1800 |
+| genai-patterns | GenAI Patterns (Embeddings + RAG) | `azure-postgresql/genai-patterns/` | 8, 8-ii, 11, 12, 12-ii | sequential | 1500-1800 |
 
 ### Cross-Cutting FRs (Encoded as Constraints, Not Standalone Skills)
 
@@ -64,33 +62,22 @@ postgresql/connection-management
 
 azure-postgresql/extension-lifecycle
   ├── prerequisite-for: vector-diskann (CREATE EXTENSION vector)
-  ├── prerequisite-for: azure-ai-extension (CREATE EXTENSION azure_ai)
-  └── prerequisite-for: ai-functions (CREATE EXTENSION azure_ai)
+  └── prerequisite-for: azure-ai (CREATE EXTENSION azure_ai)
 
 azure-postgresql/entra-id-auth
   └── overlaps: networking-ssl (connection string context)
 
 azure-postgresql/vector-diskann
   ├── depends-on: extension-lifecycle
-  └── overlaps: embeddings-azure-ai (vector generation)
+  └── overlaps: genai-patterns (vector generation)
 
-azure-postgresql/embeddings-azure-ai
+azure-postgresql/azure-ai
   ├── depends-on: extension-lifecycle
-  ├── depends-on: azure-ai-extension
-  └── overlaps: rag-pipeline (embedding step)
+  └── overlaps: genai-patterns (embedding functions)
 
-azure-postgresql/rag-pipeline
+azure-postgresql/genai-patterns
   ├── depends-on: vector-diskann (vector storage)
-  ├── depends-on: embeddings-azure-ai (vector generation)
-  └── depends-on: azure-ai-extension (model invocation)
-
-azure-postgresql/azure-ai-extension
-  ├── depends-on: extension-lifecycle
-  └── overlaps: ai-functions (invoke patterns)
-
-azure-postgresql/ai-functions
-  ├── depends-on: azure-ai-extension
-  └── overlaps: embeddings-azure-ai (embedding functions)
+  └── depends-on: azure-ai (model invocation, embeddings)
 
 azure-postgresql/ha-disaster-recovery
   └── overlaps: provisioning (replica provisioning)
@@ -105,7 +92,7 @@ azure-postgresql/intelligent-tuning
 
 - **Format:** lowercase kebab-case
 - **Pattern:** `{action-or-topic}` (not `{verb}-{noun}`)
-- **Examples:** `advanced-indexing`, `rag-pipeline`, `ha-disaster-recovery`
+- **Examples:** `advanced-indexing`, `genai-patterns`, `ha-disaster-recovery`
 
 ### Skill IDs (in .skills.json)
 
@@ -178,10 +165,8 @@ postgresql-agent-skills/
 │   ├── intelligent-tuning/SKILL.md
 │   ├── upgrades-maintenance/SKILL.md
 │   ├── vector-diskann/SKILL.md
-│   ├── embeddings-azure-ai/SKILL.md
-│   ├── rag-pipeline/SKILL.md
-│   ├── azure-ai-extension/SKILL.md
-│   └── ai-functions/SKILL.md
+│   ├── azure-ai/SKILL.md
+│   └── genai-patterns/SKILL.md
 └── evals/
     ├── challenges/                 # 50 agent challenge definitions
     ├── judges/                     # LLM-as-judge configs

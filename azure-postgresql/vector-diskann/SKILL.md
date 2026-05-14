@@ -20,13 +20,12 @@ platform_scope: azure-postgresql
 - User asks about distance functions (cosine, L2, inner product)
 
 **Do NOT use when:**
-- User needs to generate embeddings (use `azure-postgresql/embeddings-azure-ai/`)
-- User needs end-to-end RAG pipeline (use `azure-postgresql/rag-pipeline/`)
+- User needs to generate embeddings (use `azure-postgresql/genai-patterns/`)
+- User needs end-to-end RAG pipeline (use `azure-postgresql/genai-patterns/`)
 - User asks about full-text search ranking (use `postgresql/full-text-search/`)
 
 **Overlaps with:**
-- `azure-postgresql/embeddings-azure-ai/` (embeddings stored in vector columns)
-- `azure-postgresql/rag-pipeline/` (vector search is one component of RAG)
+- `azure-postgresql/genai-patterns/` (embeddings stored in vector columns, RAG patterns)
 
 ## Prerequisites
 

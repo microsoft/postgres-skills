@@ -115,28 +115,16 @@
       "activation_keywords": ["diskann", "vector index", "hnsw", "pgvector", "similarity search", "vector search", "cosine distance", "pg_diskann", "embedding index"]
     },
     {
-      "id": "embeddings-azure-ai",
-      "path": "azure-postgresql/embeddings-azure-ai/SKILL.md",
+      "id": "azure-ai",
+      "path": "azure-postgresql/azure-ai/SKILL.md",
       "platform_scope": "azure-postgresql",
-      "activation_keywords": ["create_embeddings", "generate embeddings", "azure_openai embedding", "text-embedding", "batch embeddings", "embed text", "vector column"]
+      "activation_keywords": ["azure_ai extension", "azure_ai.set_setting", "azure_openai endpoint", "configure azure_ai", "azure ai setup", "azure_openai.create", "llm from sql", "classify sql", "summarize sql", "extract entities sql", "ai function", "generate text sql", "managed_identity"]
     },
     {
-      "id": "rag-pipeline",
-      "path": "azure-postgresql/rag-pipeline/SKILL.md",
+      "id": "genai-patterns",
+      "path": "azure-postgresql/genai-patterns/SKILL.md",
       "platform_scope": "azure-postgresql",
-      "activation_keywords": ["rag", "retrieval augmented generation", "hybrid search", "reciprocal rank fusion", "rrf", "semantic search", "context retrieval"]
-    },
-    {
-      "id": "azure-ai-extension",
-      "path": "azure-postgresql/azure-ai-extension/SKILL.md",
-      "platform_scope": "azure-postgresql",
-      "activation_keywords": ["azure_ai extension", "azure_ai.set_setting", "azure_openai endpoint", "configure azure_ai", "azure ai setup"]
-    },
-    {
-      "id": "ai-functions",
-      "path": "azure-postgresql/ai-functions/SKILL.md",
-      "platform_scope": "azure-postgresql",
-      "activation_keywords": ["azure_openai.create", "llm from sql", "classify sql", "summarize sql", "extract entities sql", "ai function", "generate text sql"]
+      "activation_keywords": ["create_embeddings", "generate embeddings", "azure_openai embedding", "text-embedding", "batch embeddings", "embed text", "vector column", "rag", "retrieval augmented generation", "hybrid search", "reciprocal rank fusion", "rrf", "semantic search", "context retrieval", "pgvector embeddings"]
     }
   ]
 }

@@ -70,10 +70,8 @@ These skills are purpose-built for Azure Database for PostgreSQL Flexible Server
 | Skill | Helps you with | What the agent learns that LLMs get wrong |
 |-------|---------------|------------------------------------------|
 | **vector-diskann** | Billion-scale vector search with pgvector + DiskANN | `lists` vs `m`/`ef_construction` tuning, streaming DiskANN (Preview) |
-| **rag-pipeline** | End-to-end RAG with hybrid search | Reciprocal rank fusion formula, chunk overlap strategy |
-| **embeddings-azure-ai** | Generating embeddings via azure_ai extension | `text-embedding-3-small` dimensions parameter, batch chunking |
-| **ai-functions** | AI-powered SQL functions (summarize, classify, translate) | `create()` vs `create_embeddings()` disambiguation, token limits |
-| **azure-ai-extension** | `azure_ai.invoke()`, model catalog integration | Batch scoring, `azure_ai.set_setting()` for keys, error handling |
+| **genai-patterns** | Embeddings (in-database + external pgvector), RAG, hybrid search | Both azure_ai and external embedding paths, reciprocal rank fusion, chunk overlap |
+| **azure-ai** | azure_ai extension setup, AI text functions (generate, classify, extract) | `create()` vs `create_embeddings()` disambiguation, managed identity config |
 | **intelligent-tuning** | Query Store, autovacuum tuning, index recommendations | Query Store must be enabled first, `pg_qs.query_capture_mode` settings |
 | **entra-id-auth** | Passwordless auth with Microsoft Entra and managed identity | Token refresh before 5-min expiry, `PGPASSWORD` with `az account get-access-token` |
 | **connection-pooling** | Built-in PgBouncer configuration | Named prepared statements break in transaction mode, `pgbouncer.ini` on Flex |
@@ -124,7 +122,7 @@ See [evals/README.md](evals/README.md) for details.
 ```
 postgresql-agent-skills/
 ├── postgresql/                 # 8 foundational PostgreSQL skills
-├── azure-postgresql/           # 13 Azure-specific skills
+├── azure-postgresql/           # 11 Azure-specific skills
 ├── evals/                      # Evaluation pipeline (97 challenges)
 ├── .skills.json                # Skill routing manifest
 ├── marketplace.json            # Claude Code manifest
