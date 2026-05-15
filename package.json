@@ -39,9 +39,7 @@
   "files": [
     "postgresql/",
     "azure-postgresql/",
-    ".skills.json",
-    "marketplace.json",
-    "plugin.json"
+    ".skills.json"
   ],
   "mcp": {
     "version": "2024-11-05",
