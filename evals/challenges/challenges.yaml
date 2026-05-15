@@ -1044,7 +1044,7 @@ challenges:
   - id: root-pg-01
     task: "I'm getting 'relation does not exist' when querying my table. I've tried the query 3 times and it keeps failing."
     difficulty: easy
-    target_skill: postgresql
+    target_skill: plugins/postgresql-skills/skills
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1055,7 +1055,7 @@ challenges:
   - id: root-pg-02
     task: "I want to use MERGE to do an upsert on my PostgreSQL database. Can you write the SQL?"
     difficulty: medium
-    target_skill: postgresql
+    target_skill: plugins/postgresql-skills/skills
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1066,7 +1066,7 @@ challenges:
   - id: root-pg-03
     task: "I need to optimize queries on a table with 50M rows that gets filtered by date range and status. Which skill or approach should I use?"
     difficulty: easy
-    target_skill: postgresql
+    target_skill: plugins/postgresql-skills/skills
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1076,7 +1076,7 @@ challenges:
   - id: root-pg-04
     task: "I created an index but I'm not sure it's being used. How do I verify?"
     difficulty: easy
-    target_skill: postgresql
+    target_skill: plugins/postgresql-skills/skills
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1086,7 +1086,7 @@ challenges:
   - id: root-pg-05
     task: "Help me set up logical replication between two PostgreSQL servers for CDC."
     difficulty: easy
-    target_skill: postgresql
+    target_skill: plugins/postgresql-skills/skills
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1097,7 +1097,7 @@ challenges:
   - id: root-az-01
     task: "I need to install the pgvector extension on my Azure Database for PostgreSQL Flexible Server."
     difficulty: easy
-    target_skill: azure-postgresql
+    target_skill: plugins/azure-postgresql-skills/skills
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1107,7 +1107,7 @@ challenges:
   - id: root-az-02
     task: "I changed shared_preload_libraries on my Azure PostgreSQL server but the extension still won't load."
     difficulty: medium
-    target_skill: azure-postgresql
+    target_skill: plugins/azure-postgresql-skills/skills
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1118,7 +1118,7 @@ challenges:
   - id: root-az-03
     task: "My application can't connect to my Azure PostgreSQL server. It says 'could not connect'."
     difficulty: easy
-    target_skill: azure-postgresql
+    target_skill: plugins/azure-postgresql-skills/skills
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1128,7 +1128,7 @@ challenges:
   - id: root-az-04
     task: "What CLI command do I use to create an Azure PostgreSQL Flexible Server with a General Purpose tier?"
     difficulty: easy
-    target_skill: azure-postgresql
+    target_skill: plugins/azure-postgresql-skills/skills
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1139,7 +1139,7 @@ challenges:
   - id: root-az-05
     task: "I want to build a RAG application with semantic search on my Azure PostgreSQL database. Where do I start?"
     difficulty: easy
-    target_skill: azure-postgresql
+    target_skill: plugins/azure-postgresql-skills/skills
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
