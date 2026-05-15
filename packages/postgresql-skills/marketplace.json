@@ -18,6 +18,10 @@
   },
   "skills_manifest": ".skills.json",
   "mcp_config": "mcp.json",
+  "companion": {
+    "name": "azure-postgresql-skills",
+    "description": "Install @microsoft/azure-postgresql-skills for Azure Database for PostgreSQL features (DiskANN, Entra ID, GenAI/RAG, HA/DR)"
+  },
   "activation": {
     "file_patterns": ["*.sql", "*.pgsql", "migrations/**", "prisma/schema.prisma", "*.prisma", "docker-compose*.yml"],
     "context_keywords": ["postgresql", "postgres", "pgvector", "psql"]
