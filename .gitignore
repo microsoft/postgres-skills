@@ -6,6 +6,9 @@
 # Build artifacts — skill folders copied into plugins/ by build script
 # (no longer used — skills now live directly in plugins/)
 
+# pgsql-tools CLI cache (downloaded by run_mcp.js)
+.pgsql-tools/
+
 # User-specific files
 *.rsuser
 *.suo
