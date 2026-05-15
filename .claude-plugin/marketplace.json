@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "postgresql-agent-skills",
+  "display_name": "PostgreSQL Agent Skills",
+  "description": "Expert PostgreSQL and Azure Database for PostgreSQL skills for AI coding agents",
+  "version": "0.1.0",
+  "publisher": {
+    "name": "Microsoft",
+    "url": "https://github.com/microsoft"
+  },
+  "categories": ["databases", "cloud"],
+  "license": "MIT",
+  "repository": "https://github.com/microsoft/postgresql-agent-skills",
+  "plugins": [
+    {
+      "name": "postgresql-skills",
+      "source": "plugins/postgresql-skills",
+      "description": "Generic PostgreSQL best practices — indexing, partitioning, JSONB, full-text search, RLS, replication, connection management, query tuning",
+      "category": "databases"
+    },
+    {
+      "name": "azure-postgresql-skills",
+      "source": "plugins/azure-postgresql-skills",
+      "description": "Azure Database for PostgreSQL — DiskANN vector search, Entra ID auth, GenAI/RAG patterns, HA/DR, intelligent tuning",
+      "category": "cloud"
+    }
+  ],
+  "activation": {
+    "file_patterns": ["*.sql", "*.pgsql", "migrations/**", "prisma/schema.prisma", "*.prisma", "docker-compose*.yml"],
+    "context_keywords": ["postgresql", "postgres", "pgvector", "psql", "azure database for postgresql", "flexible server", "diskann"]
+  }
+}
