@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json.schemastore.org/mcp.json",
+  "description": "PostgreSQL MCP Servers for AI coding agents — generic PostgreSQL and Azure Database for PostgreSQL",
+  "servers": {
+    "postgresql": {
+      "type": "stdio",
+      "command": "TBD",
+      "args": [],
+      "env": {
+        "PGHOST": "${input:pgHost}",
+        "PGUSER": "${input:pgUser}",
+        "PGDATABASE": "${input:pgDatabase}",
+        "PGPASSWORD": "${input:pgPassword}"
+      },
+      "metadata": {
+        "status": "placeholder",
+        "note": "Replace 'command' and 'args' once the MCP server CLI is published.",
+        "tools": [
+          "list_databases",
+          "list_tables",
+          "execute_read_query",
+          "insert_update_records",
+          "create_table",
+          "drop_table"
+        ],
+        "auth_options": [
+          "PostgreSQL password — set PGPASSWORD",
+          "Microsoft Entra (Azure only) — set AZURE_USE_AAD=true instead of PGPASSWORD"
+        ]
+      }
+    },
+    "azure-postgresql": {
+      "type": "stdio",
+      "command": "TBD",
+      "args": [],
+      "env": {
+        "PGHOST": "${input:pgHost}",
+        "PGUSER": "${input:pgUser}",
+        "PGDATABASE": "${input:pgDatabase}",
+        "AZURE_USE_AAD": "true"
+      },
+      "metadata": {
+        "status": "placeholder",
+        "note": "Replace 'command' and 'args' once the MCP server CLI is published. Expected targets: (1) npx @azure/postgresql-mcp-server, (2) uvx azure-postgresql-mcp, or (3) local Python path.",
+        "tools": [
+          "list_databases",
+          "list_tables",
+          "execute_read_query",
+          "insert_update_records",
+          "create_table",
+          "drop_table",
+          "list_server_configuration",
+          "get_server_parameter"
+        ],
+        "auth_options": [
+          "Microsoft Entra (recommended) — set AZURE_USE_AAD=true",
+          "PostgreSQL password — set PGPASSWORD instead"
+        ],
+        "source_repo": "https://github.com/Azure-Samples/azure-postgresql-mcp"
+      }
+    }
+  },
+  "inputs": {
+    "pgHost": {
+      "type": "string",
+      "description": "PostgreSQL server hostname (e.g., localhost, myserver.postgres.database.azure.com)"
+    },
+    "pgUser": {
+      "type": "string",
+      "description": "Database username"
+    },
+    "pgDatabase": {
+      "type": "string",
+      "description": "Database name"
+    },
+    "pgPassword": {
+      "type": "string",
+      "description": "Database password (not needed when using Entra ID)",
+      "secret": true
+    }
+  }
+}

@@ -2,7 +2,6 @@
   "name": "@microsoft/postgresql-agent-skills",
   "version": "0.1.0",
   "description": "Expert-curated skills for AI coding agents working with PostgreSQL and Azure Database for PostgreSQL",
-  "main": "index.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/microsoft/postgresql-agent-skills.git"
@@ -23,10 +22,6 @@
     "url": "https://github.com/microsoft/postgresql-agent-skills/issues"
   },
   "homepage": "https://github.com/microsoft/postgresql-agent-skills#readme",
-  "workspaces": [
-    "plugins/postgresql-skills",
-    "plugins/azure-postgresql-skills"
-  ],
   "scripts": {
     "lint": "node scripts/validate-skills.js",
     "test": "node scripts/run-evals.js",
@@ -34,15 +29,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "files": [
-    ".skills.json"
-  ],
-  "mcp": {
-    "version": "2024-11-05",
-    "capabilities": {
-      "skills": true,
-      "tools": false
-    }
   }
 }
