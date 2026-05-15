@@ -116,7 +116,7 @@ Load the relevant skill when you need detailed guidance for a specific Azure fea
 | azure_ai extension setup + AI functions | `azure-ai` |
 | Embeddings, RAG, hybrid search | `genai-patterns` |
 
-> **Generic PostgreSQL skills** (indexing, query tuning, JSONB, partitioning, FTS, RLS, connection management, logical replication) are in [`@microsoft/postgresql-skills`](https://github.com/microsoft/postgresql-agent-skills/tree/main/packages/postgresql-skills). They work on Azure too — install both for the full experience.
+> **Generic PostgreSQL skills** (indexing, query tuning, JSONB, partitioning, FTS, RLS, connection management, logical replication) are in [`@microsoft/postgresql-skills`](https://github.com/microsoft/postgresql-agent-skills/tree/main/plugins/postgresql-skills). They work on Azure too — install both for the full experience.
 
 ## Documentation
 

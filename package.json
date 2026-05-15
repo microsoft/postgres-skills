@@ -28,7 +28,6 @@
     "plugins/azure-postgresql-skills"
   ],
   "scripts": {
-    "build": "node scripts/build-packages.js",
     "lint": "node scripts/validate-skills.js",
     "test": "node scripts/run-evals.js",
     "token-count": "node scripts/token-count.js"
@@ -37,8 +36,6 @@
     "node": ">=18.0.0"
   },
   "files": [
-    "postgresql/",
-    "azure-postgresql/",
     ".skills.json"
   ],
   "mcp": {

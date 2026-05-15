@@ -4,8 +4,7 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
 # Build artifacts — skill folders copied into plugins/ by build script
-plugins/postgresql-skills/postgresql/
-plugins/azure-postgresql-skills/azure-postgresql/
+# (no longer used — skills now live directly in plugins/)
 
 # User-specific files
 *.rsuser
@@ -234,7 +233,7 @@ PublishScripts/
 **/[Pp]ackages/*
 # except build/, which is used as an MSBuild target.
 !**/[Pp]ackages/build/
-# except our skill plugins (manifest and config files are tracked; skill folders are build artifacts)
+# our skill plugins (skills, manifests, and config files are all tracked)
 !**/plugins/postgresql-skills/
 !**/plugins/azure-postgresql-skills/
 # Uncomment if necessary however generally it will be regenerated when needed

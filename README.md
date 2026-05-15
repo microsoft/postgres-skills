@@ -155,6 +155,7 @@ postgresql-agent-skills/
 │   └── ...
 ├── plugins/
 │   ├── postgresql-skills/               # @microsoft/postgresql-skills (npm package)
+│   │   ├── skills/                      # 1 root + 8 feature skill SKILL.md files
 │   │   ├── package.json
 │   │   ├── .skills.json                 # Universal skill manifest (source of truth)
 │   │   ├── marketplace.json             # Claude Code manifest
@@ -163,6 +164,7 @@ postgresql-agent-skills/
 │   │   ├── mcp.json                     # MCP server config (coming soon)
 │   │   └── README.md
 │   └── azure-postgresql-skills/         # @microsoft/azure-postgresql-skills (npm package)
+│       ├── skills/                      # 1 root + 11 feature skill SKILL.md files
 │       ├── package.json
 │       ├── .skills.json
 │       ├── marketplace.json
@@ -171,12 +173,11 @@ postgresql-agent-skills/
 │       ├── mcp.json
 │       └── README.md
 ├── evals/                               # Evaluation pipeline (107 challenges)
-├── scripts/build-packages.js            # Copies skills into plugins/ for distribution
 ├── .skills.json                         # Root manifest (all 21 skills, for evals + local dev)
 └── package.json                         # Monorepo root with npm workspaces
 ```
 
-Each skill lives in its own folder as a `SKILL.md` file. The `plugins/` directory contains build artifacts for distribution; skill source of truth stays at the repo root.
+Each skill lives in its own folder as a `SKILL.md` file inside its plugin's `skills/` directory.
 
 ## Contributing
 
