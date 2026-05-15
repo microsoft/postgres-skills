@@ -36,7 +36,9 @@
     ".skills.json",
     "marketplace.json",
     "plugin.json",
-    ".cursor-plugin/"
+    ".cursor-plugin/",
+    "mcp.json",
+    "README.md"
   ],
   "mcp": {
     "version": "2024-11-05",

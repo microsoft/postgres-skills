@@ -17,6 +17,7 @@
     "transport": "stdio"
   },
   "skills_manifest": ".skills.json",
+  "mcp_config": "mcp.json",
   "companion": {
     "name": "postgresql-skills",
     "description": "Install @microsoft/postgresql-skills for generic PostgreSQL best practices"

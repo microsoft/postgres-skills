@@ -17,6 +17,7 @@
     "transport": "stdio"
   },
   "skills_manifest": ".skills.json",
+  "mcp_config": "mcp.json",
   "activation": {
     "file_patterns": ["*.sql", "*.pgsql", "migrations/**", "prisma/schema.prisma", "*.prisma", "docker-compose*.yml"],
     "context_keywords": ["postgresql", "postgres", "pgvector", "psql"]
