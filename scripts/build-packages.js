@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * Build script: copies skill folders into packages/ for distribution.
+ * Build script: copies skill folders into plugins/ for distribution.
  * 
  * Usage: node scripts/build-packages.js
  * 
  * Source of truth: postgresql/ and azure-postgresql/ at repo root.
- * Build artifacts: packages/postgresql-skills/postgresql/ and
- *                  packages/azure-postgresql-skills/azure-postgresql/
+ * Build artifacts: plugins/postgresql-skills/postgresql/ and
+ *                  plugins/azure-postgresql-skills/azure-postgresql/
  */
 
 const fs = require('fs');
@@ -48,7 +48,7 @@ console.log('Building packages...\n');
 
 for (const pkg of PACKAGES) {
   const src = path.join(ROOT, pkg.skillDir);
-  const dest = path.join(ROOT, 'packages', pkg.name, pkg.skillDir);
+  const dest = path.join(ROOT, 'plugins', pkg.name, pkg.skillDir);
 
   if (!fs.existsSync(src)) {
     console.error(`ERROR: Source directory not found: ${src}`);

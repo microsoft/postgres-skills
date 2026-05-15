@@ -24,8 +24,8 @@
   },
   "homepage": "https://github.com/microsoft/postgresql-agent-skills#readme",
   "workspaces": [
-    "packages/postgresql-skills",
-    "packages/azure-postgresql-skills"
+    "plugins/postgresql-skills",
+    "plugins/azure-postgresql-skills"
   ],
   "scripts": {
     "build": "node scripts/build-packages.js",

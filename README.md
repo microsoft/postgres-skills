@@ -61,7 +61,7 @@ codex plugin add @microsoft/azure-postgresql-skills
 
 **Cursor** — Install from the Cursor marketplace, or add to `.cursor-plugin/plugin.json` in your project root.
 
-**Any other agent** — Clone this repo and point your agent's skill/plugin config at the `packages/postgresql-skills/` or `packages/azure-postgresql-skills/` directory. Each has its own `.skills.json` manifest.
+**Any other agent** — Clone this repo and point your agent's skill/plugin config at the `plugins/postgresql-skills/` or `plugins/azure-postgresql-skills/` directory. Each has its own `.skills.json` manifest.
 
 That's it. Start asking your agent PostgreSQL questions and the right skill activates automatically.
 
@@ -153,13 +153,14 @@ postgresql-agent-skills/
 │   ├── vector-diskann/SKILL.md
 │   ├── genai-patterns/SKILL.md
 │   └── ...
-├── packages/
+├── plugins/
 │   ├── postgresql-skills/               # @microsoft/postgresql-skills (npm package)
 │   │   ├── package.json
 │   │   ├── .skills.json                 # Universal skill manifest (source of truth)
 │   │   ├── marketplace.json             # Claude Code manifest
 │   │   ├── plugin.json                  # Codex CLI manifest
 │   │   ├── .cursor-plugin/plugin.json   # Cursor manifest
+│   │   ├── mcp.json                     # MCP server config (coming soon)
 │   │   └── README.md
 │   └── azure-postgresql-skills/         # @microsoft/azure-postgresql-skills (npm package)
 │       ├── package.json
@@ -167,14 +168,15 @@ postgresql-agent-skills/
 │       ├── marketplace.json
 │       ├── plugin.json
 │       ├── .cursor-plugin/plugin.json
+│       ├── mcp.json
 │       └── README.md
 ├── evals/                               # Evaluation pipeline (107 challenges)
-├── scripts/build-packages.js            # Copies skills into packages/ for distribution
+├── scripts/build-packages.js            # Copies skills into plugins/ for distribution
 ├── .skills.json                         # Root manifest (all 21 skills, for evals + local dev)
 └── package.json                         # Monorepo root with npm workspaces
 ```
 
-Each skill lives in its own folder as a `SKILL.md` file. The `packages/` directory contains build artifacts for distribution; skill source of truth stays at the repo root.
+Each skill lives in its own folder as a `SKILL.md` file. The `plugins/` directory contains build artifacts for distribution; skill source of truth stays at the repo root.
 
 ## Contributing
 
