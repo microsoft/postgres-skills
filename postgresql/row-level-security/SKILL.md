@@ -25,9 +25,7 @@ activation:
     - pg_policies
   exclusion_conditions:
     - "when need schema-level isolation (separate schemas per tenant), do not use this skill"
-    - "when user needs Azure-specific auth patterns, use `azure-postgresql/entra-id-auth/` instead"
   adjacent_skills:
-    - "`azure-postgresql/entra-id-auth/`"
     - "`postgresql/query-performance/`"
 ---
 

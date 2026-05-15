@@ -25,11 +25,9 @@ activation:
     - n_mod_since_analyze
   exclusion_conditions:
     - "when Seq Scan on large table is the bottleneck and adding an index is the fix, use `postgresql/advanced-indexing/` instead"
-    - "when problem is Azure-specific tuning, use `azure-postgresql/intelligent-tuning/` instead"
     - "when table needs partitioning, use `postgresql/table-partitioning/` instead"
   adjacent_skills:
     - "`postgresql/advanced-indexing/`"
-    - "`azure-postgresql/intelligent-tuning/`"
 ---
 
 # Query Performance Tuning

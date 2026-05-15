@@ -22,11 +22,8 @@ activation:
     - pg_stat_activity
     - pg_terminate_backend
   exclusion_conditions:
-    - "when user needs Azure-specific built-in PgBouncer setup, use `azure-postgresql/connection-pooling/` instead"
     - "when issue is query performance not connection overhead, use `postgresql/query-performance/` instead"
-    - "when user needs auth/SSL configuration, use `azure-postgresql/networking-ssl/` instead"
   adjacent_skills:
-    - "`azure-postgresql/connection-pooling/`"
     - "`postgresql/query-performance/`"
 ---
 

@@ -24,12 +24,9 @@ activation:
     - ts_headline
     - gin_pending_list_limit
   exclusion_conditions:
-    - "when user needs vector similarity search, use `azure-postgresql/vector-diskann/` instead"
     - "when exact substring matching is sufficient (LIKE or trigram pg_trgm), do not use this skill"
-    - "when user needs Azure hybrid search combining FTS + vectors, use `azure-postgresql/genai-patterns/` instead"
   adjacent_skills:
     - "`postgresql/advanced-indexing/`"
-    - "`azure-postgresql/genai-patterns/`"
 ---
 
 # Full-Text Search

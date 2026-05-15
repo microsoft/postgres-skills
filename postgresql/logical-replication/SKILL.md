@@ -24,10 +24,8 @@ activation:
     - wal2json
   exclusion_conditions:
     - "when user needs full byte-for-byte standby, use streaming replication instead"
-    - "when user needs Azure read replicas with virtual endpoints, use `azure-postgresql/ha-disaster-recovery/` instead"
     - "when user needs event streaming to Kafka, use Debezium on top of logical replication"
   adjacent_skills:
-    - "`azure-postgresql/ha-disaster-recovery/`"
     - "`postgresql/connection-management/`"
     - "`postgresql/table-partitioning/`"
 ---

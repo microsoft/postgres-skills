@@ -23,7 +23,6 @@ activation:
     - DEFAULT partition
   exclusion_conditions:
     - "when table is small (< 10M rows) and performs fine, do not use this skill"
-    - "when user needs Azure-specific partition management, use `azure-postgresql/upgrades-maintenance/` instead"
     - "when random access patterns with no consistent filter column, do not use this skill"
   adjacent_skills:
     - "`postgresql/query-performance/`"

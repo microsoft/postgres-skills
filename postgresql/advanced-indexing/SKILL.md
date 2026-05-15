@@ -26,7 +26,6 @@ activation:
     - Seq Scan
   exclusion_conditions:
     - "when query is slow due to configuration (work_mem, shared_buffers, statistics) not missing indexes, use `postgresql/query-performance/` instead"
-    - "when user needs Azure-specific intelligent tuning recommendations, use `azure-postgresql/intelligent-tuning/` instead"
     - "when table has fewer than 10,000 rows (seq scan may be optimal), do not use this skill"
     - "when user needs EXPLAIN interpretation or planner behavior guidance, use `postgresql/query-performance/` instead"
   adjacent_skills:
