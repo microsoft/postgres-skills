@@ -14,7 +14,7 @@
       },
       "metadata": {
         "status": "placeholder",
-        "note": "Replace 'command' and 'args' once the MCP server CLI is published. Expected targets: (1) npx @azure/postgresql-mcp-server, (2) uvx azure-postgresql-mcp, or (3) local Python path.",
+        "note": "Replace 'command' and 'args' once the MCP server CLI is published. Same CLI supports both generic PostgreSQL and Azure connections. Expected targets: (1) npx @azure/postgresql-mcp-server, (2) uvx azure-postgresql-mcp, or (3) local Python path.",
         "tools": [
           "list_databases",
           "list_tables",

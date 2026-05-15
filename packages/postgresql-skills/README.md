@@ -39,6 +39,12 @@ Add to `.cursor-plugin/plugins.json`:
 { "name": "@microsoft/postgresql-skills" }
 ```
 
+## MCP Server (coming soon)
+
+This package includes a placeholder `mcp.json` for a PostgreSQL MCP Server, which gives AI coding agents direct database access: list databases/tables, execute queries, create/drop tables, and more. Works with any PostgreSQL server (local, cloud, or Azure).
+
+Once the MCP server CLI is published, update the `command` field in `mcp.json` with the install target.
+
 ## Using with Azure?
 
 Install [`@microsoft/azure-postgresql-skills`](../azure-postgresql-skills/) for DiskANN vector search, Entra ID auth, GenAI/RAG patterns, HA/DR, and 11 more Azure-specific skills.

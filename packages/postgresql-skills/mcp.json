@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json.schemastore.org/mcp.json",
+  "description": "PostgreSQL MCP Server — provides database management tools for AI coding agents. Works with any PostgreSQL server (local, cloud, or Azure).",
+  "servers": {
+    "postgresql": {
+      "type": "stdio",
+      "command": "TBD",
+      "args": [],
+      "env": {
+        "PGHOST": "${input:pgHost}",
+        "PGUSER": "${input:pgUser}",
+        "PGDATABASE": "${input:pgDatabase}",
+        "PGPASSWORD": "${input:pgPassword}"
+      },
+      "metadata": {
+        "status": "placeholder",
+        "note": "Replace 'command' and 'args' once the MCP server CLI is published. The same CLI supports both generic PostgreSQL and Azure Database for PostgreSQL connections.",
+        "tools": [
+          "list_databases",
+          "list_tables",
+          "execute_read_query",
+          "insert_update_records",
+          "create_table",
+          "drop_table"
+        ],
+        "auth_options": [
+          "PostgreSQL password — set PGPASSWORD",
+          "Microsoft Entra (Azure only) — set AZURE_USE_AAD=true instead of PGPASSWORD"
+        ]
+      }
+    }
+  },
+  "inputs": {
+    "pgHost": {
+      "type": "string",
+      "description": "PostgreSQL server hostname (e.g., localhost, myserver.postgres.database.azure.com)"
+    },
+    "pgUser": {
+      "type": "string",
+      "description": "Database username"
+    },
+    "pgDatabase": {
+      "type": "string",
+      "description": "Database name"
+    },
+    "pgPassword": {
+      "type": "string",
+      "description": "Database password",
+      "secret": true
+    }
+  }
+}
