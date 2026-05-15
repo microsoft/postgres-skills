@@ -27,11 +27,9 @@ activation:
   exclusion_conditions:
     - "when user needs vector indexing or DiskANN/HNSW tuning only, use `azure-postgresql/vector-diskann/` instead"
     - "when user needs text generation / classification / extraction, use `azure-postgresql/azure-ai/` instead"
-    - "when user needs full-text search without vectors, use `postgresql/full-text-search/` instead"
   adjacent_skills:
     - "`azure-postgresql/azure-ai/`"
     - "`azure-postgresql/vector-diskann/`"
-    - "`postgresql/full-text-search/`"
 ---
 
 ## Prerequisites

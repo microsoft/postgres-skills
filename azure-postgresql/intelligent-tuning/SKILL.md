@@ -21,12 +21,9 @@ activation:
     - auto-index
     - performance insights
   exclusion_conditions:
-    - "when user needs manual EXPLAIN ANALYZE interpretation, use `postgresql/query-performance/` instead"
-    - "when user needs to create indexes manually, use `postgresql/advanced-indexing/` instead"
     - "when user asks about server SKU/scaling, use `azure-postgresql/provisioning/` instead"
   adjacent_skills:
-    - "`postgresql/query-performance/`"
-    - "`postgresql/advanced-indexing/`"
+    - "`azure-postgresql/provisioning/`"
 ---
 
 # Intelligent Tuning

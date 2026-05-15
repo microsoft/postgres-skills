@@ -26,7 +26,6 @@ activation:
   exclusion_conditions:
     - "when user needs authentication/identity setup, use `azure-postgresql/entra-id-auth/` instead"
     - "when user asks about connection pooling, use `azure-postgresql/connection-pooling/` instead"
-    - "when user needs general connection troubleshooting, use `postgresql/connection-management/` instead"
   adjacent_skills:
     - "`azure-postgresql/entra-id-auth/`"
     - "`azure-postgresql/provisioning/`"

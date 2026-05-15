@@ -20,11 +20,8 @@ activation:
     - transaction mode
     - session mode
   exclusion_conditions:
-    - "when user needs general PostgreSQL connection management theory, use `postgresql/connection-management/` instead"
-    - "when user runs self-managed PgBouncer outside Azure, use `postgresql/connection-management/` instead"
     - "when user needs auth configuration, use `azure-postgresql/entra-id-auth/` instead"
   adjacent_skills:
-    - "`postgresql/connection-management/`"
     - "`azure-postgresql/entra-id-auth/`"
 ---
 

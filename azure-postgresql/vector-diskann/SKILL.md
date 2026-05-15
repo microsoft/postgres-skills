@@ -22,7 +22,6 @@ activation:
   exclusion_conditions:
     - "when user needs to generate embeddings, use `azure-postgresql/genai-patterns/` instead"
     - "when user needs end-to-end RAG pipeline, use `azure-postgresql/genai-patterns/` instead"
-    - "when user asks about full-text search ranking, use `postgresql/full-text-search/` instead"
   adjacent_skills:
     - "`azure-postgresql/genai-patterns/`"
 ---

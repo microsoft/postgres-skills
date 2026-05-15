@@ -23,7 +23,6 @@ activation:
     - "password authentication failed"
   exclusion_conditions:
     - "when user needs SSL/TLS certificate configuration, use `azure-postgresql/networking-ssl/` instead"
-    - "when user needs standard PostgreSQL role management, use `postgresql/row-level-security/` instead"
     - "when user asks about connection pooling with managed identity, use `azure-postgresql/connection-pooling/` instead"
   adjacent_skills:
     - "`azure-postgresql/networking-ssl/`"

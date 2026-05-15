@@ -26,11 +26,9 @@ activation:
     - "must be loaded via shared_preload_libraries"
   exclusion_conditions:
     - "when user asks about azure_ai extension specifically, use `azure-postgresql/azure-ai/` instead"
-    - "when user needs general CREATE INDEX patterns, use `postgresql/advanced-indexing/` instead"
     - "when user asks about custom/community extensions not in the Azure allowlist, not supported"
   adjacent_skills:
     - "`azure-postgresql/azure-ai/`"
-    - "`postgresql/advanced-indexing/`"
 ---
 
 # Extension Lifecycle

@@ -23,11 +23,9 @@ activation:
     - RTO
     - backup retention
   exclusion_conditions:
-    - "when user needs logical replication for selective table sync, use `postgresql/logical-replication/` instead"
-    - "when user asks about application-level retry logic, use `postgresql/connection-management/` instead"
     - "when user needs networking for replica connectivity, use `azure-postgresql/networking-ssl/` instead"
   adjacent_skills:
-    - "`postgresql/logical-replication/`"
+    - "`azure-postgresql/networking-ssl/`"
     - "`azure-postgresql/provisioning/`"
 ---
 
