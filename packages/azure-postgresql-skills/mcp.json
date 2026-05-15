@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json.schemastore.org/mcp.json",
+  "description": "Azure Database for PostgreSQL MCP Server — provides database management tools for AI coding agents.",
+  "servers": {
+    "azure-postgresql": {
+      "type": "stdio",
+      "command": "TBD",
+      "args": [],
+      "env": {
+        "PGHOST": "${input:pgHost}",
+        "PGUSER": "${input:pgUser}",
+        "PGDATABASE": "${input:pgDatabase}",
+        "AZURE_USE_AAD": "true"
+      },
+      "metadata": {
+        "status": "placeholder",
+        "note": "Replace 'command' and 'args' once the MCP server CLI is published. Expected targets: (1) npx @azure/postgresql-mcp-server, (2) uvx azure-postgresql-mcp, or (3) local Python path.",
+        "tools": [
+          "list_databases",
+          "list_tables",
+          "execute_read_query",
+          "insert_update_records",
+          "create_table",
+          "drop_table",
+          "list_server_configuration",
+          "get_server_parameter"
+        ],
+        "auth_options": [
+          "Microsoft Entra (recommended) — set AZURE_USE_AAD=true",
+          "PostgreSQL password — set PGPASSWORD instead"
+        ],
+        "source_repo": "https://github.com/Azure-Samples/azure-postgresql-mcp"
+      }
+    }
+  },
+  "inputs": {
+    "pgHost": {
+      "type": "string",
+      "description": "Azure PostgreSQL server hostname (e.g., myserver.postgres.database.azure.com)"
+    },
+    "pgUser": {
+      "type": "string",
+      "description": "Database username"
+    },
+    "pgDatabase": {
+      "type": "string",
+      "description": "Database name"
+    }
+  }
+}
