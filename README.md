@@ -23,45 +23,35 @@ Skills activate automatically based on what you're working on. No manual switchi
 
 ## Two plugins, install what you need
 
-Skills ship as **two independent packages** so you only install what matches your stack:
+Skills ship as **two independent plugins** so you only install what matches your stack:
 
-| Package | Skills | For |
-|---------|--------|-----|
-| `@microsoft/postgresql-skills` | 9 (1 root + 8 feature) | Any PostgreSQL deployment (self-hosted, RDS, Cloud SQL, local) |
-| `@microsoft/azure-postgresql-skills` | 12 (1 root + 11 feature) | Azure Database for PostgreSQL Flexible Server |
+| Plugin | Skills | For |
+|--------|--------|-----|
+| `postgresql-skills` | 9 (1 root + 8 feature) | Any PostgreSQL deployment (self-hosted, RDS, Cloud SQL, local) |
+| `azure-postgresql-skills` | 12 (1 root + 11 feature) | Azure Database for PostgreSQL Flexible Server |
 
-- **Generic PG only?** Install just `@microsoft/postgresql-skills`.
-- **Azure PG?** Install `@microsoft/azure-postgresql-skills` (optionally add the generic package too for foundational skills).
-- Each package is fully self-contained with no cross-package dependencies.
+- **Generic PG only?** Install just `postgresql-skills`.
+- **Azure PG?** Install `azure-postgresql-skills` (optionally add the generic plugin too for foundational skills).
+- Each plugin is fully self-contained with no cross-plugin dependencies.
 
 ## Get started in 60 seconds
 
-Pick your AI coding agent and the package(s) you need:
+Clone this repo and your AI coding agent discovers both plugins automatically via the root manifest files:
 
-**Claude Code**
 ```bash
-# Generic PostgreSQL skills
-claude mcp add postgresql-skills --scope @microsoft/postgresql-skills
-
-# Azure PostgreSQL skills (add both if you want the full set)
-claude mcp add azure-postgresql-skills --scope @microsoft/azure-postgresql-skills
+git clone https://github.com/microsoft/postgresql-agent-skills.git
 ```
 
-**GitHub Copilot CLI**
-```bash
-copilot skill install @microsoft/postgresql-skills
-copilot skill install @microsoft/azure-postgresql-skills
-```
+All four supported platforms auto-detect plugins from root-level manifests:
 
-**Codex CLI**
-```bash
-codex plugin add @microsoft/postgresql-skills
-codex plugin add @microsoft/azure-postgresql-skills
-```
+| Platform | Manifest | Auto-discovers |
+|----------|----------|---------------|
+| **Claude Code** | `.claude-plugin/marketplace.json` | Both plugins |
+| **GitHub Copilot CLI** | `.claude-plugin/marketplace.json` | Both plugins |
+| **Codex CLI** | `marketplace.json` | Both plugins |
+| **Cursor** | `.cursor-plugin/marketplace.json` | Both plugins |
 
-**Cursor** — Install from the Cursor marketplace, or add to `.cursor-plugin/plugin.json` in your project root.
-
-**Any other agent** — Clone this repo and point your agent's skill/plugin config at the `plugins/postgresql-skills/` or `plugins/azure-postgresql-skills/` directory. Each has its own `.skills.json` manifest.
+**Any other agent** — Point your agent's skill/plugin config at `plugins/postgresql-skills/` or `plugins/azure-postgresql-skills/`. Each has its own `.skills.json` manifest.
 
 That's it. Start asking your agent PostgreSQL questions and the right skill activates automatically.
 
@@ -143,41 +133,34 @@ See [evals/README.md](evals/README.md) for details.
 
 ```
 postgresql-agent-skills/
-├── postgresql/                          # 9 foundational PostgreSQL skills (1 root + 8 feature)
-│   ├── SKILL.md                         # Root skill (ground rules + routing table)
-│   ├── advanced-indexing/SKILL.md
-│   ├── connection-management/SKILL.md
-│   └── ...
-├── azure-postgresql/                    # 12 Azure-specific skills (1 root + 11 feature)
-│   ├── SKILL.md                         # Root skill (ground rules + routing table)
-│   ├── vector-diskann/SKILL.md
-│   ├── genai-patterns/SKILL.md
-│   └── ...
+├── .claude-plugin/marketplace.json      # Claude Code + Copilot CLI multi-plugin manifest
+├── .cursor-plugin/marketplace.json      # Cursor multi-plugin manifest
+├── marketplace.json                     # Codex CLI multi-plugin manifest
+├── .skills.json                         # Master skills index (all 21, for evals + discovery)
+├── mcp.json                             # MCP server config (postgresql + azure-postgresql)
+├── package.json                         # Repo metadata and scripts
 ├── plugins/
-│   ├── postgresql-skills/               # @microsoft/postgresql-skills (npm package)
-│   │   ├── skills/                      # 1 root + 8 feature skill SKILL.md files
-│   │   ├── package.json
-│   │   ├── .skills.json                 # Universal skill manifest (source of truth)
-│   │   ├── marketplace.json             # Claude Code manifest
-│   │   ├── plugin.json                  # Codex CLI manifest
-│   │   ├── .cursor-plugin/plugin.json   # Cursor manifest
-│   │   ├── mcp.json                     # MCP server config (coming soon)
-│   │   └── README.md
-│   └── azure-postgresql-skills/         # @microsoft/azure-postgresql-skills (npm package)
-│       ├── skills/                      # 1 root + 11 feature skill SKILL.md files
-│       ├── package.json
-│       ├── .skills.json
-│       ├── marketplace.json
-│       ├── plugin.json
-│       ├── .cursor-plugin/plugin.json
-│       ├── mcp.json
-│       └── README.md
+│   ├── postgresql-skills/               # Plugin 1: Generic PostgreSQL (9 skills)
+│   │   ├── .skills.json                 # Plugin skill manifest (relative paths)
+│   │   ├── README.md
+│   │   └── skills/
+│   │       ├── SKILL.md                 # Root skill (ground rules + routing)
+│   │       ├── query-performance/SKILL.md
+│   │       ├── advanced-indexing/SKILL.md
+│   │       └── ...                      # 6 more feature skills
+│   └── azure-postgresql-skills/         # Plugin 2: Azure PostgreSQL (12 skills)
+│       ├── .skills.json                 # Plugin skill manifest (relative paths)
+│       ├── README.md
+│       └── skills/
+│           ├── SKILL.md                 # Root skill (ground rules + routing)
+│           ├── vector-diskann/SKILL.md
+│           ├── genai-patterns/SKILL.md
+│           └── ...                      # 9 more feature skills
 ├── evals/                               # Evaluation pipeline (107 challenges)
-├── .skills.json                         # Root manifest (all 21 skills, for evals + local dev)
-└── package.json                         # Monorepo root with npm workspaces
+└── README.md
 ```
 
-Each skill lives in its own folder as a `SKILL.md` file inside its plugin's `skills/` directory.
+Each skill lives in its own folder as a `SKILL.md` file inside its plugin's `skills/` directory. Root-level manifests handle all platform discovery; per-plugin `.skills.json` files provide relative paths for platform skill loading.
 
 ## Contributing
 
