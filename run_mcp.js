@@ -79,10 +79,10 @@ function verifySha256(filePath, expected) {
 // --- Extract archive ---------------------------------------------------------
 function extract(archivePath, destDir) {
   if (archivePath.endsWith(".zip")) {
-    // Windows: use PowerShell to extract
+    // Windows: use PowerShell to extract (suppress progress bar)
     execFileSync("powershell", [
       "-NoProfile", "-Command",
-      `Expand-Archive -Force -Path '${archivePath}' -DestinationPath '${destDir}'`
+      `$ProgressPreference='SilentlyContinue'; Expand-Archive -Force -Path '${archivePath}' -DestinationPath '${destDir}'`
     ], { stdio: "ignore" });
   } else {
     // tar.gz on Linux/macOS
@@ -92,7 +92,8 @@ function extract(archivePath, destDir) {
 
 // --- Find the binary after extraction ----------------------------------------
 function findBinary(dir, name) {
-  // Binary may be at top level or nested one level (e.g., inside a subfolder)
+  // Binary may be at top level or nested one level (e.g., inside a subfolder).
+  // Don't move it — it may depend on sibling files (_internal/, etc.)
   const direct = join(dir, name);
   if (existsSync(direct)) return direct;
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -108,10 +109,10 @@ function findBinary(dir, name) {
 async function main() {
   const assetName = getAssetName();
   const binaryName = getBinaryName();
-  const binaryPath = join(CACHE_DIR, binaryName);
+  const markerPath = join(CACHE_DIR, ".installed");
 
-  // Skip download if already cached
-  if (!existsSync(binaryPath)) {
+  // Download and extract if not already cached
+  if (!existsSync(markerPath)) {
     process.stderr.write(`[run_mcp] Downloading pgsql-tools ${RELEASE_TAG} (${assetName})...\n`);
     mkdirSync(CACHE_DIR, { recursive: true });
 
@@ -128,16 +129,15 @@ async function main() {
     // Extract
     extract(archivePath, CACHE_DIR);
 
-    // Locate binary and make executable
-    const extracted = findBinary(CACHE_DIR, binaryName);
-    if (extracted !== binaryPath) {
-      require("fs").renameSync(extracted, binaryPath);
-    }
-    if (os.platform() !== "win32") {
-      chmodSync(binaryPath, 0o755);
-    }
+    // Mark as installed
+    require("fs").writeFileSync(markerPath, RELEASE_TAG);
+    process.stderr.write("[run_mcp] Installed.\n");
+  }
 
-    process.stderr.write(`[run_mcp] Installed to ${binaryPath}\n`);
+  // Locate binary (may be in a subfolder from extraction)
+  const binaryPath = findBinary(CACHE_DIR, binaryName);
+  if (os.platform() !== "win32") {
+    chmodSync(binaryPath, 0o755);
   }
 
   // Launch: pgsql-tools mcp run (inherit stdio for MCP protocol)
