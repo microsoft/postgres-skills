@@ -1,0 +1,24 @@
+{
+  "$schema": "https://claude.ai/marketplace/schema/v1",
+  "name": "postgresql-skills",
+  "display_name": "PostgreSQL Skills",
+  "description": "Expert PostgreSQL best practices for Claude Code — indexing, partitioning, JSONB, full-text search, RLS, replication, connection management, and query tuning",
+  "version": "0.1.0",
+  "publisher": {
+    "name": "Microsoft",
+    "url": "https://github.com/microsoft"
+  },
+  "categories": ["databases"],
+  "icon": "icon.png",
+  "license": "MIT",
+  "repository": "https://github.com/microsoft/postgresql-agent-skills",
+  "mcp": {
+    "version": "2024-11-05",
+    "transport": "stdio"
+  },
+  "skills_manifest": ".skills.json",
+  "activation": {
+    "file_patterns": ["*.sql", "*.pgsql", "migrations/**", "prisma/schema.prisma", "*.prisma", "docker-compose*.yml"],
+    "context_keywords": ["postgresql", "postgres", "pgvector", "psql"]
+  }
+}

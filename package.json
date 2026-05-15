@@ -23,7 +23,12 @@
     "url": "https://github.com/microsoft/postgresql-agent-skills/issues"
   },
   "homepage": "https://github.com/microsoft/postgresql-agent-skills#readme",
+  "workspaces": [
+    "packages/postgresql-skills",
+    "packages/azure-postgresql-skills"
+  ],
   "scripts": {
+    "build": "node scripts/build-packages.js",
     "lint": "node scripts/validate-skills.js",
     "test": "node scripts/run-evals.js",
     "token-count": "node scripts/token-count.js"

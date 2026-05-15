@@ -3,6 +3,10 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# Build artifacts — skill folders copied into packages/ by build script
+packages/postgresql-skills/postgresql/
+packages/azure-postgresql-skills/azure-postgresql/
+
 # User-specific files
 *.rsuser
 *.suo
@@ -230,6 +234,9 @@ PublishScripts/
 **/[Pp]ackages/*
 # except build/, which is used as an MSBuild target.
 !**/[Pp]ackages/build/
+# except our skill packages (manifest and config files are tracked; skill folders are build artifacts)
+!**/packages/postgresql-skills/
+!**/packages/azure-postgresql-skills/
 # Uncomment if necessary however generally it will be regenerated when needed
 #!**/[Pp]ackages/repositories.config
 # NuGet v3's project.json files produces more ignorable files

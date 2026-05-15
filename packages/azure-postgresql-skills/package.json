@@ -1,0 +1,48 @@
+{
+  "name": "@microsoft/azure-postgresql-skills",
+  "version": "0.1.0",
+  "description": "Azure Database for PostgreSQL skills for AI coding agents — DiskANN vectors, Entra ID auth, GenAI patterns, HA/DR, and more",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microsoft/postgresql-agent-skills.git",
+    "directory": "packages/azure-postgresql-skills"
+  },
+  "keywords": [
+    "azure",
+    "postgresql",
+    "flexible-server",
+    "agent-skills",
+    "mcp",
+    "diskann",
+    "azure-ai",
+    "claude-code",
+    "copilot-cli",
+    "codex",
+    "cursor"
+  ],
+  "author": "Microsoft Corporation",
+  "license": "MIT",
+  "homepage": "https://github.com/microsoft/postgresql-agent-skills/tree/main/packages/azure-postgresql-skills#readme",
+  "peerDependencies": {
+    "@microsoft/postgresql-skills": "^0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@microsoft/postgresql-skills": {
+      "optional": true
+    }
+  },
+  "files": [
+    "azure-postgresql/",
+    ".skills.json",
+    "marketplace.json",
+    "plugin.json",
+    ".cursor-plugin/"
+  ],
+  "mcp": {
+    "version": "2024-11-05",
+    "capabilities": {
+      "skills": true,
+      "tools": false
+    }
+  }
+}

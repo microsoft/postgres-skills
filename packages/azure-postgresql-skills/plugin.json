@@ -1,0 +1,19 @@
+{
+  "$schema": "https://codex.openai.com/plugins/schema/v1",
+  "name": "azure-postgresql-skills",
+  "display_name": "Azure PostgreSQL Skills",
+  "description": "Azure Database for PostgreSQL skills for AI coding agents",
+  "version": "0.1.0",
+  "publisher": "microsoft",
+  "license": "MIT",
+  "repository": "https://github.com/microsoft/postgresql-agent-skills",
+  "entry_point": ".skills.json",
+  "companion_plugin": "postgresql-skills",
+  "capabilities": {
+    "skills": true,
+    "tools": false,
+    "prompts": false
+  },
+  "supported_platforms": ["codex-cli"],
+  "min_version": "1.0.0"
+}

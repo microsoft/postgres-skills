@@ -1,0 +1,28 @@
+{
+  "$schema": "https://claude.ai/marketplace/schema/v1",
+  "name": "azure-postgresql-skills",
+  "display_name": "Azure PostgreSQL Skills",
+  "description": "Azure Database for PostgreSQL skills for Claude Code — DiskANN vector search, Entra ID auth, GenAI/RAG patterns, HA/DR, intelligent tuning, and more",
+  "version": "0.1.0",
+  "publisher": {
+    "name": "Microsoft",
+    "url": "https://github.com/microsoft"
+  },
+  "categories": ["databases", "cloud"],
+  "icon": "icon.png",
+  "license": "MIT",
+  "repository": "https://github.com/microsoft/postgresql-agent-skills",
+  "mcp": {
+    "version": "2024-11-05",
+    "transport": "stdio"
+  },
+  "skills_manifest": ".skills.json",
+  "companion": {
+    "name": "postgresql-skills",
+    "description": "Install @microsoft/postgresql-skills for generic PostgreSQL best practices"
+  },
+  "activation": {
+    "file_patterns": ["*.sql", "*.pgsql", "migrations/**"],
+    "context_keywords": ["azure database for postgresql", "flexible server", "diskann", "azure_ai", "azure_openai", "entra id", "az postgres"]
+  }
+}

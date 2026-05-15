@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0",
+  "name": "azure-postgresql-skills",
+  "display_name": "Azure PostgreSQL Skills",
+  "description": "Azure Database for PostgreSQL skills for AI coding agents",
+  "publisher": "microsoft",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": "https://github.com/microsoft/postgresql-agent-skills",
+  "companion_package": "@microsoft/postgresql-skills",
+  "skills": [
+    {
+      "id": "azure-postgresql-core",
+      "path": "azure-postgresql/SKILL.md",
+      "activation_keywords": ["azure postgresql", "flexible server", "az postgres", "azure database for postgresql", "core principles", "azure cli postgres"],
+      "always_load": true
+    },
+    {
+      "id": "extension-lifecycle",
+      "path": "azure-postgresql/extension-lifecycle/SKILL.md",
+      "activation_keywords": ["create extension", "install extension", "azure.extensions", "allowlist extension", "pg_available_extensions", "extension version", "drop extension"]
+    },
+    {
+      "id": "provisioning",
+      "path": "azure-postgresql/provisioning/SKILL.md",
+      "activation_keywords": ["create server", "flexible server", "provision", "az postgres", "sku", "compute tier", "burstable", "general purpose", "memory optimized"]
+    },
+    {
+      "id": "ha-disaster-recovery",
+      "path": "azure-postgresql/ha-disaster-recovery/SKILL.md",
+      "activation_keywords": ["high availability", "disaster recovery", "failover", "read replica", "pitr", "point in time restore", "geo-redundant", "backup", "virtual endpoint"]
+    },
+    {
+      "id": "entra-id-auth",
+      "path": "azure-postgresql/entra-id-auth/SKILL.md",
+      "activation_keywords": ["entra id", "azure ad", "managed identity", "aad auth", "passwordless", "service principal", "token authentication"]
+    },
+    {
+      "id": "networking-ssl",
+      "path": "azure-postgresql/networking-ssl/SKILL.md",
+      "activation_keywords": ["ssl", "tls", "private endpoint", "vnet", "firewall rule", "network security", "private link", "sslmode"]
+    },
+    {
+      "id": "connection-pooling",
+      "path": "azure-postgresql/connection-pooling/SKILL.md",
+      "activation_keywords": ["built-in pgbouncer", "azure connection pooling", "pgbouncer azure", "connection pooler", "transaction mode azure", "pool_mode"]
+    },
+    {
+      "id": "intelligent-tuning",
+      "path": "azure-postgresql/intelligent-tuning/SKILL.md",
+      "activation_keywords": ["query store", "intelligent performance", "auto index", "index recommendations", "performance insights", "query capture", "pg_qs"]
+    },
+    {
+      "id": "upgrades-maintenance",
+      "path": "azure-postgresql/upgrades-maintenance/SKILL.md",
+      "activation_keywords": ["major version upgrade", "minor version", "maintenance window", "planned maintenance", "mvu", "upgrade postgresql", "server update"]
+    },
+    {
+      "id": "vector-diskann",
+      "path": "azure-postgresql/vector-diskann/SKILL.md",
+      "activation_keywords": ["diskann", "vector index", "hnsw", "pgvector", "similarity search", "vector search", "cosine distance", "pg_diskann", "embedding index"]
+    },
+    {
+      "id": "azure-ai",
+      "path": "azure-postgresql/azure-ai/SKILL.md",
+      "activation_keywords": ["azure_ai extension", "azure_ai.set_setting", "azure_openai endpoint", "configure azure_ai", "azure ai setup", "azure_openai.create", "llm from sql", "classify sql", "summarize sql", "extract entities sql", "ai function", "generate text sql", "managed_identity"]
+    },
+    {
+      "id": "genai-patterns",
+      "path": "azure-postgresql/genai-patterns/SKILL.md",
+      "activation_keywords": ["create_embeddings", "generate embeddings", "azure_openai embedding", "text-embedding", "batch embeddings", "embed text", "vector column", "rag", "retrieval augmented generation", "hybrid search", "reciprocal rank fusion", "rrf", "semantic search", "context retrieval", "pgvector embeddings"]
+    }
+  ]
+}
