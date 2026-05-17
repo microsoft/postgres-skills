@@ -31,17 +31,20 @@
       "path": "plugins/postgresql-skills/skills/advanced-indexing/SKILL.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
-        "index",
+        "postgresql index",
+        "postgres index",
+        "database index",
         "btree",
-        "gin",
-        "gist",
+        "gin index",
+        "gist index",
         "brin",
         "partial index",
         "expression index",
         "covering index",
         "seq scan",
         "index type",
-        "reindex"
+        "reindex",
+        "create index"
       ]
     },
     {
@@ -80,14 +83,16 @@
       "path": "plugins/postgresql-skills/skills/table-partitioning/SKILL.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
-        "partition",
+        "table partition",
         "range partition",
         "list partition",
         "hash partition",
         "partition pruning",
         "detach partition",
         "pg_partman",
-        "archiving old data"
+        "archiving old data",
+        "partition table",
+        "postgresql partition"
       ]
     },
     {
@@ -113,11 +118,14 @@
         "tsvector",
         "tsquery",
         "full text search",
-        "text search",
+        "full-text search",
+        "postgresql text search",
         "ts_rank",
         "websearch_to_tsquery",
         "search ranking",
-        "stemming"
+        "stemming",
+        "to_tsvector",
+        "gin text search"
       ]
     },
     {

@@ -161,7 +161,7 @@ SELECT pg_size_pretty(pg_relation_size('idx_docs_embedding_diskann'));
 6. **[HIGH] Wrong distance operator for use case**: `<=>` (cosine) for normalized text embeddings, `<->` (L2) for image embeddings, `<#>` (negative inner product) for pre-normalized vectors
 7. **[MEDIUM] Index build monitoring**: For large tables, monitor DiskANN build progress: `SELECT * FROM pg_stat_progress_create_index`. Use `CREATE INDEX CONCURRENTLY` to avoid blocking writes
 8. **[HIGH] Index not used**: Set `SET enable_seqscan = off` to test. If it works, the planner estimates are wrong. Increase `LIMIT` or run `ANALYZE`
-9. **[HIGH] Low recall**: For HNSW, increase `hnsw.ef_search` (default 40). For DiskANN, increase search list size
+9. **[HIGH] Low recall**: For HNSW, increase `hnsw.ef_search` (default 40). For DiskANN, increase `diskann.search_list_size` (default 100) at query time: `SET diskann.search_list_size = 200;`
 10. **[HIGH] Build out of memory (HNSW)**: Increase `maintenance_work_mem` or switch to DiskANN
 11. **[CRITICAL] 403 / permission denied on CREATE EXTENSION**: Verify your role has `azure_pg_admin`: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` Also verify both `vector` and `pg_diskann` are in `azure.extensions` server parameter
 
