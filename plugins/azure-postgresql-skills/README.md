@@ -46,7 +46,7 @@ Add to `.cursor-plugin/plugins.json`:
 
 This package includes a placeholder `mcp.json` for the Azure PostgreSQL MCP Server, which gives AI coding agents direct database access: list databases/tables, execute queries, manage server configuration, and more.
 
-Once the MCP server CLI is published, update the `command` field in `mcp.json` with the install target (e.g., `npx @azure/postgresql-mcp-server`). See [Azure-Samples/azure-postgresql-mcp](https://github.com/Azure-Samples/azure-postgresql-mcp) for the upstream source.
+Once the MCP server CLI is published, update the `command` field in `mcp.json` with the install target (e.g., `npx @azure/postgresql-mcp-server`).
 
 ## Companion package
 

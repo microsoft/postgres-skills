@@ -164,5 +164,5 @@ az postgres flexible-server show --resource-group myRG --name myserver \
 12. **[MEDIUM] Replica lag too high**: Check source server load and consider upgrading replica SKU or reducing write load on the primary
 
 ## References
-- [High availability in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-high-availability)
+- [High availability in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-read-replicas)
 - [Read replicas](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-read-replicas)

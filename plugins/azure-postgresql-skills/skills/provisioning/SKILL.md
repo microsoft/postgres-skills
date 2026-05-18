@@ -146,5 +146,5 @@ az postgres flexible-server show --resource-group myRG --name myserver \
 11. **[MEDIUM] Forgot HA at creation**: Enable later with `az postgres flexible-server update --high-availability ZoneRedundant`
 
 ## References
-- [Quickstart: Create an Azure Database for PostgreSQL flexible server](https://learn.microsoft.com/azure/postgresql/flexible-server/quickstart-create-server-portal)
+- [Quickstart: Create an Azure Database for PostgreSQL Flexible Server](https://learn.microsoft.com/azure/postgresql/flexible-server/quickstart-create-server-portal)
 - [Compute and storage options](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-compute-storage)

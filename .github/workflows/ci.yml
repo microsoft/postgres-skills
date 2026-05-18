@@ -205,7 +205,7 @@ jobs:
           CACHE_DIR="$HOME/.pgsql-tools"
           if [ -d "$CACHE_DIR" ]; then
             echo "✓ Binary cache created at $CACHE_DIR"
-            find "$CACHE_DIR" -type f | head -10
+            find "$CACHE_DIR" -type f | sed -n '1,10p'
           else
             echo "✗ Binary cache not found"
             exit 1
@@ -397,4 +397,3 @@ jobs:
 
           print(f'✓ All binary hashes consistent and complete')
           "
-

@@ -58,7 +58,7 @@ Load the relevant skill when you need detailed guidance for a specific feature a
 | max_connections, idle timeout, pooling | `connection-management` |
 | Publications, subscriptions, CDC | `logical-replication` |
 
-> **Using Azure Database for PostgreSQL?** Install [`@microsoft/azure-postgresql-skills`](https://github.com/microsoft/postgresql-agent-skills/tree/main/plugins/azure-postgresql-skills) for Azure-specific principles, CLI patterns, and 11 additional Azure skills.
+> **Using Azure Database for PostgreSQL?** Install [`@microsoft/azure-postgresql-skills`](https://github.com/aditivgupta/postgresql-agent-skills/tree/main/plugins/azure-postgresql-skills) for Azure-specific principles, CLI patterns, and 11 additional Azure skills.
 
 ## Documentation
 

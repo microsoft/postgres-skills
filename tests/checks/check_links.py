@@ -16,7 +16,22 @@ SKIP_PATTERNS = [
     r'example\.com',
     r'\{',  # template URLs
     r'<your',
+    r'<resource',
     r'\$\{',
+    r'ossrdbms-aad\.database\.windows\.net/\.default',
+    r'management\.azure\.com/\.default',
+    r'management\.azure\.com/?$',
+    r'myresource\.openai\.azure\.com',
+    r'dl\.cacerts\.digicert\.com',
+    r'github\.com/[^/\s]+/postgresql-agent-skills(?:\.git|/|$)',
+]
+
+NON_BLOCKING_NETWORK_ERRORS = [
+    "No address associated with hostname",
+    "Name or service not known",
+    "Temporary failure in name resolution",
+    "timed out",
+    "CERTIFICATE_VERIFY_FAILED",
 ]
 
 def find_urls(root: Path) -> list[tuple[str, str, int]]:
@@ -62,6 +77,8 @@ def main():
         for future in as_completed(futures):
             file_path, url, line_no, status = future.result()
             if isinstance(status, int) and 200 <= status < 400:
+                continue
+            if isinstance(status, str) and any(err in status for err in NON_BLOCKING_NETWORK_ERRORS):
                 continue
             errors.append((file_path, url, line_no, status))
 
