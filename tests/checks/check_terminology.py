@@ -11,16 +11,15 @@ TERMINOLOGY_RULES = [
     # Azure branding
     (r'\bazure\s+ad\b(?!\s*B2C)', "Entra ID", "Azure AD renamed to Entra ID (except Azure AD B2C)"),
     (r'\bflexible\s+server\b(?![\s\.])', "Flexible Server", "Capitalize: Flexible Server"),
-    (r'\bsingle\s+server\b', "Single Server (deprecated)", "Single Server is deprecated; mention this"),
+    (r'\bsingle\s+server\b(?!\s*\(deprecated\))', "Single Server (deprecated)", "Single Server is deprecated; mention this"),
     (r'\bAzure\s+Database\s+for\s+Postgresql\b', "Azure Database for PostgreSQL", "Capital SQL in PostgreSQL"),
     (r'\bpostgresql\b(?=[^_\-/])', None, None),  # skip — too many valid lowercase uses
 
     # Product names
     (r'\bPgBouncer\b', None, None),  # correct as-is
-    (r'\bpgbouncer\b(?!\s*\.conf)', "PgBouncer", "Capitalize PgBouncer"),
-    (r'\bDiskann\b', "DiskANN", "Capitalize: DiskANN"),
-    (r'\bdiskann\b(?![\._])', "DiskANN", "Capitalize: DiskANN (except in code/identifiers)"),
-    (r'\bHnsw\b', "HNSW", "All caps: HNSW"),
+    (r'(?<![-_/])\bpgbouncer\b(?![\._\-/]|\s*\.conf)', "PgBouncer", "Capitalize PgBouncer"),
+    (r'(?<![-_/])\bdiskann\b(?![\._\-/])', "DiskANN", "Capitalize: DiskANN (except in code/identifiers)"),
+    (r'(?<![-_/])\bhnsw\b(?![\._\-/])', "HNSW", "All caps: HNSW"),
     (r'\bGithub\b', "GitHub", "Capital H: GitHub"),
 
     # Common misspellings in PG context
@@ -35,9 +34,11 @@ TERMINOLOGY_RULES = [
 CODE_BLOCK_PATTERN = re.compile(r'```.*?```', re.DOTALL)
 INLINE_CODE_PATTERN = re.compile(r'`[^`]+`')
 URL_PATTERN = re.compile(r'https?://\S+')
+FRONTMATTER_PATTERN = re.compile(r'^---\n.*?\n---\n', re.DOTALL)
 
 def strip_code(content: str) -> str:
     """Remove code blocks and inline code from content for terminology checks."""
+    content = FRONTMATTER_PATTERN.sub(' ', content, count=1)
     content = CODE_BLOCK_PATTERN.sub(' ', content)
     content = INLINE_CODE_PATTERN.sub(' ', content)
     content = URL_PATTERN.sub(' ', content)

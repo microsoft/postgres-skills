@@ -39,7 +39,7 @@ Skills ship as **two independent plugins** so you only install what matches your
 Clone this repo and your AI coding agent discovers both plugins automatically via the root manifest files:
 
 ```bash
-git clone https://github.com/microsoft/postgresql-agent-skills.git
+git clone https://github.com/aditivgupta/postgresql-agent-skills.git
 ```
 
 All four supported platforms auto-detect plugins from root-level manifests:

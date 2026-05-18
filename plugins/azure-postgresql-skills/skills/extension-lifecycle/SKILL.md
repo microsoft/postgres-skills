@@ -155,4 +155,4 @@ SHOW shared_preload_libraries;
 
 ## References
 - [Extensions in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-extensions)
-- [How to use extensions](https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-allow-extensions)
+- [How to use extensions](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-extensions)

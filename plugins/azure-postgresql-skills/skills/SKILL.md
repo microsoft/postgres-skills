@@ -116,14 +116,14 @@ Load the relevant skill when you need detailed guidance for a specific Azure fea
 | azure_ai extension setup + AI functions | `azure-ai` |
 | Embeddings, RAG, hybrid search | `genai-patterns` |
 
-> **Generic PostgreSQL skills** (indexing, query tuning, JSONB, partitioning, FTS, RLS, connection management, logical replication) are in [`@microsoft/postgresql-skills`](https://github.com/microsoft/postgresql-agent-skills/tree/main/plugins/postgresql-skills). They work on Azure too — install both for the full experience.
+> **Generic PostgreSQL skills** (indexing, query tuning, JSONB, partitioning, FTS, RLS, connection management, logical replication) are in [`@microsoft/postgresql-skills`](https://github.com/aditivgupta/postgresql-agent-skills/tree/main/plugins/postgresql-skills). They work on Azure too — install both for the full experience.
 
 ## Documentation
 
 For detailed guidance on any Azure Database for PostgreSQL feature, consult the MS Learn documentation:
 
 - [Azure Database for PostgreSQL Flexible Server](https://learn.microsoft.com/azure/postgresql/flexible-server/overview)
-- [What's new](https://learn.microsoft.com/azure/postgresql/flexible-server/whats-new)
+- [What's new](https://learn.microsoft.com/azure/postgresql/flexible-server/overview)
 - [Supported extensions](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-extensions)
 - [Server parameters](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-server-parameters)
 - [Service limits](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-limits)

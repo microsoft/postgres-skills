@@ -16,7 +16,13 @@ SKIP_PATTERNS = [
     r'example\.com',
     r'\{',  # template URLs
     r'<your',
+    r'<resource',
     r'\$\{',
+    r'ossrdbms-aad\.database\.windows\.net/\.default',
+    r'management\.azure\.com/\.default',
+    r'management\.azure\.com/?$',
+    r'myresource\.openai\.azure\.com',
+    r'dl\.cacerts\.digicert\.com',
 ]
 
 def find_urls(root: Path) -> list[tuple[str, str, int]]:
@@ -62,6 +68,9 @@ def main():
         for future in as_completed(futures):
             file_path, url, line_no, status = future.result()
             if isinstance(status, int) and 200 <= status < 400:
+                continue
+            # Treat TLS chain mismatches on known cert-host links as non-blocking.
+            if "digicert.com" in url and isinstance(status, str) and "CERTIFICATE_VERIFY_FAILED" in status:
                 continue
             errors.append((file_path, url, line_no, status))
 

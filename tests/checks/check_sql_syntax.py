@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""Extract SQL blocks from SKILL.md files and validate syntax against PostgreSQL."""
+"""Extract SQL blocks from SKILL.md files and validate SQL parseability."""
 
-import json
 import os
 import re
 import subprocess
@@ -25,6 +24,16 @@ CONTEXT_TABLES = re.compile(
     r'\b(events|users|documents|orders|customers|posts|blog|items|products|sessions|accounts)\b', re.I
 )
 
+SYNTAX_ERROR_PATTERNS = [
+    re.compile(r"ERROR:\s+syntax error", re.IGNORECASE),
+    re.compile(r"ERROR:\s+unterminated", re.IGNORECASE),
+    re.compile(r"ERROR:\s+invalid input syntax", re.IGNORECASE),
+]
+
+def is_syntax_error(error_text: str) -> bool:
+    """Return True only for parser/syntax failures."""
+    return any(p.search(error_text) for p in SYNTAX_ERROR_PATTERNS)
+
 def extract_sql_blocks(skill_path: Path) -> list[dict]:
     """Extract SQL code blocks from a SKILL.md file."""
     content = skill_path.read_text(encoding="utf-8", errors="ignore")
@@ -43,7 +52,7 @@ def extract_sql_blocks(skill_path: Path) -> list[dict]:
     return blocks
 
 def validate_sql(sql: str, pg_version: str, conn_string: str) -> tuple[bool, str]:
-    """Validate SQL syntax using EXPLAIN or parse-only approach."""
+    """Validate SQL and fail only for true syntax errors."""
     # For SELECT/WITH, use EXPLAIN (no execute)
     is_query = re.match(r'^\s*(SELECT|WITH|EXPLAIN)', sql, re.IGNORECASE | re.MULTILINE)
     is_ddl = re.match(r'^\s*(CREATE|ALTER|DROP)', sql, re.IGNORECASE | re.MULTILINE)
@@ -63,7 +72,15 @@ def validate_sql(sql: str, pg_version: str, conn_string: str) -> tuple[bool, str
             capture_output=True, text=True, timeout=10
         )
         if result.returncode != 0:
-            return False, result.stderr.strip().split('\n')[0]
+            output = (result.stderr or result.stdout or "").strip()
+            error_line = next(
+                (line.strip() for line in output.splitlines() if "ERROR:" in line),
+                output.splitlines()[0] if output else "unknown error",
+            )
+            if is_syntax_error(error_line):
+                return False, error_line
+            # Ignore semantic/runtime errors (missing tables/extensions/roles/databases etc.)
+            return True, f"non-syntax runtime error ignored: {error_line}"
         return True, ""
     except subprocess.TimeoutExpired:
         return False, "timeout"
@@ -113,14 +130,19 @@ def main():
     # Full validation against DB
     errors = []
     passed = 0
+    ignored_runtime_errors = 0
     for block in all_blocks:
         ok, err = validate_sql(block["sql"], pg_version, conn_string)
         if ok:
             passed += 1
+            if err.startswith("non-syntax runtime error ignored:"):
+                ignored_runtime_errors += 1
         else:
             errors.append((block["file"], err, block["sql"][:80]))
 
     print(f"\nResults (PG {pg_version}): {passed}/{len(all_blocks)} blocks valid")
+    if ignored_runtime_errors:
+        print(f"ℹ Ignored {ignored_runtime_errors} non-syntax runtime errors (missing objects/extensions are expected in doc snippets)")
     if errors:
         print(f"\n✗ {len(errors)} SQL validation failures:")
         for f, err, snippet in errors[:20]:

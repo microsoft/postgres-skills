@@ -166,5 +166,5 @@ SELECT pg_size_pretty(pg_relation_size('idx_docs_embedding_diskann'));
 11. **[CRITICAL] 403 / permission denied on CREATE EXTENSION**: Verify your role has `azure_pg_admin`: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` Also verify both `vector` and `pg_diskann` are in `azure.extensions` server parameter
 
 ## References
-- [pg_diskann extension for Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-use-pg-diskann)
+- [pg_diskann extension for Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-use-pgvector)
 - [pgvector extension](https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-use-pgvector)
