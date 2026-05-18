@@ -104,7 +104,7 @@
         "row level security",
         "tenant isolation",
         "multi-tenant",
-        "policy",
+        "rls policy",
         "current_setting",
         "row policy",
         "data isolation"
