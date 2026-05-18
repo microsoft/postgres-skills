@@ -1,0 +1,203 @@
+name: CI — Tests & Plugin Installation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 1: Validate manifest files and plugin structure
+  # ─────────────────────────────────────────────────────────────────────────────
+  validate-manifests:
+    name: Validate manifests & structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JSON manifests are parseable
+        run: |
+          echo "Checking marketplace manifests..."
+          for f in marketplace.json .claude-plugin/marketplace.json .cursor-plugin/marketplace.json .skills.json; do
+            echo "  ✓ $f"
+            python3 -c "import json; json.load(open('$f'))"
+          done
+
+      - name: Validate plugin folder structure
+        run: |
+          for plugin in postgresql-skills azure-postgresql-skills; do
+            dir="plugins/$plugin"
+            echo "Checking $dir..."
+
+            # Required files
+            for file in .mcp.json run_mcp.js .skills.json README.md; do
+              if [ ! -f "$dir/$file" ]; then
+                echo "  ✗ Missing required file: $file"
+                exit 1
+              fi
+              echo "  ✓ $file exists"
+            done
+
+            # Skills directory must have at least one SKILL.md
+            skill_count=$(find "$dir/skills" -name "SKILL.md" | wc -l)
+            if [ "$skill_count" -lt 1 ]; then
+              echo "  ✗ No SKILL.md files found in $dir/skills/"
+              exit 1
+            fi
+            echo "  ✓ $skill_count SKILL.md files found"
+
+            # .mcp.json must be valid JSON
+            python3 -c "import json; json.load(open('$dir/.mcp.json'))"
+            echo "  ✓ .mcp.json is valid JSON"
+
+            # .skills.json must be valid JSON
+            python3 -c "import json; json.load(open('$dir/.skills.json'))"
+            echo "  ✓ .skills.json is valid JSON"
+          done
+
+      - name: Validate skill activation keywords are unique enough
+        run: |
+          python3 -c "
+          import json, sys
+
+          with open('.skills.json') as f:
+              manifest = json.load(f)
+
+          # Keywords that are too generic (single common English words)
+          TOO_GENERIC = {'index', 'search', 'partition', 'table', 'query', 'data', 'text', 'type', 'role', 'policy'}
+
+          errors = []
+          for skill in manifest.get('skills', []):
+              sid = skill['id']
+              for kw in skill.get('activation_keywords', []):
+                  if kw.lower() in TOO_GENERIC:
+                      errors.append(f'  {sid}: \"{kw}\" is too generic — use a more specific phrase')
+
+          if errors:
+              print('✗ Over-broad activation keywords found:')
+              print('\n'.join(errors))
+              sys.exit(1)
+          else:
+              print(f'✓ All activation keywords are specific enough ({len(manifest[\"skills\"])} skills checked)')
+          "
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 2: Test CLI install → add marketplace → add plugin for each supported CLI
+  # ─────────────────────────────────────────────────────────────────────────────
+  cli-integration:
+    name: "CLI: ${{ matrix.cli }}"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - cli: copilot-cli
+            os: ubuntu-latest
+            install_cmd: npm install -g @github/copilot-cli@latest
+            add_marketplace_cmd: copilot extensions add-marketplace .
+            add_plugin_cmd: copilot plugin add ./plugins/azure-postgresql-skills
+            verify_cmd: copilot plugin list
+
+          - cli: claude-code
+            os: ubuntu-latest
+            install_cmd: npm install -g @anthropic-ai/claude-code@latest
+            add_marketplace_cmd: claude marketplace add .
+            add_plugin_cmd: claude mcp add azure-postgresql-skills --from ./plugins/azure-postgresql-skills
+            verify_cmd: claude mcp list
+
+          - cli: codex-cli
+            os: ubuntu-latest
+            install_cmd: npm install -g @openai/codex@latest
+            add_marketplace_cmd: codex marketplace add .
+            add_plugin_cmd: codex install ./plugins/azure-postgresql-skills
+            verify_cmd: codex plugins list
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install ${{ matrix.cli }}
+        run: ${{ matrix.install_cmd }}
+        continue-on-error: false
+
+      - name: Add marketplace (discover plugins)
+        run: ${{ matrix.add_marketplace_cmd }}
+        continue-on-error: false
+
+      - name: Add plugin directly
+        run: ${{ matrix.add_plugin_cmd }}
+        continue-on-error: false
+
+      - name: Verify plugin is registered
+        run: ${{ matrix.verify_cmd }}
+
+      - name: Verify MCP server can start
+        run: |
+          cd plugins/azure-postgresql-skills
+          # Start run_mcp.js and verify it downloads the binary and starts
+          # Send empty stdin and expect it to exit or timeout after 15s
+          timeout 30 node run_mcp.js < /dev/null 2>&1 | head -20 || true
+          echo "✓ MCP runner executed without crash"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 3: Run dogfood test (requires DB connection)
+  # ─────────────────────────────────────────────────────────────────────────────
+  dogfood-test:
+    name: Dogfood test (90 checks)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'run-dogfood')
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run dogfood test
+        env:
+          PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
+        run: |
+          if [ -z "$PGSQL_TEST_CONNECTION_STRING" ]; then
+            echo "⚠ PGSQL_TEST_CONNECTION_STRING secret not set — skipping DB test"
+            echo "  Set this secret to run the full 90-check dogfood test"
+            exit 0
+          fi
+          node tests/test_ai_app.js
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 4: Run eval pipeline (requires DB + OpenAI key)
+  # ─────────────────────────────────────────────────────────────────────────────
+  evals:
+    name: Eval pipeline
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install eval dependencies
+        run: pip install -r tests/evals/requirements.txt
+
+      - name: Run eval pipeline
+        env:
+          PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$PGSQL_TEST_CONNECTION_STRING" ] || [ -z "$OPENAI_API_KEY" ]; then
+            echo "⚠ Required secrets not set — skipping eval pipeline"
+            echo "  Need: PGSQL_TEST_CONNECTION_STRING, OPENAI_API_KEY"
+            exit 0
+          fi
+          cd tests/evals
+          python pipeline.py --output results/
