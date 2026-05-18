@@ -32,17 +32,17 @@ activation:
     - "`azure-postgresql/vector-diskann/`"
 ---
 
-> **âš ï¸ AZURE GATE:** This reference contains Azure Database for PostgreSQL-specific guidance. Before applying any operational steps, confirm the target is Azure by calling `pgsql_get_server_capabilities` and verifying `isAzure: true`. If the connection is NOT Azure, use the corresponding generic postgresql-* reference instead.
+> **Ã¢Å¡Â Ã¯Â¸Â AZURE GATE:** This reference contains Azure Database for PostgreSQL-specific guidance. Before applying any operational steps, confirm the target is Azure by calling `pgsql_get_server_capabilities` and verifying `isAzure: true`. If the connection is NOT Azure, use the corresponding generic postgresql-* reference instead.
 
 ## Prerequisites
 - `vector` extension enabled (`CREATE EXTENSION vector;`)
 - For **in-database embeddings**: `azure_ai` extension configured (see `azure-postgresql/azure-ai/`)
 - For **external embeddings**: Application with access to an embedding API (Azure OpenAI, OpenAI, Cohere, etc.)
-- Azure OpenAI embedding model deployed (e.g., `text-embedding-3-small` Ã¢â‚¬â€ 1536 dimensions)
+- Azure OpenAI embedding model deployed (e.g., `text-embedding-3-small` ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â 1536 dimensions)
 
 ## Instructions
 
-### Path A Ã¢â‚¬â€ In-database embeddings (azure_ai)
+### Path A ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â In-database embeddings (azure_ai)
 
 Generate embeddings directly in SQL without leaving the database.
 
@@ -71,7 +71,7 @@ BEGIN
 END $$;
 ```
 
-### Path B Ã¢â‚¬â€ External embeddings (app + pgvector)
+### Path B ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â External embeddings (app + pgvector)
 
 Generate embeddings in your application and store them in PostgreSQL.
 
@@ -104,10 +104,10 @@ with psycopg.connect(conninfo) as conn:
 const { AzureOpenAI } = require("openai");
 const { Client } = require("pg");
 const client = new AzureOpenAI({ endpoint, apiKey, apiVersion: "2024-06-01" });
-// Similar pattern: fetch rows Ã¢â€ â€™ generate embedding Ã¢â€ â€™ UPDATE with vector literal
+// Similar pattern: fetch rows ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ generate embedding ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ UPDATE with vector literal
 ```
 
-### Step 2 Ã¢â‚¬â€ Create vector index
+### Step 2 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Create vector index
 
 ```sql
 -- DiskANN (recommended for Azure PostgreSQL, large datasets)
@@ -119,7 +119,7 @@ CREATE INDEX ON documents USING hnsw (embedding vector_cosine_ops) WITH (m = 16,
 
 See `azure-postgresql/vector-diskann/` for detailed index tuning.
 
-### Step 3 Ã¢â‚¬â€ Hybrid search (vector + FTS) with RRF
+### Step 3 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Hybrid search (vector + FTS) with RRF
 
 Combine vector similarity with keyword matching for best retrieval quality.
 
@@ -153,7 +153,7 @@ ORDER BY rrf_score DESC
 LIMIT 10;
 ```
 
-### Step 4 Ã¢â‚¬â€ RAG: Format context for LLM
+### Step 4 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â RAG: Format context for LLM
 
 ```sql
 -- After retrieval, format context for the generation step
@@ -185,14 +185,14 @@ FROM documents ORDER BY distance LIMIT 3;
 
 1. **[CRITICAL] Dimension mismatch**: `text-embedding-3-small` = 1536, `text-embedding-3-large` = 3072, `text-embedding-ada-002` = 1536. Column `vector(N)` must match model output.
 
-   Ã¢ÂÅ’ Wrong:
+   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
    ```sql
    ALTER TABLE documents ADD COLUMN embedding vector(1536);
    -- Then insert text-embedding-3-large output (3072 dims)
    -- ERROR: expected 1536 dimensions, not 3072
    ```
 
-   Ã¢Å“â€¦ Right:
+   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
    ```sql
    -- Match column dimension to your model's output
    ALTER TABLE documents ADD COLUMN embedding vector(3072);  -- for text-embedding-3-large
@@ -201,14 +201,14 @@ FROM documents ORDER BY distance LIMIT 3;
 2. **[HIGH] Silent truncation**: Models truncate input beyond their token limit without error. Pre-chunk long documents (500-1000 tokens per chunk recommended).
 3. **[CRITICAL] Mixing distance operators**: `<=>` (cosine), `<->` (L2), `<#>` (inner product). Use `<=>` for normalized embeddings (most common). Index must match: `vector_cosine_ops` for `<=>`.
 
-   Ã¢ÂÅ’ Wrong:
+   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
    ```sql
    CREATE INDEX ON docs USING hnsw (embedding vector_cosine_ops);
-   -- Then query with L2 distance Ã¢â‚¬â€ index is NOT used
+   -- Then query with L2 distance ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â index is NOT used
    SELECT * FROM docs ORDER BY embedding <-> $1::vector LIMIT 10;
    ```
 
-   Ã¢Å“â€¦ Right:
+   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
    ```sql
    CREATE INDEX ON docs USING hnsw (embedding vector_cosine_ops);
    -- Query with matching cosine operator
@@ -220,13 +220,13 @@ FROM documents ORDER BY distance LIMIT 3;
 6. **[MEDIUM] External vs in-database choice**: Use in-database (Path A) when data lives in PostgreSQL and you want SQL-only workflows. Use external (Path B) when your app already calls an embedding API or you need non-Azure embedding models.
 7. **[CRITICAL] "type vector does not exist"**: Run `CREATE EXTENSION vector;` first. On Azure, ensure `vector` is in the extension allowlist (see `azure-postgresql/extension-lifecycle/`).
 
-   Ã¢ÂÅ’ Wrong:
+   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
    ```sql
    ALTER TABLE docs ADD COLUMN embedding vector(1536);
    -- ERROR: type "vector" does not exist
    ```
 
-   Ã¢Å“â€¦ Right:
+   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
    ```sql
    CREATE EXTENSION vector;
    ALTER TABLE docs ADD COLUMN embedding vector(1536);

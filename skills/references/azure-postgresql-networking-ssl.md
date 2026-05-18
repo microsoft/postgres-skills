@@ -31,7 +31,7 @@ activation:
     - "`azure-postgresql/provisioning/`"
 ---
 
-> **âš ï¸ AZURE GATE:** This reference contains Azure Database for PostgreSQL-specific guidance. Before applying any operational steps, confirm the target is Azure by calling `pgsql_get_server_capabilities` and verifying `isAzure: true`. If the connection is NOT Azure, use the corresponding generic postgresql-* reference instead.
+> **Ã¢Å¡Â Ã¯Â¸Â AZURE GATE:** This reference contains Azure Database for PostgreSQL-specific guidance. Before applying any operational steps, confirm the target is Azure by calling `pgsql_get_server_capabilities` and verifying `isAzure: true`. If the connection is NOT Azure, use the corresponding generic postgresql-* reference instead.
 
 # Networking and SSL
 
@@ -110,13 +110,13 @@ az postgres flexible-server firewall-rule list \
 
 1. **[CRITICAL] DigiCert CA, not Baltimore**: Azure Flexible Server uses DigiCert Global Root G2 CA since 2022. Old Baltimore CyberTrust Root is deprecated. Download: `https://dl.cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem`. Using old cert gives `SSL certificate verify failed`
 
-   Ã¢ÂÅ’ Wrong:
+   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
    ```bash
    psql "sslmode=verify-full sslrootcert=BaltimoreCyberTrustRoot.crt.pem ..."
-   # ERROR: SSL certificate verify failed Ã¢â‚¬â€ cert expired/deprecated
+   # ERROR: SSL certificate verify failed ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â cert expired/deprecated
    ```
 
-   Ã¢Å“â€¦ Right:
+   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
    ```bash
    curl -o DigiCertGlobalRootG2.crt.pem https://dl.cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem
    psql "sslmode=verify-full sslrootcert=DigiCertGlobalRootG2.crt.pem ..."
@@ -124,15 +124,15 @@ az postgres flexible-server firewall-rule list \
 
 2. **[CRITICAL] VNet disables firewall completely**: Once private access (VNet integration) is enabled, ALL firewall rules are ignored (including "Allow Azure services"). Access is VNet-only. Cannot have hybrid (some firewall + VNet)
 
-   Ã¢ÂÅ’ Wrong:
+   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
    ```bash
-   # VNet-integrated server Ã¢â‚¬â€ adding firewall rules has NO effect
+   # VNet-integrated server ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â adding firewall rules has NO effect
    az postgres flexible-server firewall-rule create --name myserver \
        --rule-name AllowMyIP --start-ip-address 203.0.113.10 --end-ip-address 203.0.113.10
-   # Rule is created but NEVER evaluated Ã¢â‚¬â€ VNet-only access enforced
+   # Rule is created but NEVER evaluated ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â VNet-only access enforced
    ```
 
-   Ã¢Å“â€¦ Right:
+   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
    ```bash
    # For VNet-integrated servers, connect FROM within the VNet
    # Or use VNet peering / VPN for external access
@@ -142,17 +142,17 @@ az postgres flexible-server firewall-rule list \
 4. **[HIGH] Private DNS zone naming**: Zone MUST be `<servername>.private.postgres.database.azure.com` or `privatelink.postgres.database.azure.com`. Custom zone names break Azure's automatic DNS record management
 5. **[CRITICAL] "Allow Azure services" is wider than expected**: This checkbox allows traffic from ANY Azure subscription's public IPs, not just your resources. Use Private Endpoints or VNet rules for isolation. Only enable temporarily for Azure Data Factory/Functions without VNet integration
 6. **[HIGH] Cross-VNet connectivity**: Two VNet-integrated servers in different VNets cannot connect by default. Requires VNet peering + DNS forwarding. For cross-region, use Global VNet peering (additional latency)
-7. **[HIGH] `verify-full` connection string**: `sslmode=verify-full sslrootcert=/path/to/DigiCertGlobalRootG2.crt.pem` Ã¢â‚¬â€ the hostname in the cert matches `*.postgres.database.azure.com`. Custom server names via CNAME still validate against the Azure-issued cert's SAN
+7. **[HIGH] `verify-full` connection string**: `sslmode=verify-full sslrootcert=/path/to/DigiCertGlobalRootG2.crt.pem` ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the hostname in the cert matches `*.postgres.database.azure.com`. Custom server names via CNAME still validate against the Azure-issued cert's SAN
 
-   Ã¢ÂÅ’ Wrong:
+   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
    ```bash
    psql "sslmode=require ..."  # Encrypts but does NOT verify server identity
    ```
 
-   Ã¢Å“â€¦ Right:
+   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
    ```bash
    psql "sslmode=verify-full sslrootcert=DigiCertGlobalRootG2.crt.pem ..."
-   # Encrypts AND verifies server certificate Ã¢â‚¬â€ prevents MITM
+   # Encrypts AND verifies server certificate ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â prevents MITM
    ```
 
 8. **[HIGH] TLS version enforcement**: Azure enforces TLS 1.2 minimum. Clients using TLS 1.0/1.1 get connection refused. Check client library TLS support. Python psycopg2 on older systems may need `ssl_context` configuration

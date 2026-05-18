@@ -29,7 +29,7 @@ activation:
     - "`azure-postgresql/provisioning/`"
 ---
 
-> **âš ï¸ AZURE GATE:** This reference contains Azure Database for PostgreSQL-specific guidance. Before applying any operational steps, confirm the target is Azure by calling `pgsql_get_server_capabilities` and verifying `isAzure: true`. If the connection is NOT Azure, use the corresponding generic postgresql-* reference instead.
+> **Ã¢Å¡Â Ã¯Â¸Â AZURE GATE:** This reference contains Azure Database for PostgreSQL-specific guidance. Before applying any operational steps, confirm the target is Azure by calling `pgsql_get_server_capabilities` and verifying `isAzure: true`. If the connection is NOT Azure, use the corresponding generic postgresql-* reference instead.
 
 # HA and Disaster Recovery
 
@@ -107,15 +107,15 @@ az postgres flexible-server show --resource-group myRG --name myserver \
 
 1. **[CRITICAL] PITR creates a NEW server**: Point-in-time restore produces a completely new server with a new hostname (`restored-server.postgres.database.azure.com`). All connection strings, firewall rules, and VNet configurations must be recreated. PITR is NOT an in-place rollback
 
-   Ã¢ÂÅ’ Wrong:
+   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
    ```bash
-   # Expecting in-place rollback Ã¢â‚¬â€ original server is unchanged!
+   # Expecting in-place rollback ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â original server is unchanged!
    az postgres flexible-server restore --name myserver --source-server myserver \
        --restore-time "2025-01-15T10:30:00Z"
    # ERROR: server name already exists
    ```
 
-   Ã¢Å“â€¦ Right:
+   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
    ```bash
    # Restore creates a NEW server with a new name
    az postgres flexible-server restore --name myserver-restored \
@@ -126,14 +126,14 @@ az postgres flexible-server show --resource-group myRG --name myserver \
 2. **[HIGH] PITR destination restrictions**: Restored server inherits source's tier/SKU but NOT HA settings, firewall rules, or VNet config. Must reconfigure networking post-restore. Restore target must be in same region as source
 3. **[CRITICAL] Geo-backup is creation-time only**: `--geo-redundant-backup Enabled` can only be set at server creation. Cannot enable on existing servers. If you forgot, your DR option is cross-region read replicas
 
-   Ã¢ÂÅ’ Wrong:
+   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
    ```bash
    # Cannot enable geo-backup on existing server
    az postgres flexible-server update --name myserver --geo-redundant-backup Enabled
    # ERROR: geo-redundant backup cannot be changed after server creation
    ```
 
-   Ã¢Å“â€¦ Right:
+   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
    ```bash
    # Must be set at creation time
    az postgres flexible-server create --name myserver \
@@ -144,14 +144,14 @@ az postgres flexible-server show --resource-group myRG --name myserver \
 5. **[MEDIUM] Same-zone vs zone-redundant decision tree**: Same-zone HA: ~30s failover, protects against compute failure, no zone protection. Zone-redundant: ~120s failover, protects against entire zone outage, 2x compute cost. Use zone-redundant for production SLA > 99.95%
 6. **[CRITICAL] Replica promotion is permanent and irreversible**: `az postgres flexible-server replica stop-replication --resource-group rg --name replica` permanently severs replication. The replica becomes an independent server. Cannot re-attach. Plan carefully
 
-   Ã¢ÂÅ’ Wrong:
+   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
    ```bash
-   # Promoting "just to test" Ã¢â‚¬â€ cannot be undone!
+   # Promoting "just to test" ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â cannot be undone!
    az postgres flexible-server replica stop-replication --name myserver-replica
    # Replica is now independent. Cannot re-attach as replica.
    ```
 
-   Ã¢Å“â€¦ Right:
+   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
    ```bash
    # Test on a throwaway replica, not your DR replica
    az postgres flexible-server replica create --replica-name myserver-test-replica --source-server myserver
@@ -161,7 +161,7 @@ az postgres flexible-server show --resource-group myRG --name myserver \
 7. **[HIGH] Cross-region read replica lag**: Expect 100ms-5s lag depending on transaction rate and network distance. NOT suitable for strong consistency reads. Use for reporting, analytics, and DR failover only. Monitor with `pg_stat_replication.sent_lsn - replay_lsn`
 8. **[HIGH] Backup retention + PITR window**: Default 7 days, max 35 days. PITR can only restore to a point within the retention window. For compliance requiring 90+ day retention, export to Azure Blob Storage separately
 9. **[MEDIUM] Failover testing**: Use `az postgres flexible-server restart --failover Forced` to test HA failover in production-like environments. Measures actual failover time. Schedule monthly to validate DR readiness
-10. **[MEDIUM] Failover triggered Ã¢â‚¬â€ connection handling**: After failover, check `az postgres flexible-server show` for new primary zone. Connections auto-redirect if using server FQDN. Applications should implement retry logic
+10. **[MEDIUM] Failover triggered ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â connection handling**: After failover, check `az postgres flexible-server show` for new primary zone. Connections auto-redirect if using server FQDN. Applications should implement retry logic
 11. **[HIGH] PITR failed**: Verify restore time is within backup retention window. Check Azure Activity Log for specific errors. Ensure target server name is not already in use
 12. **[MEDIUM] Replica lag too high**: Check source server load and consider upgrading replica SKU or reducing write load on the primary
 

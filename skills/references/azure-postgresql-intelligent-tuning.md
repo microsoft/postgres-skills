@@ -26,7 +26,7 @@ activation:
     - "`azure-postgresql/provisioning/`"
 ---
 
-> **âš ï¸ AZURE GATE:** This reference contains Azure Database for PostgreSQL-specific guidance. Before applying any operational steps, confirm the target is Azure by calling `pgsql_get_server_capabilities` and verifying `isAzure: true`. If the connection is NOT Azure, use the corresponding generic postgresql-* reference instead.
+> **Ã¢Å¡Â Ã¯Â¸Â AZURE GATE:** This reference contains Azure Database for PostgreSQL-specific guidance. Before applying any operational steps, confirm the target is Azure by calling `pgsql_get_server_capabilities` and verifying `isAzure: true`. If the connection is NOT Azure, use the corresponding generic postgresql-* reference instead.
 
 # Intelligent Tuning
 
@@ -112,13 +112,13 @@ ORDER BY created_time DESC LIMIT 5;
 
 1. **[HIGH] Reading `query_store.qs_view` without join**: The `qs_view` contains only metrics (calls, total_time, rows). Join with `query_store.query_texts_view` on `query_text_id` to get actual SQL text: `SELECT qt.query_sql_text, qs.calls, qs.mean_time FROM query_store.qs_view qs JOIN query_store.query_texts_view qt ON qs.query_text_id = qt.query_text_id ORDER BY qs.total_time DESC LIMIT 20`
 
-   Ã¢ÂÅ’ Wrong:
+   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
    ```sql
    SELECT * FROM query_store.qs_view ORDER BY total_time DESC LIMIT 10;
-   -- Returns queryid and metrics but NO SQL text Ã¢â‚¬â€ useless for debugging
+   -- Returns queryid and metrics but NO SQL text ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â useless for debugging
    ```
 
-   Ã¢Å“â€¦ Right:
+   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
    ```sql
    SELECT qt.query_sql_text, qs.calls, qs.mean_time
    FROM query_store.qs_view qs
@@ -130,13 +130,13 @@ ORDER BY created_time DESC LIMIT 5;
 3. **[MEDIUM] Auto-index recommendation lifecycle**: Recommendations go through states: `Recommended` > `Verified` > `Applied`. Check `SELECT * FROM intelligent_performance.index_recommendations`. Reverted indexes show `Reverted` state. Manually apply with the provided DDL if auto-apply is off
 4. **[HIGH] Query Store retention eating storage**: Default retention is 7 days. On high-QPS servers, QS storage grows to GBs. Set `pg_qs.retention_period_in_days = 3` on busy systems and `pg_qs.store_query_plans = off` to reduce overhead
 
-   Ã¢ÂÅ’ Wrong:
+   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
    ```bash
-   # Default 7-day retention on high-QPS server Ã¢â‚¬â€ GBs of storage consumed
+   # Default 7-day retention on high-QPS server ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â GBs of storage consumed
    # No action taken until disk alert fires
    ```
 
-   Ã¢Å“â€¦ Right:
+   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
    ```bash
    az postgres flexible-server parameter set --name pg_qs.retention_period_in_days --value 3
    az postgres flexible-server parameter set --name pg_qs.store_query_plans --value off
@@ -148,14 +148,14 @@ ORDER BY created_time DESC LIMIT 5;
 8. **[HIGH] Performance regression after auto-index**: Revert with `DROP INDEX` on the recommended index. Check `intelligent_performance.index_recommendations` for the index name and DDL
 12. **[CRITICAL] 403 / permission denied on intelligent_performance views**: Verify role membership: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` If false, grant via Azure Portal > Server > Roles
 
-   Ã¢ÂÅ’ Wrong:
+   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
    ```sql
    -- As a non-admin user
    SELECT * FROM intelligent_performance.index_recommendations;
    -- ERROR: permission denied for relation index_recommendations
    ```
 
-   Ã¢Å“â€¦ Right:
+   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
    ```sql
    -- Verify and fix role membership
    SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');
