@@ -30,7 +30,11 @@ def check_required_sections(content: str, file_path: str) -> list[str]:
 def main():
     root = Path(os.environ.get("REPO_ROOT", "."))
     skill_files = list(root.rglob("SKILL.md"))
-    print(f"Checking {len(skill_files)} SKILL.md files for size limits...")
+    # Also include reference files
+    refs_dir = root / "skills" / "references"
+    if refs_dir.exists():
+        skill_files.extend(refs_dir.glob("*.md"))
+    print(f"Checking {len(skill_files)} skill/reference files for size limits...")
 
     errors = []
     warnings = []

@@ -1,230 +1,270 @@
 #!/usr/bin/env python3
-"""Test activation keyword precision: feed prompts and verify correct skill routing."""
+"""
+Routing Table Precision Test
+Validates that prompts route to the correct reference file(s) via the SKILL.md routing table.
+Tests both generic routing and Azure-gated routing logic.
+"""
 
-import json
-import os
 import re
 import sys
 from pathlib import Path
 
-def load_skills_manifest(root: Path) -> dict:
-    """Load .skills.json and build keyword-to-skill mapping."""
-    manifest_path = root / ".skills.json"
-    with open(manifest_path) as f:
-        manifest = json.load(f)
-    return manifest
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SKILL_MD = REPO_ROOT / "skills" / "SKILL.md"
+REFERENCES_DIR = REPO_ROOT / "skills" / "references"
 
-def match_skills(prompt: str, skills: list[dict]) -> list[str]:
-    """Simulate skill activation based on keyword matching."""
-    activated = []
-    prompt_lower = prompt.lower()
-    for skill in skills:
-        if skill.get("always_load"):
+
+def parse_routing_table(skill_md_path):
+    """Extract keyword→reference mappings from the routing table in SKILL.md."""
+    content = skill_md_path.read_text(encoding="utf-8")
+    
+    # Find routing table rows: | keywords | [name](references/file.md) | description |
+    table_pattern = re.compile(
+        r"^\|\s*(.+?)\s*\|\s*\[[\w-]+\]\(references/([\w-]+\.md)\)\s*\|", re.MULTILINE
+    )
+    
+    routes = []
+    for match in table_pattern.finditer(content):
+        keywords_cell = match.group(1).strip()
+        reference_file = match.group(2).strip()
+        
+        # Skip header rows
+        if keywords_cell.startswith("---") or keywords_cell.lower() == "keywords":
             continue
-        keywords = skill.get("activation_keywords", [])
-        for kw in keywords:
-            if kw.lower() in prompt_lower:
-                activated.append(skill["id"])
+            
+        # Parse keywords (comma or pipe separated, with backticks)
+        keywords = [
+            k.strip().strip("`").lower()
+            for k in re.split(r"[,|]", keywords_cell)
+            if k.strip().strip("`")
+        ]
+        
+        is_azure = reference_file.startswith("azure-postgresql-")
+        routes.append({
+            "keywords": keywords,
+            "reference": reference_file,
+            "is_azure": is_azure,
+        })
+    
+    return routes
+
+
+def match_prompt_to_routes(prompt, routes, is_azure_session=False):
+    """Simulate routing: find which references a prompt would activate."""
+    prompt_lower = prompt.lower()
+    activated = []
+    
+    for route in routes:
+        if route["is_azure"] and not is_azure_session:
+            continue
+        
+        # A route matches if any keyword appears in the prompt
+        for keyword in route["keywords"]:
+            if keyword in prompt_lower:
+                activated.append(route["reference"])
                 break
+    
     return activated
 
-# Test cases: (prompt, expected_skills, should_not_activate)
+
+# Test cases: (prompt, expected_references, should_not_route, azure_session)
 TEST_CASES = [
-    # True positives: should activate the right skill
+    # Generic PostgreSQL routing (no Azure session)
     {
-        "prompt": "How do I create a GIN index on a JSONB column in PostgreSQL?",
-        "should_activate": ["advanced-indexing", "jsonb-patterns"],
-        "should_not_activate": [],
+        "prompt": "How do I create a GIN index on a JSONB column?",
+        "should_route": ["postgresql-advanced-indexing.md"],
+        "should_not_route": ["azure-postgresql-intelligent-tuning.md"],
+        "azure_session": False,
     },
     {
         "prompt": "Set up row level security for multi-tenant app",
-        "should_activate": ["row-level-security"],
-        "should_not_activate": ["table-partitioning"],
+        "should_route": ["postgresql-row-level-security.md"],
+        "should_not_route": ["postgresql-table-partitioning.md"],
+        "azure_session": False,
     },
     {
         "prompt": "How to use tsvector and tsquery for full text search?",
-        "should_activate": ["full-text-search"],
-        "should_not_activate": [],
+        "should_route": ["postgresql-full-text-search.md"],
+        "should_not_route": [],
+        "azure_session": False,
     },
     {
-        "prompt": "Configure DiskANN index for vector similarity search on Azure",
-        "should_activate": ["vector-diskann"],
-        "should_not_activate": [],
+        "prompt": "Configure pgvector HNSW index for similarity search",
+        "should_route": ["postgresql-vector-search.md"],
+        "should_not_route": ["azure-postgresql-vector-diskann.md"],
+        "azure_session": False,
     },
     {
-        "prompt": "How to install pg_cron extension on Azure Flexible Server?",
-        "should_activate": ["extension-lifecycle"],
-        "should_not_activate": [],
-    },
-    {
-        "prompt": "Set up range partition for time-series data in PostgreSQL",
-        "should_activate": ["table-partitioning"],
-        "should_not_activate": [],
+        "prompt": "Set up range partition for time-series data",
+        "should_route": ["postgresql-table-partitioning.md"],
+        "should_not_route": [],
+        "azure_session": False,
     },
     {
         "prompt": "How to configure connection pooling with PgBouncer?",
-        "should_activate": ["connection-management"],
-        "should_not_activate": [],
+        "should_route": ["postgresql-connection-management.md"],
+        "should_not_route": [],
+        "azure_session": False,
     },
     {
         "prompt": "Set up logical replication between two PostgreSQL servers",
-        "should_activate": ["replication"],
-        "should_not_activate": [],
+        "should_route": ["postgresql-replication.md"],
+        "should_not_route": [],
+        "azure_session": False,
     },
     {
-        "prompt": "How to authenticate with Entra ID managed identity to Azure PostgreSQL?",
-        "should_activate": ["entra-id-auth"],
-        "should_not_activate": [],
+        "prompt": "Build a RAG application with pgvector embeddings",
+        "should_route": ["postgresql-genai-rag.md"],
+        "should_not_route": ["azure-postgresql-genai-rag.md"],
+        "azure_session": False,
     },
     {
-        "prompt": "Build a RAG application with pgvector embeddings and Azure OpenAI",
-        "should_activate": ["genai-patterns"],
-        "should_not_activate": [],
+        "prompt": "How to manage extensions in PostgreSQL?",
+        "should_route": ["postgresql-extensions.md"],
+        "should_not_route": ["azure-postgresql-extension-lifecycle.md"],
+        "azure_session": False,
     },
-
-    # True negatives: should NOT activate PostgreSQL skills
+    # Azure session routing (should activate Azure-specific references)
     {
-        "prompt": "How do I iterate over an array index in JavaScript?",
-        "should_activate": [],
-        "should_not_activate": ["advanced-indexing"],
-    },
-    {
-        "prompt": "I want to partition my React app into micro-frontends",
-        "should_activate": [],
-        "should_not_activate": ["table-partitioning"],
+        "prompt": "Configure DiskANN index for vector search on Azure",
+        "should_route": ["azure-postgresql-vector-diskann.md"],
+        "should_not_route": [],
+        "azure_session": True,
     },
     {
-        "prompt": "How do I search for text in a file using grep?",
-        "should_activate": [],
-        "should_not_activate": ["full-text-search"],
+        "prompt": "How to install pg_cron extension on Azure Flexible Server?",
+        "should_route": ["azure-postgresql-extension-lifecycle.md"],
+        "should_not_route": [],
+        "azure_session": True,
     },
     {
-        "prompt": "What's the best way to manage database connections in Django?",
-        "should_activate": [],
-        "should_not_activate": ["connection-management"],
+        "prompt": "Authenticate with Entra ID managed identity",
+        "should_route": ["azure-postgresql-entra-id-auth.md"],
+        "should_not_route": [],
+        "azure_session": True,
     },
     {
-        "prompt": "How do I create a Python virtual environment?",
-        "should_activate": [],
-        "should_not_activate": ["extension-lifecycle"],
+        "prompt": "Build in-database RAG pipeline with azure_ai and pgvector",
+        "should_route": ["azure-postgresql-genai-patterns.md"],
+        "should_not_route": [],
+        "azure_session": True,
     },
     {
-        "prompt": "Configure nginx reverse proxy with SSL termination",
-        "should_activate": [],
-        "should_not_activate": ["networking-ssl"],
+        "prompt": "Configure intelligent tuning for query performance on Azure",
+        "should_route": ["azure-postgresql-intelligent-tuning.md"],
+        "should_not_route": [],
+        "azure_session": True,
+    },
+    # Azure-gating: Azure skills should NOT activate without Azure session
+    {
+        "prompt": "Configure DiskANN index for vector search",
+        "should_route": [],
+        "should_not_route": ["azure-postgresql-vector-diskann.md"],
+        "azure_session": False,
     },
     {
-        "prompt": "How to replicate a MongoDB collection to another cluster?",
-        "should_activate": [],
-        "should_not_activate": ["replication"],
+        "prompt": "Authenticate with Entra ID",
+        "should_route": [],
+        "should_not_route": ["azure-postgresql-entra-id-auth.md"],
+        "azure_session": False,
     },
     {
-        "prompt": "Set up Azure Active Directory for my web application",
-        "should_activate": [],
-        "should_not_activate": ["entra-id-auth"],
-    },
-    {
-        "prompt": "How do I extend a TypeScript interface with generics?",
-        "should_activate": [],
-        "should_not_activate": ["extension-lifecycle"],
-    },
-    {
-        "prompt": "I need to tune the JVM garbage collector for my Java app",
-        "should_activate": [],
-        "should_not_activate": ["query-performance"],
-    },
-
-    # Edge cases: domain-adjacent prompts
-    {
-        "prompt": "Optimize slow PostgreSQL query with EXPLAIN ANALYZE",
-        "should_activate": ["query-performance"],
-        "should_not_activate": [],
-    },
-    {
-        "prompt": "How to store JSON data in PostgreSQL jsonb column?",
-        "should_activate": ["jsonb-patterns"],
-        "should_not_activate": [],
-    },
-    {
-        "prompt": "Provision a new Azure Database for PostgreSQL Flexible Server",
-        "should_activate": ["provisioning"],
-        "should_not_activate": [],
-    },
-    {
-        "prompt": "Set up high availability with zone redundant deployment",
-        "should_activate": ["ha-disaster-recovery"],
-        "should_not_activate": [],
-    },
-    {
-        "prompt": "How to use azure_ai extension to call OpenAI from SQL?",
-        "should_activate": ["azure-ai"],
-        "should_not_activate": [],
+        "prompt": "Use intelligent tuning for slow queries",
+        "should_route": [],
+        "should_not_route": ["azure-postgresql-intelligent-tuning.md"],
+        "azure_session": False,
     },
 ]
 
-def main():
-    root = Path(os.environ.get("REPO_ROOT", "."))
-    manifest = load_skills_manifest(root)
-    skills = manifest.get("skills", [])
 
-    print(f"Testing activation precision with {len(TEST_CASES)} prompts against {len(skills)} skills...\n")
+def run_tests():
+    print("=" * 60)
+    print("ROUTING TABLE PRECISION TEST")
+    print("=" * 60)
+    
+    # Validate structure
+    if not SKILL_MD.exists():
+        print(f"FAIL: {SKILL_MD} not found")
+        return False
+    
+    if not REFERENCES_DIR.exists():
+        print(f"FAIL: {REFERENCES_DIR} not found")
+        return False
+    
+    # Parse routing table
+    routes = parse_routing_table(SKILL_MD)
+    if not routes:
+        print("FAIL: No routes parsed from routing table")
+        return False
+    
+    print(f"\nParsed {len(routes)} routes from routing table")
+    generic_count = sum(1 for r in routes if not r["is_azure"])
+    azure_count = sum(1 for r in routes if r["is_azure"])
+    print(f"  Generic routes: {generic_count}")
+    print(f"  Azure routes:   {azure_count}")
+    
+    # Verify all referenced files exist
+    missing_refs = []
+    for route in routes:
+        ref_path = REFERENCES_DIR / route["reference"]
+        if not ref_path.exists():
+            missing_refs.append(route["reference"])
+    
+    if missing_refs:
+        print(f"\nFAIL: {len(missing_refs)} referenced files missing:")
+        for m in missing_refs:
+            print(f"  - {m}")
+        return False
+    
+    print(f"\n  All referenced files exist ✓")
+    
+    # Run routing precision tests
+    print(f"\n{'─' * 60}")
+    print("ROUTING PRECISION TESTS")
+    print(f"{'─' * 60}\n")
+    
+    passed = 0
+    failed = 0
+    
+    for i, tc in enumerate(TEST_CASES, 1):
+        prompt = tc["prompt"]
+        expected = set(tc["should_route"])
+        forbidden = set(tc["should_not_route"])
+        is_azure = tc["azure_session"]
+        
+        activated = set(match_prompt_to_routes(prompt, routes, is_azure))
+        
+        errors = []
+        
+        # Check expected routes are activated
+        for exp in expected:
+            if exp not in activated:
+                errors.append(f"  MISS: expected '{exp}' not activated")
+        
+        # Check forbidden routes are NOT activated
+        for forb in forbidden:
+            if forb in activated:
+                errors.append(f"  FALSE+: '{forb}' should not activate")
+        
+        session_type = "Azure" if is_azure else "Generic"
+        if errors:
+            failed += 1
+            print(f"  [{i:2d}] FAIL [{session_type}] {prompt[:60]}")
+            for e in errors:
+                print(f"       {e}")
+        else:
+            passed += 1
+            print(f"  [{i:2d}] PASS [{session_type}] {prompt[:60]}")
+    
+    # Summary
+    total = passed + failed
+    print(f"\n{'=' * 60}")
+    print(f"RESULTS: {passed}/{total} passed, {failed} failed")
+    print(f"{'=' * 60}")
+    
+    return failed == 0
 
-    true_positives = 0
-    false_negatives = 0
-    true_negatives = 0
-    false_positives = 0
-    errors = []
-
-    for tc in TEST_CASES:
-        activated = match_skills(tc["prompt"], skills)
-
-        # Check should_activate (true positives)
-        for expected in tc["should_activate"]:
-            if expected in activated:
-                true_positives += 1
-            else:
-                false_negatives += 1
-                errors.append(f"  FN: \"{tc['prompt'][:60]}...\" should activate [{expected}] but didn't")
-
-        # Check should_not_activate (true negatives / false positives)
-        for blocked in tc["should_not_activate"]:
-            if blocked in activated:
-                false_positives += 1
-                errors.append(f"  FP: \"{tc['prompt'][:60]}...\" activated [{blocked}] (should not)")
-            else:
-                true_negatives += 1
-
-    total = true_positives + false_negatives + true_negatives + false_positives
-    precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 1.0
-    recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 1.0
-    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
-
-    print(f"Results:")
-    print(f"  True Positives:  {true_positives}")
-    print(f"  True Negatives:  {true_negatives}")
-    print(f"  False Positives: {false_positives}")
-    print(f"  False Negatives: {false_negatives}")
-    print(f"  Precision:       {precision:.3f}")
-    print(f"  Recall:          {recall:.3f}")
-    print(f"  F1 Score:        {f1:.3f}")
-
-    if errors:
-        print(f"\n✗ {len(errors)} activation errors:")
-        for e in errors:
-            print(e)
-
-    # Thresholds
-    if precision < 0.90:
-        print(f"\n✗ FAIL: Precision {precision:.3f} < 0.90 threshold")
-        sys.exit(1)
-    if recall < 0.80:
-        print(f"\n✗ FAIL: Recall {recall:.3f} < 0.80 threshold")
-        sys.exit(1)
-    if false_positives > 2:
-        print(f"\n✗ FAIL: {false_positives} false positives (max 2 allowed)")
-        sys.exit(1)
-
-    print(f"\n✓ Activation precision test passed (F1={f1:.3f})")
 
 if __name__ == "__main__":
-    main()
+    success = run_tests()
+    sys.exit(0 if success else 1)

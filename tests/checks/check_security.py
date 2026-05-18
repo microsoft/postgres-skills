@@ -61,10 +61,15 @@ def scan_secrets(root: Path) -> list[tuple[str, int, str]]:
     return issues
 
 def scan_unsafe_sql(root: Path) -> list[tuple[str, int, str]]:
-    """Scan SKILL.md files for unsafe SQL patterns without proper warnings."""
+    """Scan skill and reference files for unsafe SQL patterns without proper warnings."""
     issues = []
 
-    for skill_file in root.rglob("SKILL.md"):
+    skill_files = list(root.rglob("SKILL.md"))
+    refs_dir = root / "skills" / "references"
+    if refs_dir.exists():
+        skill_files.extend(refs_dir.glob("*.md"))
+
+    for skill_file in skill_files:
         content = skill_file.read_text(encoding="utf-8", errors="ignore")
         rel_path = str(skill_file.relative_to(root))
 

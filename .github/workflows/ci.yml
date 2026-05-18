@@ -32,27 +32,24 @@ jobs:
             python3 -c "import json; json.load(open('$f'))"
           done
 
-      - name: Validate plugin folder structure
+      - name: Validate single-plugin structure
         run: |
-          for plugin in postgresql-skills azure-postgresql-skills; do
-            dir="plugins/$plugin"
-            echo "Checking $dir..."
-            for file in .mcp.json run_mcp.js .skills.json README.md; do
-              if [ ! -f "$dir/$file" ]; then
-                echo "  ✗ Missing required file: $file"
-                exit 1
-              fi
-              echo "  ✓ $file exists"
-            done
-            skill_count=$(find "$dir/skills" -name "SKILL.md" | wc -l)
-            if [ "$skill_count" -lt 1 ]; then
-              echo "  ✗ No SKILL.md files found in $dir/skills/"
+          echo "Checking root plugin structure..."
+          for file in .mcp.json run_mcp.js .skills.json README.md skills/SKILL.md; do
+            if [ ! -f "$file" ]; then
+              echo "  ✗ Missing required file: $file"
               exit 1
             fi
-            echo "  ✓ $skill_count SKILL.md files found"
-            python3 -c "import json; json.load(open('$dir/.mcp.json'))"
-            python3 -c "import json; json.load(open('$dir/.skills.json'))"
+            echo "  ✓ $file exists"
           done
+          ref_count=$(find skills/references -name "*.md" | wc -l)
+          if [ "$ref_count" -lt 10 ]; then
+            echo "  ✗ Expected at least 10 reference files, found $ref_count"
+            exit 1
+          fi
+          echo "  ✓ $ref_count reference files found"
+          python3 -c "import json; json.load(open('.mcp.json'))"
+          python3 -c "import json; json.load(open('.skills.json'))"
 
   skill-size-limits:
     name: "Content: Skill token budgets"
@@ -130,21 +127,21 @@ jobs:
             os: ubuntu-latest
             install_cmd: npm install -g @github/copilot@latest
             add_marketplace_cmd: copilot plugin marketplace list
-            add_plugin_cmd: copilot mcp add azure-postgresql-skills -- node ./plugins/azure-postgresql-skills/run_mcp.js
+            add_plugin_cmd: copilot mcp add postgresql-agent-skills -- node ./run_mcp.js
             verify_cmd: copilot mcp list
 
           - cli: claude-code
             os: ubuntu-latest
             install_cmd: npm install -g @anthropic-ai/claude-code@latest
             add_marketplace_cmd: claude plugin marketplace list
-            add_plugin_cmd: claude mcp add azure-postgresql-skills -- node ./plugins/azure-postgresql-skills/run_mcp.js
+            add_plugin_cmd: claude mcp add postgresql-agent-skills -- node ./run_mcp.js
             verify_cmd: claude mcp list
 
           - cli: codex-cli
             os: ubuntu-latest
             install_cmd: npm install -g @openai/codex@latest
             add_marketplace_cmd: codex plugin marketplace add .
-            add_plugin_cmd: codex mcp add azure-postgresql-skills -- node ./plugins/azure-postgresql-skills/run_mcp.js
+            add_plugin_cmd: codex mcp add postgresql-agent-skills -- node ./run_mcp.js
             verify_cmd: codex mcp list
 
     steps:
@@ -168,7 +165,6 @@ jobs:
 
       - name: Verify MCP server can start
         run: |
-          cd plugins/azure-postgresql-skills
           timeout 30 node run_mcp.js < /dev/null 2>&1 | head -20 || true
           echo "✓ MCP runner executed without crash"
 
@@ -197,7 +193,7 @@ jobs:
         with:
           node-version: "20"
       - name: Download and verify binary
-        run: node plugins/azure-postgresql-skills/run_mcp.js --version 2>&1 || true
+        run: node run_mcp.js --version 2>&1 || true
         timeout-minutes: 3
       - name: Verify binary exists in cache
         shell: bash
@@ -323,7 +319,7 @@ jobs:
       - name: Measure MCP cold-start time
         run: |
           START=$(date +%s%N)
-          timeout 15 node plugins/azure-postgresql-skills/run_mcp.js < /dev/null 2>&1 || true
+          timeout 15 node run_mcp.js < /dev/null 2>&1 || true
           END=$(date +%s%N)
           ELAPSED=$(( (END - START) / 1000000 ))
           echo "Cold-start time: ${ELAPSED}ms"

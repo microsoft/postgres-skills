@@ -23,7 +23,7 @@ const { spawn } = require("child_process");
 const { join } = require("path");
 const fs = require("fs");
 
-const ROOT = __dirname;
+const ROOT = join(__dirname, "..");
 const SCRIPT = join(ROOT, "run_mcp.js");
 const TIMEOUT_MS = 300_000;
 const MSG_TIMEOUT_MS = 90_000;
@@ -40,11 +40,26 @@ const CONN_STRING =
 const SCHEMA = `test_rag_app_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`;
 
 // ---------------------------------------------------------------------------
-// Skill routing engine (same as test_plugin.js)
+// Skill routing engine (single-plugin model with reference routing)
 // ---------------------------------------------------------------------------
 function loadSkillsManifest() {
   return JSON.parse(fs.readFileSync(join(ROOT, ".skills.json"), "utf8")).skills;
 }
+
+// Map legacy skill IDs (used in contracts) to reference file paths
+const SKILL_ID_TO_REFERENCE = {
+  "vector-diskann": "skills/references/azure-postgresql-vector-diskann.md",
+  "table-partitioning": "skills/references/postgresql-table-partitioning.md",
+  "full-text-search": "skills/references/postgresql-full-text-search.md",
+  "extension-lifecycle": "skills/references/azure-postgresql-extension-lifecycle.md",
+  "row-level-security": "skills/references/postgresql-row-level-security.md",
+  "genai-patterns": "skills/references/azure-postgresql-genai-rag.md",
+  "advanced-indexing": "skills/references/postgresql-advanced-indexing.md",
+  "jsonb-patterns": "skills/references/postgresql-jsonb-patterns.md",
+  "connection-management": "skills/references/postgresql-connection-management.md",
+  "replication": "skills/references/postgresql-replication.md",
+  "query-performance": "skills/references/postgresql-query-performance.md",
+};
 
 function routePrompt(prompt, skills) {
   const lower = prompt.toLowerCase();
@@ -63,7 +78,12 @@ function routePrompt(prompt, skills) {
 }
 
 function loadSkillContent(skill) {
-  const fullPath = join(ROOT, skill.path);
+  // Support loading by skill object (has .path) or by legacy skillId string
+  const relativePath = typeof skill === "string"
+    ? SKILL_ID_TO_REFERENCE[skill]
+    : skill.path;
+  if (!relativePath) return null;
+  const fullPath = join(ROOT, relativePath);
   if (!fs.existsSync(fullPath)) return null;
   return fs.readFileSync(fullPath, "utf8");
 }
@@ -1060,14 +1080,9 @@ async function validateSkillQuality(proc, connId, skills) {
   console.log("\n── Phase A: Skill Content Contracts ──\n");
 
   for (const contract of SKILL_CONTRACTS) {
-    const skill = skills.find((s) => s.id === contract.skillId);
-    if (!skill) {
-      grade("A", "contract", `${contract.skillId} exists`, false, "Skill not found in manifest");
-      continue;
-    }
-    const content = loadSkillContent(skill);
+    const content = loadSkillContent(contract.skillId);
     if (!content) {
-      grade("A", "contract", `${contract.skillId} loadable`, false, "SKILL.md not found");
+      grade("A", "contract", `${contract.skillId} loadable`, false, "Reference file not found");
       continue;
     }
 
@@ -1202,19 +1217,16 @@ async function validateSkillQuality(proc, connId, skills) {
   let negFailCount = 0;
   for (const testCase of NEGATIVE_ROUTING_CASES) {
     const routed = routePrompt(testCase.prompt, skills);
-    const routedIds = routed.map((s) => s.id);
-
-    const falseActivations = testCase.shouldNotActivate.filter((id) =>
-      routedIds.includes(id)
-    );
-    const passed = falseActivations.length === 0;
+    // With single-plugin model, check that the root skill is NOT activated for non-PG prompts
+    const wasActivated = routed.length > 0;
+    const passed = !wasActivated;
     if (passed) negPassCount++;
     else negFailCount++;
 
     if (!passed) {
       grade("C", "negative-routing", `"${testCase.prompt.slice(0, 50)}..."`,
         false,
-        `False activation: ${falseActivations.join(", ")} — ${testCase.reason}`);
+        `Root skill falsely activated — ${testCase.reason}`);
     }
   }
   grade("C", "negative-routing", "overall false activation rate",
@@ -1309,9 +1321,7 @@ async function validateSkillQuality(proc, connId, skills) {
   console.log("\n── Phase E: Eval Regression Cases ──\n");
 
   for (const regression of EVAL_REGRESSION_CASES) {
-    const skill = skills.find((s) => s.id === regression.skillId);
-    if (!skill) continue;
-    const content = loadSkillContent(skill);
+    const content = loadSkillContent(regression.skillId);
     if (!content) continue;
 
     console.log(`  ${regression.skillId}: ${regression.issue}`);

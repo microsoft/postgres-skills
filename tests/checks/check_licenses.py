@@ -140,6 +140,9 @@ def main():
     # 4. Skill content licensing
     print("4. Skill content attribution...")
     skill_files = list(root.rglob("SKILL.md"))
+    refs_dir = root / "skills" / "references"
+    if refs_dir.exists():
+        skill_files.extend(refs_dir.glob("*.md"))
     copy_issues = []
     for sf in skill_files:
         content = sf.read_text(encoding="utf-8", errors="ignore")

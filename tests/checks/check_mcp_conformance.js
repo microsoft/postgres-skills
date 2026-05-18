@@ -9,7 +9,7 @@ const path = require("path");
 const readline = require("readline");
 
 const TIMEOUT_MS = 30000;
-const PLUGIN_DIR = process.env.PLUGIN_DIR || path.join(__dirname, "..", "..", "plugins", "azure-postgresql-skills");
+const PLUGIN_DIR = process.env.PLUGIN_DIR || path.join(__dirname, "..", "..");
 
 let msgId = 0;
 function makeRequest(method, params = {}) {

@@ -98,9 +98,10 @@ def main():
     else:
         syntax_only = False
 
-    # Find all SKILL.md files
+    # Find all skill/reference markdown files
     skill_files = list(root.rglob("SKILL.md"))
-    print(f"Scanning {len(skill_files)} SKILL.md files...")
+    skill_files.extend(list((root / "skills" / "references").glob("*.md")) if (root / "skills" / "references").exists() else [])
+    print(f"Scanning {len(skill_files)} skill/reference files...")
 
     all_blocks = []
     for sf in skill_files:
