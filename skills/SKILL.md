@@ -87,6 +87,27 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 
 These apply to ALL PostgreSQL advice regardless of which reference is used:
 
+**1. Know your PostgreSQL version before writing SQL:**
+```sql
+SELECT version();
+```
+Many features are version-gated: `MERGE` (PG 15+), `json_table` (PG 17+), `DETACH CONCURRENTLY` (PG 14+). If a statement fails with syntax error, check version first.
+
+**2. Confirm every change — do not assume success:**
+- Extension installed? → `SELECT * FROM pg_extension WHERE extname = 'x';`
+- Table/index created? → `\dt` / `\di` or query `pg_class`
+- Parameter changed? → `SHOW param;` (check `pending_restart` in `pg_settings`)
+
+**3. When stuck, diagnose — do not retry blindly:**
+
+| Error pattern | Likely cause | Fix |
+|---|---|---|
+| `permission denied for table` | Missing role grant | `GRANT SELECT ON table TO role;` |
+| `relation "x" does not exist` | Wrong schema/search_path | `SET search_path TO myschema, public;` |
+| `deadlock detected` | Concurrent conflicting locks | Retry with consistent lock ordering |
+| `out of shared memory` | Too many locks (bulk op) | Batch into smaller transactions |
+| `could not connect to server` | Host/port or pg_hba.conf | Check `listen_addresses` and pg_hba rules |
+
 **Managed-service constraints** (Azure, RDS, Cloud SQL):
 - Never use `ALTER SYSTEM` — use portal/CLI/ARM for server parameters
 - Never assume `SUPERUSER` — use `azure_pg_admin` (Azure) or equivalent managed role
