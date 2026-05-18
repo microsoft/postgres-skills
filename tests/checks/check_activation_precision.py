@@ -174,6 +174,97 @@ TEST_CASES = [
         "should_not_route": ["azure-postgresql-intelligent-tuning.md"],
         "azure_session": False,
     },
+    {
+        "prompt": "How to allowlist azure.extensions on my server?",
+        "should_route": [],
+        "should_not_route": ["azure-postgresql-extension-lifecycle.md"],
+        "azure_session": False,
+    },
+    {
+        "prompt": "Set up built-in PgBouncer azure connection pooling",
+        "should_route": [],
+        "should_not_route": ["azure-postgresql-connection-pooling.md"],
+        "azure_session": False,
+    },
+    {
+        "prompt": "Provision a new Flexible Server with GeneralPurpose tier",
+        "should_route": [],
+        "should_not_route": ["azure-postgresql-provisioning.md"],
+        "azure_session": False,
+    },
+    {
+        "prompt": "Configure zone redundant HA with failover",
+        "should_route": [],
+        "should_not_route": ["azure-postgresql-ha-disaster-recovery.md"],
+        "azure_session": False,
+    },
+    {
+        "prompt": "Set up Private Link and VNet for my database",
+        "should_route": [],
+        "should_not_route": ["azure-postgresql-networking-ssl.md"],
+        "azure_session": False,
+    },
+    {
+        "prompt": "Schedule a major version upgrade with maintenance window",
+        "should_route": [],
+        "should_not_route": ["azure-postgresql-upgrades-maintenance.md"],
+        "azure_session": False,
+    },
+    {
+        "prompt": "Use azure_ai ai.embed to generate embeddings from SQL",
+        "should_route": [],
+        "should_not_route": ["azure-postgresql-azure-ai.md"],
+        "azure_session": False,
+    },
+    {
+        "prompt": "Build azure genai in-database RAG pipeline",
+        "should_route": [],
+        "should_not_route": ["azure-postgresql-genai-patterns.md"],
+        "azure_session": False,
+    },
+    # Azure session + generic topic → should route to generic, NOT azure
+    {
+        "prompt": "How do I create a partial index on a boolean column?",
+        "should_route": ["postgresql-advanced-indexing.md"],
+        "should_not_route": [],
+        "azure_session": True,
+    },
+    {
+        "prompt": "Query JSONB column with containment operator",
+        "should_route": ["postgresql-jsonb-patterns.md"],
+        "should_not_route": [],
+        "azure_session": True,
+    },
+    {
+        "prompt": "Set up range partition for time-series logs",
+        "should_route": ["postgresql-table-partitioning.md"],
+        "should_not_route": [],
+        "azure_session": True,
+    },
+    {
+        "prompt": "Create row level security policy for tenant isolation",
+        "should_route": ["postgresql-row-level-security.md"],
+        "should_not_route": [],
+        "azure_session": True,
+    },
+    {
+        "prompt": "How to use tsvector for full text search with ranking?",
+        "should_route": ["postgresql-full-text-search.md"],
+        "should_not_route": [],
+        "azure_session": True,
+    },
+    {
+        "prompt": "Set up logical replication publication and subscription",
+        "should_route": ["postgresql-replication.md"],
+        "should_not_route": [],
+        "azure_session": True,
+    },
+    {
+        "prompt": "Diagnose slow query with EXPLAIN ANALYZE",
+        "should_route": ["postgresql-query-performance.md"],
+        "should_not_route": [],
+        "azure_session": True,
+    },
 ]
 
 
