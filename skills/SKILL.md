@@ -107,6 +107,38 @@ These apply to ALL PostgreSQL advice regardless of which reference is used:
 - `VACUUM` is NOT optional — autovacuum misconfiguration causes bloat and wraparound
 - Connection count is NOT unlimited — always size pools to `max_connections` minus overhead
 
+## Azure-Specific Principles (when `isAzure: true`)
+
+> Only apply these when working with an Azure Database for PostgreSQL Flexible Server connection.
+
+**1. Check your environment before writing SQL:**
+```sql
+SELECT version();                                    -- PG version → determines feature availability
+SELECT current_setting('azure.server_tier', true);   -- Burstable | GeneralPurpose | MemoryOptimized
+SHOW azure.extensions;                               -- Allowlisted extensions
+```
+- Burstable tier does NOT support: read replicas, zone-redundant HA, >2 vCores
+
+**2. Confirm every change — do not assume success:**
+- Extension installed? → `SELECT * FROM pg_extension WHERE extname = 'x';`
+- Parameter changed? → `SHOW param;` (check `pending_restart` in `pg_settings`)
+- Schema applied? → query `information_schema.columns`
+
+**3. Common Azure error patterns:**
+
+| Error | Cause | Fix |
+|---|---|---|
+| `permission denied for function` | Missing role | `GRANT azure_pg_admin TO youruser;` |
+| `extension is not available` | Not allowlisted | Allowlist via Portal/CLI first |
+| `must be loaded via shared_preload_libraries` | Needs preload + restart | Set param via CLI, then restart |
+| `SSL connection is required` | sslmode missing | Use `sslmode=require` |
+
+**4. CLI gotchas (`az postgres flexible-server`):**
+- `parameter set --value` for list params (e.g., `azure.extensions`) **replaces entire list** — always include existing values
+- `--sku-name` format is `Standard_{series}` (e.g., `Standard_D2ds_v4`)
+- Some parameter changes require restart — check `pg_settings.pending_restart`
+- When stuck: check Azure Monitor metrics + Activity Log before retrying
+
 ---
 
 When a topic exists in BOTH generic and Azure tables:
