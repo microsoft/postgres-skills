@@ -98,10 +98,10 @@ jobs:
         include:
           - cli: copilot-cli
             os: ubuntu-latest
-            install_cmd: npm install -g @github/copilot-cli@latest
-            add_marketplace_cmd: copilot extensions add-marketplace .
-            add_plugin_cmd: copilot plugin add ./plugins/azure-postgresql-skills
-            verify_cmd: copilot plugin list
+            install_cmd: npm install -g @github/copilot@latest
+            add_marketplace_cmd: copilot plugin marketplace list
+            add_plugin_cmd: copilot mcp add azure-postgresql-skills -- node ./plugins/azure-postgresql-skills/run_mcp.js
+            verify_cmd: copilot mcp list
 
           - cli: claude-code
             os: ubuntu-latest
