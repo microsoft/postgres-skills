@@ -11,6 +11,37 @@ activation:
 
 This skill routes to specialized PostgreSQL references based on your question and connection context.
 
+## Principles
+
+**1. Know your PostgreSQL version before writing SQL:**
+```sql
+SELECT version();
+```
+Version-gated features: `MERGE` (PG 15+), `json_table` (PG 17+), `DETACH CONCURRENTLY` (PG 14+). If syntax error, check version first.
+
+**2. Confirm every change — do not assume success:**
+- Extension installed? → `SELECT * FROM pg_extension WHERE extname = 'x';`
+- Table/index created? → query `pg_class` or `information_schema`
+- Parameter changed? → `SHOW param;` (check `pending_restart` in `pg_settings`)
+
+**3. When stuck, diagnose — do not retry blindly:**
+
+| Error pattern | Likely cause | Fix |
+|---|---|---|
+| `permission denied for table` | Missing role grant | `GRANT SELECT ON table TO role;` |
+| `relation "x" does not exist` | Wrong schema/search_path | `SET search_path TO myschema, public;` |
+| `could not connect to server` | Host/port or pg_hba.conf | Check `listen_addresses` and pg_hba rules |
+
+**4. Safety rules:**
+- Never use `ALTER SYSTEM` on managed services — use portal/CLI/ARM instead
+- Never assume `SUPERUSER` — use `azure_pg_admin` (Azure) or equivalent managed role
+- Use `CONCURRENTLY` for `CREATE INDEX` / `REINDEX` / `DETACH PARTITION` in production
+- Always include `IF NOT EXISTS` / `IF EXISTS` guards in DDL scripts
+- Indexes are NOT free — each adds write overhead and storage
+- `pgsql_modify` does NOT return row data (no RETURNING support)
+
+---
+
 ## Connection Context Detection
 
 **On first activation**, determine the connection type:
@@ -34,12 +65,6 @@ Connection state:
     → If user's question is clearly Azure-specific, attempt capability check.
     → Otherwise, default to postgresql-* skills.
 ```
-
-## Precedence Rules
-
-1. **Overlapping topics** (pooling, extensions, vector search, auth): if `isAzure: true`, prefer azure-postgresql-* — it includes managed-service constraints the generic version lacks.
-2. **Generic questions with Azure connection**: Still use postgresql-* when the topic has no Azure-specific behavior (e.g., JSONB patterns, RLS, table partitioning).
-3. **Never mix**: Do not combine advice from generic and Azure references for the same topic in one response — pick the appropriate one based on connection type.
 
 ---
 
@@ -65,7 +90,7 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 
 ## Azure PostgreSQL Skills (requires `isAzure: true`)
 
-> **GATE:** Only use these for operational guidance when `pgsql_get_server_capabilities` has confirmed `isAzure: true` for the active connection. For conceptual questions (user explicitly asks about Azure without a connection), provide informational answers with a disclaimer.
+> **GATE:** Only use these when `pgsql_get_server_capabilities` confirms `isAzure: true`. For conceptual questions without a connection, provide informational answers with a disclaimer.
 
 | Keyword triggers | Reference | When to use INSTEAD OF generic |
 |---|---|---|
@@ -81,96 +106,19 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 | Query Store, index recommendations, performance insights, intelligent tuning | [azure-postgresql-intelligent-tuning](references/azure-postgresql-intelligent-tuning.md) | Azure-specific monitoring. Generic `postgresql-query-performance` covers EXPLAIN-based tuning |
 | major version upgrade, maintenance window, in-place upgrade | [azure-postgresql-upgrades-maintenance](references/azure-postgresql-upgrades-maintenance.md) | Azure-specific. No generic equivalent. |
 
----
+**Azure-specific gotchas (when `isAzure: true`):**
+- Check tier first: `SELECT current_setting('azure.server_tier', true);` — Burstable does NOT support read replicas or zone-redundant HA
+- Check allowlist: `SHOW azure.extensions;` — extensions must be allowlisted before `CREATE EXTENSION`
+- `az postgres flexible-server parameter set --value` for list params **replaces entire list** — always include existing values
+- `--sku-name` format is `Standard_{series}` (e.g., `Standard_D2ds_v4`), NOT just the series name
+- Some parameter changes require restart — check `pg_settings.pending_restart`
 
-## Universal Principles & Gotchas
-
-These apply to ALL PostgreSQL advice regardless of which reference is used:
-
-**1. Know your PostgreSQL version before writing SQL:**
-```sql
-SELECT version();
-```
-Many features are version-gated: `MERGE` (PG 15+), `json_table` (PG 17+), `DETACH CONCURRENTLY` (PG 14+). If a statement fails with syntax error, check version first.
-
-**2. Confirm every change — do not assume success:**
-- Extension installed? → `SELECT * FROM pg_extension WHERE extname = 'x';`
-- Table/index created? → `\dt` / `\di` or query `pg_class`
-- Parameter changed? → `SHOW param;` (check `pending_restart` in `pg_settings`)
-
-**3. When stuck, diagnose — do not retry blindly:**
-
-| Error pattern | Likely cause | Fix |
-|---|---|---|
-| `permission denied for table` | Missing role grant | `GRANT SELECT ON table TO role;` |
-| `relation "x" does not exist` | Wrong schema/search_path | `SET search_path TO myschema, public;` |
-| `deadlock detected` | Concurrent conflicting locks | Retry with consistent lock ordering |
-| `out of shared memory` | Too many locks (bulk op) | Batch into smaller transactions |
-| `could not connect to server` | Host/port or pg_hba.conf | Check `listen_addresses` and pg_hba rules |
-
-**Managed-service constraints** (Azure, RDS, Cloud SQL):
-- Never use `ALTER SYSTEM` — use portal/CLI/ARM for server parameters
-- Never assume `SUPERUSER` — use `azure_pg_admin` (Azure) or equivalent managed role
-- Always check `pg_available_extensions` before recommending extensions
-
-**Query safety**:
-- Always wrap DDL in explicit transactions when possible
-- Use `CONCURRENTLY` for `CREATE INDEX` / `REINDEX` / `DETACH PARTITION` in production
-- Validate with `EXPLAIN (ANALYZE, BUFFERS)` — never assume an index is used
-
-**Data integrity**:
-- Always include `IF NOT EXISTS` / `IF EXISTS` guards in DDL scripts
-- Test migration scripts on a replica or staging instance first
-- Prefer `RETURNING` clause sparingly — `pgsql_modify` does NOT return row data
-
-**Common false assumptions**:
-- Indexes are NOT free — each adds write overhead and storage
-- `VACUUM` is NOT optional — autovacuum misconfiguration causes bloat and wraparound
-- Connection count is NOT unlimited — always size pools to `max_connections` minus overhead
-
-## Azure-Specific Principles (when `isAzure: true`)
-
-> Only apply these when working with an Azure Database for PostgreSQL Flexible Server connection.
-
-**1. Check your environment before writing SQL:**
-```sql
-SELECT version();                                    -- PG version → determines feature availability
-SELECT current_setting('azure.server_tier', true);   -- Burstable | GeneralPurpose | MemoryOptimized
-SHOW azure.extensions;                               -- Allowlisted extensions
-```
-- Burstable tier does NOT support: read replicas, zone-redundant HA, >2 vCores
-
-**2. Confirm every change — do not assume success:**
-- Extension installed? → `SELECT * FROM pg_extension WHERE extname = 'x';`
-- Parameter changed? → `SHOW param;` (check `pending_restart` in `pg_settings`)
-- Schema applied? → query `information_schema.columns`
-
-**3. Common Azure error patterns:**
-
-| Error | Cause | Fix |
+| Azure error | Cause | Fix |
 |---|---|---|
 | `permission denied for function` | Missing role | `GRANT azure_pg_admin TO youruser;` |
 | `extension is not available` | Not allowlisted | Allowlist via Portal/CLI first |
 | `must be loaded via shared_preload_libraries` | Needs preload + restart | Set param via CLI, then restart |
 | `SSL connection is required` | sslmode missing | Use `sslmode=require` |
-
-**4. CLI gotchas (`az postgres flexible-server`):**
-- `parameter set --value` for list params (e.g., `azure.extensions`) **replaces entire list** — always include existing values
-- `--sku-name` format is `Standard_{series}` (e.g., `Standard_D2ds_v4`)
-- Some parameter changes require restart — check `pg_settings.pending_restart`
-- When stuck: check Azure Monitor metrics + Activity Log before retrying
-
----
-
-When a topic exists in BOTH generic and Azure tables:
-
-| Topic | isAzure: true | isAzure: false / unknown |
-|---|---|---|
-| **Vector search** | `azure-postgresql-vector-diskann` (has DiskANN) | `postgresql-vector-search` (HNSW only) |
-| **RAG / GenAI** | `azure-postgresql-genai-patterns` (in-DB embeddings) | `postgresql-genai-rag` (app-driven) |
-| **Extensions** | `azure-postgresql-extension-lifecycle` (allowlist) | `postgresql-extensions` (standard) |
-| **Connection pooling** | `azure-postgresql-connection-pooling` (built-in) | `postgresql-connection-management` (standalone) |
-| **Performance tuning** | `azure-postgresql-intelligent-tuning` + generic | `postgresql-query-performance` only |
 
 ---
 
