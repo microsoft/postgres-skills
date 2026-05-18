@@ -83,7 +83,31 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 
 ---
 
-## Overlap Resolution Guide
+## Universal Principles & Gotchas
+
+These apply to ALL PostgreSQL advice regardless of which reference is used:
+
+**Managed-service constraints** (Azure, RDS, Cloud SQL):
+- Never use `ALTER SYSTEM` — use portal/CLI/ARM for server parameters
+- Never assume `SUPERUSER` — use `azure_pg_admin` (Azure) or equivalent managed role
+- Always check `pg_available_extensions` before recommending extensions
+
+**Query safety**:
+- Always wrap DDL in explicit transactions when possible
+- Use `CONCURRENTLY` for `CREATE INDEX` / `REINDEX` / `DETACH PARTITION` in production
+- Validate with `EXPLAIN (ANALYZE, BUFFERS)` — never assume an index is used
+
+**Data integrity**:
+- Always include `IF NOT EXISTS` / `IF EXISTS` guards in DDL scripts
+- Test migration scripts on a replica or staging instance first
+- Prefer `RETURNING` clause sparingly — `pgsql_modify` does NOT return row data
+
+**Common false assumptions**:
+- Indexes are NOT free — each adds write overhead and storage
+- `VACUUM` is NOT optional — autovacuum misconfiguration causes bloat and wraparound
+- Connection count is NOT unlimited — always size pools to `max_connections` minus overhead
+
+---
 
 When a topic exists in BOTH generic and Azure tables:
 
