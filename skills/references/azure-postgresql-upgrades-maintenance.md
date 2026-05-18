@@ -26,8 +26,6 @@ activation:
     - "`azure-postgresql/ha-disaster-recovery/`"
 ---
 
-> **Ã¢Å¡Â Ã¯Â¸Â AZURE GATE:** This reference contains Azure Database for PostgreSQL-specific guidance. Before applying any operational steps, confirm the target is Azure by calling `pgsql_get_server_capabilities` and verifying `isAzure: true`. If the connection is NOT Azure, use the corresponding generic postgresql-* reference instead.
-
 # Upgrades and Maintenance
 
 ## Prerequisites
@@ -111,13 +109,13 @@ ORDER BY mean_time DESC LIMIT 10;
 
 1. **[CRITICAL] `--validate-only` first, always**: `az postgres flexible-server upgrade --resource-group rg --name server --version 16 --validate-only` checks extension compatibility, disk space, and connection limits without performing upgrade. Takes 2-5 minutes. Never skip
 
-   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
    ```bash
-   # Skipping validation ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â upgrade may fail mid-way
+   # Skipping validation ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â upgrade may fail mid-way
    az postgres flexible-server upgrade --name myserver --version 16
    ```
 
-   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
    ```bash
    # Always validate first
    az postgres flexible-server upgrade --name myserver --version 16 --validate-only
@@ -129,13 +127,13 @@ ORDER BY mean_time DESC LIMIT 10;
 3. **[HIGH] Extension compatibility matrix**: Not all extensions support all PG versions. Check BEFORE upgrade: `SELECT e.extname, e.extversion FROM pg_extension e` then verify target version supports each. `pg_partman` and `postgis` are common blockers
 4. **[HIGH] Post-MVU `ANALYZE` requirement**: After major version upgrade, `pg_statistic` is stale. Run `ANALYZE;` on priority tables immediately, then `vacuumdb --all --analyze-in-place` for the full database
 
-   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
    ```bash
    # Upgrade completes, application goes live immediately
-   # All queries regress ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â planner has no statistics for new version
+   # All queries regress ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â planner has no statistics for new version
    ```
 
-   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
    ```sql
    -- Immediately after upgrade completes:
    ANALYZE;
@@ -145,14 +143,14 @@ ORDER BY mean_time DESC LIMIT 10;
 5. **[HIGH] Post-MVU extension updates**: Run `ALTER EXTENSION vector UPDATE; ALTER EXTENSION postgis UPDATE;` for each extension to get version compatible with new PG major
 6. **[CRITICAL] Rollback strategy**: MVU is one-way (cannot downgrade). If upgrade causes issues, restore from pre-upgrade PITR backup using `az postgres flexible-server restore` (creates NEW server at old version)
 
-   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
    ```bash
    # Assuming you can downgrade if something goes wrong
    az postgres flexible-server upgrade --name myserver --version 15
    # ERROR: downgrade is not supported
    ```
 
-   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
    ```bash
    # Pre-upgrade: note PITR backup exists. If issues arise:
    az postgres flexible-server restore --name myserver-rollback \

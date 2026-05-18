@@ -25,8 +25,6 @@ activation:
     - "`azure-postgresql/entra-id-auth/`"
 ---
 
-> **Ã¢Å¡Â Ã¯Â¸Â AZURE GATE:** This reference contains Azure Database for PostgreSQL-specific guidance. Before applying any operational steps, confirm the target is Azure by calling `pgsql_get_server_capabilities` and verifying `isAzure: true`. If the connection is NOT Azure, use the corresponding generic postgresql-* reference instead.
-
 # Connection Pooling (Built-in PgBouncer)
 
 ## Prerequisites
@@ -102,13 +100,13 @@ psql "host=myserver.postgres.database.azure.com port=6432 \
 
 1. **[HIGH] Port 6432 is mandatory**: Built-in PgBouncer always listens on 6432. Cannot change it. Connection strings MUST use port 6432. Using 5432 bypasses PgBouncer entirely (direct to PostgreSQL)
 
-   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
    ```bash
    psql "host=myserver.postgres.database.azure.com port=5432 dbname=postgres"
-   # Connects directly to PostgreSQL ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â PgBouncer bypassed entirely
+   # Connects directly to PostgreSQL ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â PgBouncer bypassed entirely
    ```
 
-   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
    ```bash
    psql "host=myserver.postgres.database.azure.com port=6432 dbname=postgres"
    # Routes through PgBouncer for connection pooling
@@ -117,14 +115,14 @@ psql "host=myserver.postgres.database.azure.com port=6432 \
 3. **[HIGH] Pool math overflow**: `default_pool_size` (default=50) applies per user/database pair. Formula: `max_backend_connections = default_pool_size * num_databases * num_users`. Set `pgbouncer.max_client_conn = 5000` and verify `max_connections` on the backend supports the pool's demand
 4. **[CRITICAL] Entra token + transaction mode conflict**: Transaction mode reassigns backends per transaction but Entra tokens bind to the original auth handshake. Use `pgbouncer.pool_mode = session` when ANY client uses token auth, or route token clients to port 5432 directly
 
-   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
    ```bash
    # Transaction mode + Entra token auth = auth failures
    az postgres flexible-server parameter set --name pgbouncer.default_pool_mode --value transaction
-   # Then connect with Entra token ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ FATAL: password authentication failed
+   # Then connect with Entra token ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ FATAL: password authentication failed
    ```
 
-   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
    ```bash
    # Use session mode when ANY client uses token auth
    az postgres flexible-server parameter set --name pgbouncer.default_pool_mode --value session
@@ -133,14 +131,14 @@ psql "host=myserver.postgres.database.azure.com port=6432 \
 5. **[MEDIUM] `SHOW POOLS` unavailable**: Azure built-in PgBouncer does NOT expose the admin console. No `SHOW POOLS`, `SHOW STATS`, `SHOW CLIENTS`. Use `pg_stat_activity` (shows backend connections) and Azure Monitor metrics (`pgbouncer_active_connections`, `pgbouncer_waiting_connections`) instead
 6. **[HIGH] Prepared statement workaround**: Transaction mode breaks server-side prepared statements. Solutions: (a) `pgbouncer.pool_mode = session` for that user, (b) client-side prepared statements, (c) `DEALLOCATE ALL` at transaction start
 
-   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
    ```sql
    -- In transaction mode, prepared statements break across transactions
    PREPARE my_query AS SELECT * FROM users WHERE id = $1;
    EXECUTE my_query(1);  -- may fail: prepared statement does not exist
    ```
 
-   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
    ```sql
    -- Use SET LOCAL or client-side prepared statements in transaction mode
    DEALLOCATE ALL;  -- at transaction start to clear stale state

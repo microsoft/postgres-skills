@@ -25,8 +25,6 @@ activation:
     - "`azure-postgresql/extension-lifecycle/`"
 ---
 
-> **Ã¢Å¡Â Ã¯Â¸Â AZURE GATE:** This reference contains Azure Database for PostgreSQL-specific guidance. Before applying any operational steps, confirm the target is Azure by calling `pgsql_get_server_capabilities` and verifying `isAzure: true`. If the connection is NOT Azure, use the corresponding generic postgresql-* reference instead.
-
 ## Prerequisites
 - `azure_ai` listed in `azure.extensions` allowlist (requires `azure_pg_admin` role)
 - Azure OpenAI resource deployed in same region (or accessible via Private Link)
@@ -34,7 +32,7 @@ activation:
 
 ## Instructions
 
-### Step 1 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Install and configure the extension
+### Step 1 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Install and configure the extension
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS azure_ai;
@@ -48,9 +46,9 @@ SELECT azure_ai.set_setting('azure_openai.endpoint', 'https://<resource>.openai.
 -- Grant "Cognitive Services OpenAI User" RBAC role to the server's managed identity
 ```
 
-Verify: `SELECT azure_ai.version();` ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â must return a version string.
+Verify: `SELECT azure_ai.version();` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â must return a version string.
 
-### Step 2 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Multi-service configuration (optional)
+### Step 2 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Multi-service configuration (optional)
 
 Chain additional Azure AI services:
 
@@ -60,7 +58,7 @@ SELECT azure_ai.set_setting('azure_ai_language.endpoint', 'https://<resource>.co
 SELECT azure_ai.set_setting('azure_ai_language.subscription_key', '<key>');
 ```
 
-### Step 3 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Text generation with azure_openai.create()
+### Step 3 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Text generation with azure_openai.create()
 
 ```sql
 SELECT azure_openai.create(
@@ -74,7 +72,7 @@ WHERE summary IS NULL
 LIMIT 100;                       -- batch to avoid rate limits
 ```
 
-### Step 4 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Classification pattern
+### Step 4 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Classification pattern
 
 ```sql
 UPDATE products
@@ -88,7 +86,7 @@ SET category = azure_openai.create(
 WHERE category IS NULL;
 ```
 
-### Step 5 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Entity extraction pattern
+### Step 5 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Entity extraction pattern
 
 ```sql
 SELECT id,
@@ -101,7 +99,7 @@ SELECT id,
 FROM articles;
 ```
 
-### Step 6 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Scoring / sentiment pattern
+### Step 6 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Scoring / sentiment pattern
 
 ```sql
 UPDATE reviews
@@ -128,16 +126,16 @@ SELECT azure_openai.create('<deployment>', 'Reply with: OK', 'test');
 
 ## Common Mistakes
 
-1. **[CRITICAL] Extension not in allowlist**: `CREATE EXTENSION` fails ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ add `azure_ai` to `azure.extensions` server parameter (requires `azure_pg_admin` role). If you see 403: verify you hold the `azure_pg_admin` role: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'MEMBER');`
+1. **[CRITICAL] Extension not in allowlist**: `CREATE EXTENSION` fails ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ add `azure_ai` to `azure.extensions` server parameter (requires `azure_pg_admin` role). If you see 403: verify you hold the `azure_pg_admin` role: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'MEMBER');`
 
-   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
    ```sql
    -- As a non-admin user or without allowlisting
    CREATE EXTENSION azure_ai;
    -- ERROR: extension "azure_ai" is not allowlisted
    ```
 
-   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
    ```bash
    # First allowlist, then create as azure_pg_admin
    az postgres flexible-server parameter set --name azure.extensions --value "azure_ai,vector"
@@ -146,35 +144,35 @@ SELECT azure_openai.create('<deployment>', 'Reply with: OK', 'test');
    CREATE EXTENSION azure_ai;
    ```
 
-2. **[HIGH] Wrong endpoint format**: Must be `https://<resource>.openai.azure.com` ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no trailing slash, no `/openai/` path.
+2. **[HIGH] Wrong endpoint format**: Must be `https://<resource>.openai.azure.com` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â no trailing slash, no `/openai/` path.
 
-   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
    ```sql
    SELECT azure_ai.set_setting('azure_openai.endpoint', 'https://myresource.openai.azure.com/openai/');
    ```
 
-   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
    ```sql
    SELECT azure_ai.set_setting('azure_openai.endpoint', 'https://myresource.openai.azure.com');
    ```
 
-3. **[HIGH] Deployment name ÃƒÂ¢Ã¢â‚¬Â°Ã‚Â  model name**: Pass the *deployment* name (e.g., `my-gpt4o`), not the model name (`gpt-4o`).
+3. **[HIGH] Deployment name ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â  model name**: Pass the *deployment* name (e.g., `my-gpt4o`), not the model name (`gpt-4o`).
 
-   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
    ```sql
    SELECT azure_openai.create('gpt-4o', 'Summarize', content);
-   -- Returns NULL or error ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no deployment named "gpt-4o"
+   -- Returns NULL or error ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â no deployment named "gpt-4o"
    ```
 
-   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
    ```sql
    SELECT azure_openai.create('my-gpt4o-deployment', 'Summarize', content);
    -- Use the deployment name from Azure OpenAI Studio
    ```
 
 4. **[MEDIUM] Rate limiting (429)**: Batch with `LIMIT` + `pg_sleep()` between batches. Start with batches of 50-100 rows.
-5. **[CRITICAL] Managed identity RBAC chain**: Server identity ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ "Cognitive Services OpenAI User" on OpenAI resource. Takes up to 10 minutes to propagate.
-6. **[MEDIUM] Key rotation**: Update via `azure_ai.set_setting()` ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no server restart needed, but value is per-session if not persisted.
+5. **[CRITICAL] Managed identity RBAC chain**: Server identity ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ "Cognitive Services OpenAI User" on OpenAI resource. Takes up to 10 minutes to propagate.
+6. **[MEDIUM] Key rotation**: Update via `azure_ai.set_setting()` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â no server restart needed, but value is per-session if not persisted.
 7. **[MEDIUM] Confusing create() vs create_embeddings()**: `azure_openai.create()` = text generation (returns text). `azure_openai.create_embeddings()` = vector embeddings (returns vector). For embeddings, use `azure-postgresql/genai-patterns/`.
 8. **[MEDIUM] Temperature for classification**: Always set `temperature => 0.0` for deterministic classification/scoring tasks.
 9. **[CRITICAL] "extension azure_ai does not exist"**: Not in allowlist. Check `SHOW azure.extensions;` and add `azure_ai`.

@@ -31,8 +31,6 @@ activation:
     - "`azure-postgresql/azure-ai/`"
 ---
 
-> **Ã¢Å¡Â Ã¯Â¸Â AZURE GATE:** This reference contains Azure Database for PostgreSQL-specific guidance. Before applying any operational steps, confirm the target is Azure by calling `pgsql_get_server_capabilities` and verifying `isAzure: true`. If the connection is NOT Azure, use the corresponding generic postgresql-* reference instead.
-
 # Extension Lifecycle
 
 ## Prerequisites
@@ -104,13 +102,13 @@ SHOW shared_preload_libraries;
 
 1. **[CRITICAL] Allowlist append workflow**: `az postgres flexible-server parameter show --name azure.extensions` returns current list. You must append, not replace: `az postgres flexible-server parameter set --name azure.extensions --value "vector,pg_diskann,pg_trgm,NEW_EXT"`. Setting `--value "NEW_EXT"` alone REMOVES all existing extensions
 
-   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
    ```bash
-   # OVERWRITES entire list ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â removes all other extensions!
+   # OVERWRITES entire list ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â removes all other extensions!
    az postgres flexible-server parameter set --name azure.extensions --value "pg_cron"
    ```
 
-   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
    ```bash
    # First GET current list, then APPEND
    az postgres flexible-server parameter show --name azure.extensions --query value
@@ -119,15 +117,15 @@ SHOW shared_preload_libraries;
    ```
 
 2. **[HIGH] `shared_preload_libraries` restart behavior**: Adding to this parameter requires server restart. Plan maintenance window. Current value check: `SHOW shared_preload_libraries`. Common values needing preload: `pg_cron`, `pg_stat_statements`, `auto_explain`
-3. **[HIGH] Binary name vs marketing name mapping**: `pgvector` ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ `CREATE EXTENSION vector`. `pg_partman` ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ `CREATE EXTENSION pg_partman`. `PostGIS` ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ `CREATE EXTENSION postgis`. Always verify with `SELECT * FROM pg_available_extensions WHERE name LIKE '%search%'`
+3. **[HIGH] Binary name vs marketing name mapping**: `pgvector` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ `CREATE EXTENSION vector`. `pg_partman` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ `CREATE EXTENSION pg_partman`. `PostGIS` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ `CREATE EXTENSION postgis`. Always verify with `SELECT * FROM pg_available_extensions WHERE name LIKE '%search%'`
 
-   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
    ```sql
    CREATE EXTENSION pgvector;
    -- ERROR: extension "pgvector" is not available
    ```
 
-   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
    ```sql
    CREATE EXTENSION vector;  -- binary name, not marketing name
    ```
@@ -136,14 +134,14 @@ SHOW shared_preload_libraries;
 5. **[MEDIUM] Extension availability matrix**: Available: `vector`, `pg_diskann`, `postgis`, `pg_cron`, `pg_partman`, `pg_stat_statements`, `pg_trgm`, `hstore`, `uuid-ossp`, `azure_ai`. NOT available: `file_fdw`, `plpython3u`, `adminpack`, `dblink` (to external). Check: `SELECT * FROM pg_available_extensions ORDER BY name`
 6. **[HIGH] `azure_pg_admin` role limitations**: You have `azure_pg_admin`, not superuser. Cannot: `CREATE EXTENSION` for unlisted extensions, load custom C libraries, modify `pg_hba.conf`. Can: create any extension in the allowlist, manage roles, create databases
 
-   ÃƒÂ¢Ã‚ÂÃ…â€™ Wrong:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
    ```sql
    -- Attempting superuser-only operations
    ALTER SYSTEM SET shared_preload_libraries = 'pg_cron';
    -- ERROR: must be superuser to execute this command
    ```
 
-   ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Right:
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
    ```bash
    # Use Azure CLI for postmaster-level GUCs
    az postgres flexible-server parameter set --name shared_preload_libraries --value "pg_cron"

@@ -13,23 +13,33 @@ This skill routes to specialized PostgreSQL references based on your question an
 
 ## Connection Context Detection
 
-Before referencing any skill, determine the connection type:
+**On first activation**, determine the connection type:
+
+1. Check if an MCP connection is already established (look for an active `connectionId`)
+2. If YES → call `pgsql_get_server_capabilities` once per session to get `isAzure` flag
+3. Cache the result for the session — do not re-check on every question
 
 ```
-IF active connection exists:
-  → Call `pgsql_get_server_capabilities` to check `isAzure` flag
-  → IF isAzure == true: Azure skills ARE available, prefer them for overlapping topics
-  → IF isAzure == false: Use ONLY postgresql-* skills (generic)
-IF no active connection:
-  → Use postgresql-* skills for generic questions
-  → For Azure conceptual questions (user explicitly asks about Azure): reference azure-postgresql-* skills as informational only — do NOT execute operational commands
+Connection state:
+├── Active connection + isAzure: true
+│   → All skills available. Prefer azure-postgresql-* for overlapping topics.
+├── Active connection + isAzure: false
+│   → Use ONLY postgresql-* skills. Do NOT reference azure-* skills.
+├── No active connection + user asks generic PostgreSQL question
+│   → Use postgresql-* skills only.
+├── No active connection + user explicitly asks about Azure
+│   → Provide conceptual answer from azure-* skills with disclaimer:
+│     "These steps require an active Azure PostgreSQL connection to execute."
+└── Unknown state (first interaction)
+    → If user's question is clearly Azure-specific, attempt capability check.
+    → Otherwise, default to postgresql-* skills.
 ```
 
 ## Precedence Rules
 
-1. If `isAzure: true` and topic overlaps (e.g., connection pooling, extensions, auth), **prefer the azure-postgresql-* reference** — it has managed-service constraints.
-2. If Azure status is unknown and user asks a generic PostgreSQL question, use **only postgresql-* references**.
-3. If Azure status is unknown and user explicitly asks about Azure, call capability check first. If unavailable, provide conceptual guidance with a disclaimer.
+1. **Overlapping topics** (pooling, extensions, vector search, auth): if `isAzure: true`, prefer azure-postgresql-* — it includes managed-service constraints the generic version lacks.
+2. **Generic questions with Azure connection**: Still use postgresql-* when the topic has no Azure-specific behavior (e.g., JSONB patterns, RLS, table partitioning).
+3. **Never mix**: Do not combine advice from generic and Azure references for the same topic in one response — pick the appropriate one based on connection type.
 
 ---
 
@@ -39,34 +49,51 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 
 | Keyword triggers | Reference | What it covers |
 |---|---|---|
-| index, btree, gin, gist, brin, partial index, covering index, seq scan, create index, reindex | [postgresql-advanced-indexing](references/postgresql-advanced-indexing.md) | B-tree, GIN, GiST, BRIN, partial/expression/covering indexes, EXPLAIN analysis |
-| jsonb, json, containment, GIN jsonb, jsonb_path, document store | [postgresql-jsonb-patterns](references/postgresql-jsonb-patterns.md) | JSONB operators, indexing strategies, query patterns, schema-on-read |
-| partition, range partition, list partition, hash partition, pg_partman, archiving | [postgresql-table-partitioning](references/postgresql-table-partitioning.md) | Declarative partitioning, partition pruning, maintenance, pg_partman |
-| row level security, RLS, tenant isolation, multi-tenant, policy, FORCE ROW LEVEL SECURITY | [postgresql-row-level-security](references/postgresql-row-level-security.md) | CREATE POLICY, per-tenant isolation, session variables, BYPASSRLS |
-| tsvector, tsquery, full text search, ts_rank, websearch_to_tsquery, stemming | [postgresql-full-text-search](references/postgresql-full-text-search.md) | tsvector/tsquery, GIN indexes, ranking, language configs, hybrid search |
-| connection pool, max_connections, too many connections, idle connections, pgbouncer | [postgresql-connection-management](references/postgresql-connection-management.md) | Pool sizing, PgBouncer modes, connection lifetime, monitoring |
+| pgvector, vector, HNSW, embedding, similarity search, cosine distance, vector index | [postgresql-vector-search](references/postgresql-vector-search.md) | pgvector setup, HNSW indexes, distance operators, recall tuning |
+| RAG, embeddings, semantic search, hybrid search, reciprocal rank fusion, vector + text | [postgresql-genai-rag](references/postgresql-genai-rag.md) | RAG pipelines, hybrid search with RRF, chunking strategy |
+| extension, CREATE EXTENSION, pg_stat_statements, pg_trgm, shared_preload_libraries | [postgresql-extensions](references/postgresql-extensions.md) | Extension install/upgrade, common extensions, troubleshooting |
+| index, btree, gin, gist, brin, partial index, covering index, seq scan, create index, reindex | [postgresql-advanced-indexing](references/postgresql-advanced-indexing.md) | B-tree, GIN, GiST, BRIN, partial/expression/covering indexes |
+| jsonb, json, containment, GIN jsonb, jsonb_path, document store | [postgresql-jsonb-patterns](references/postgresql-jsonb-patterns.md) | JSONB operators, indexing strategies, query patterns |
+| partition, range partition, list partition, hash partition, pg_partman, archiving | [postgresql-table-partitioning](references/postgresql-table-partitioning.md) | Declarative partitioning, partition pruning, maintenance |
+| row level security, RLS, tenant isolation, multi-tenant, policy, FORCE ROW LEVEL SECURITY | [postgresql-row-level-security](references/postgresql-row-level-security.md) | CREATE POLICY, per-tenant isolation, session variables |
+| tsvector, tsquery, full text search, ts_rank, websearch_to_tsquery, stemming | [postgresql-full-text-search](references/postgresql-full-text-search.md) | tsvector/tsquery, GIN indexes, ranking, hybrid search |
+| connection pool, max_connections, too many connections, idle connections, pgbouncer | [postgresql-connection-management](references/postgresql-connection-management.md) | Pool sizing, PgBouncer modes, connection lifetime |
 | logical replication, publication, subscription, CDC, pg_logical, wal_level | [postgresql-replication](references/postgresql-replication.md) | Logical replication setup, row filters (PG15+), conflict resolution |
-| slow query, EXPLAIN ANALYZE, seq scan, query plan, work_mem, vacuum, statistics | [postgresql-query-performance](references/postgresql-query-performance.md) | EXPLAIN reading, statistics tuning, vacuum strategy, work_mem, parallel query |
+| slow query, EXPLAIN ANALYZE, query plan, work_mem, vacuum, statistics, performance | [postgresql-query-performance](references/postgresql-query-performance.md) | EXPLAIN reading, statistics tuning, vacuum, parallel query |
 
 ---
 
-## Azure PostgreSQL Skills (requires Azure connection)
+## Azure PostgreSQL Skills (requires `isAzure: true`)
 
-> **⚠️ GATE:** Do NOT reference these skills for operational guidance unless `pgsql_get_server_capabilities` confirms `isAzure: true`. For conceptual questions about Azure (user explicitly asks), provide informational answers with a disclaimer that operational steps require an Azure connection.
+> **GATE:** Only use these for operational guidance when `pgsql_get_server_capabilities` has confirmed `isAzure: true` for the active connection. For conceptual questions (user explicitly asks about Azure without a connection), provide informational answers with a disclaimer.
 
-| Keyword triggers | Reference | What it covers |
+| Keyword triggers | Reference | When to use INSTEAD OF generic |
 |---|---|---|
-| extension, CREATE EXTENSION, azure.extensions, allowlist, shared_preload_libraries | [azure-postgresql-extension-lifecycle](references/azure-postgresql-extension-lifecycle.md) | Extension allowlisting, install workflow, azure_pg_admin role |
-| vector, embedding, DiskANN, pgvector, HNSW, similarity search, cosine distance | [azure-postgresql-vector-diskann](references/azure-postgresql-vector-diskann.md) | pgvector + pg_diskann setup, index selection, recall tuning |
-| Entra ID, managed identity, service principal, passwordless, AAD, token auth | [azure-postgresql-entra-id-auth](references/azure-postgresql-entra-id-auth.md) | Managed identity auth, token refresh, connection strings |
-| RAG, embeddings, azure_ai, LLM, generative AI, semantic search, hybrid search | [azure-postgresql-genai-patterns](references/azure-postgresql-genai-patterns.md) | RAG architecture, azure_ai extension, hybrid search, RRF |
-| provision, create server, resize, tier, Burstable, GeneralPurpose, MemoryOptimized, IOPS | [azure-postgresql-provisioning](references/azure-postgresql-provisioning.md) | Server creation, tier selection, storage/IOPS, scaling |
-| HA, high availability, failover, PITR, read replica, zone redundant, backup | [azure-postgresql-ha-disaster-recovery](references/azure-postgresql-ha-disaster-recovery.md) | Zone-redundant HA, failover testing, PITR, geo-restore |
-| Private Link, VNet, firewall, SSL, TLS, network security, public access | [azure-postgresql-networking-ssl](references/azure-postgresql-networking-ssl.md) | Private Link, VNet integration, firewall rules, TLS enforcement |
-| built-in PgBouncer, transaction mode, pool_mode, azure pooling | [azure-postgresql-connection-pooling](references/azure-postgresql-connection-pooling.md) | Built-in PgBouncer config, transaction vs session mode, pool sizing |
-| Query Store, index recommendations, performance insights, intelligent tuning | [azure-postgresql-intelligent-tuning](references/azure-postgresql-intelligent-tuning.md) | Query Store, auto-tuning, index advisor, wait statistics |
-| major version upgrade, maintenance window, in-place upgrade, PG version | [azure-postgresql-upgrades-maintenance](references/azure-postgresql-upgrades-maintenance.md) | Major version upgrades, maintenance windows, pre-upgrade checks |
-| azure_ai extension, azure_openai, ai.complete, ai.embed, LLM from SQL | [azure-postgresql-azure-ai](references/azure-postgresql-azure-ai.md) | azure_ai setup, calling LLMs from SQL, embedding generation |
+| DiskANN, pg_diskann, filtered vector search, azure vector index | [azure-postgresql-vector-diskann](references/azure-postgresql-vector-diskann.md) | User needs DiskANN (Azure-only), filtered vector search, or is on Azure and needs index advice |
+| azure_ai, azure_openai, ai.complete, ai.embed, in-database embeddings, LLM from SQL | [azure-postgresql-azure-ai](references/azure-postgresql-azure-ai.md) | User wants to call LLMs/embeddings directly from SQL (azure_ai extension) |
+| azure_ai + RAG, in-database RAG pipeline, azure genai | [azure-postgresql-genai-patterns](references/azure-postgresql-genai-patterns.md) | User wants end-to-end RAG using azure_ai (in-DB embeddings). If app-driven RAG on Azure, use generic `postgresql-genai-rag` instead |
+| azure.extensions, allowlist, extension on Azure, azure_pg_admin | [azure-postgresql-extension-lifecycle](references/azure-postgresql-extension-lifecycle.md) | Extension install ON AZURE (allowlist workflow). Generic `postgresql-extensions` covers non-Azure |
+| Entra ID, managed identity, service principal, passwordless auth, AAD token | [azure-postgresql-entra-id-auth](references/azure-postgresql-entra-id-auth.md) | Azure-specific auth only. No generic equivalent. |
+| built-in PgBouncer, azure connection pooling, pool_mode on azure | [azure-postgresql-connection-pooling](references/azure-postgresql-connection-pooling.md) | Azure built-in PgBouncer. Generic `postgresql-connection-management` covers standalone PgBouncer |
+| provision, create server, resize, tier, Burstable, GeneralPurpose, MemoryOptimized, IOPS | [azure-postgresql-provisioning](references/azure-postgresql-provisioning.md) | Azure-specific. No generic equivalent. |
+| HA, zone redundant, failover, PITR, read replica, geo-restore, backup | [azure-postgresql-ha-disaster-recovery](references/azure-postgresql-ha-disaster-recovery.md) | Azure HA/DR. No generic equivalent. |
+| Private Link, VNet, firewall rule, SSL on azure, TLS, public access | [azure-postgresql-networking-ssl](references/azure-postgresql-networking-ssl.md) | Azure networking. No generic equivalent. |
+| Query Store, index recommendations, performance insights, intelligent tuning | [azure-postgresql-intelligent-tuning](references/azure-postgresql-intelligent-tuning.md) | Azure-specific monitoring. Generic `postgresql-query-performance` covers EXPLAIN-based tuning |
+| major version upgrade, maintenance window, in-place upgrade | [azure-postgresql-upgrades-maintenance](references/azure-postgresql-upgrades-maintenance.md) | Azure-specific. No generic equivalent. |
+
+---
+
+## Overlap Resolution Guide
+
+When a topic exists in BOTH generic and Azure tables:
+
+| Topic | isAzure: true | isAzure: false / unknown |
+|---|---|---|
+| **Vector search** | `azure-postgresql-vector-diskann` (has DiskANN) | `postgresql-vector-search` (HNSW only) |
+| **RAG / GenAI** | `azure-postgresql-genai-patterns` (in-DB embeddings) | `postgresql-genai-rag` (app-driven) |
+| **Extensions** | `azure-postgresql-extension-lifecycle` (allowlist) | `postgresql-extensions` (standard) |
+| **Connection pooling** | `azure-postgresql-connection-pooling` (built-in) | `postgresql-connection-management` (standalone) |
+| **Performance tuning** | `azure-postgresql-intelligent-tuning` + generic | `postgresql-query-performance` only |
 
 ---
 
@@ -74,15 +101,21 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 
 ```
 User asks about PostgreSQL...
-├── Generic question (indexing, partitioning, RLS, FTS, etc.)
-│   └── → Use postgresql-* reference
-├── Azure-specific question
-│   ├── Active Azure connection confirmed?
-│   │   ├── YES → Use azure-postgresql-* reference
-│   │   └── NO → Conceptual answer only + "connect to Azure instance for operational steps"
-│   └── Unknown connection state?
-│       └── → Call pgsql_get_server_capabilities first
-└── Overlapping topic (pooling, extensions, auth)
-    ├── isAzure: true → Prefer azure-postgresql-* (has managed constraints)
-    └── isAzure: false → Use postgresql-* only
+├── Vector/embedding/similarity question
+│   ├── isAzure: true → azure-postgresql-vector-diskann
+│   └── else → postgresql-vector-search
+├── RAG/GenAI question
+│   ├── Wants in-database embeddings (azure_ai) → azure-postgresql-genai-patterns
+│   └── App-driven or generic → postgresql-genai-rag
+├── Extension question
+│   ├── isAzure: true → azure-postgresql-extension-lifecycle
+│   └── else → postgresql-extensions
+├── Connection pooling question
+│   ├── isAzure: true → azure-postgresql-connection-pooling
+│   └── else → postgresql-connection-management
+├── Azure-only topic (Entra ID, provisioning, HA, networking, upgrades)
+│   ├── isAzure: true → appropriate azure-* reference
+│   └── else → "This feature is specific to Azure Database for PostgreSQL"
+└── Generic topic (indexing, JSONB, partitioning, RLS, FTS, replication)
+    └── → postgresql-* reference (regardless of connection type)
 ```
