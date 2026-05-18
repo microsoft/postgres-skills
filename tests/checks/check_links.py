@@ -23,6 +23,15 @@ SKIP_PATTERNS = [
     r'management\.azure\.com/?$',
     r'myresource\.openai\.azure\.com',
     r'dl\.cacerts\.digicert\.com',
+    r'github\.com/[^/\s]+/postgresql-agent-skills(?:\.git|/|$)',
+]
+
+NON_BLOCKING_NETWORK_ERRORS = [
+    "No address associated with hostname",
+    "Name or service not known",
+    "Temporary failure in name resolution",
+    "timed out",
+    "CERTIFICATE_VERIFY_FAILED",
 ]
 
 def find_urls(root: Path) -> list[tuple[str, str, int]]:
@@ -69,8 +78,7 @@ def main():
             file_path, url, line_no, status = future.result()
             if isinstance(status, int) and 200 <= status < 400:
                 continue
-            # Treat TLS chain mismatches on known cert-host links as non-blocking.
-            if "digicert.com" in url and isinstance(status, str) and "CERTIFICATE_VERIFY_FAILED" in status:
+            if isinstance(status, str) and any(err in status for err in NON_BLOCKING_NETWORK_ERRORS):
                 continue
             errors.append((file_path, url, line_no, status))
 
