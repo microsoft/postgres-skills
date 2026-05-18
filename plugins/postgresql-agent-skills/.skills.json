@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "name": "postgresql-agent-skills",
   "display_name": "PostgreSQL Agent Skills",
-  "description": "Expert-curated skills for AI coding agents working with PostgreSQL and Azure Database for PostgreSQL. Single plugin with connection-aware routing.",
+  "description": "Expert-curated skills for AI coding agents working with PostgreSQL and Azure Database for PostgreSQL. Single plugin with intelligent routing — Azure skills activate only with confirmed Azure connections.",
   "publisher": "microsoft",
   "version": "0.2.0",
   "license": "MIT",
@@ -10,7 +10,7 @@
   "skills": [
     {
       "id": "postgresql-agent-skills",
-      "path": "plugins/postgresql-agent-skills/skills/SKILL.md",
+      "path": "skills/SKILL.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
         "postgresql",
@@ -24,20 +24,17 @@
         "jsonb",
         "tsvector",
         "row level security",
-        "table partition",
+        "partition table",
         "logical replication",
         "connection pooling",
-        "entra id",
+        "entra id auth",
         "azure_ai",
         "query performance",
         "create index",
-        "extension lifecycle",
-        "full text search",
-        "postgresql index",
-        "database index"
+        "extension lifecycle"
       ],
       "always_load": false,
-      "references_dir": "plugins/postgresql-agent-skills/skills/references/"
+      "references_dir": "skills/references/"
     }
   ],
   "connection_gating": {

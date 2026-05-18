@@ -26,6 +26,8 @@ activation:
     - "`azure-postgresql/genai-patterns/`"
 ---
 
+> **âš ï¸ AZURE GATE:** This reference contains Azure Database for PostgreSQL-specific guidance. Before applying any operational steps, confirm the target is Azure by calling `pgsql_get_server_capabilities` and verifying `isAzure: true`. If the connection is NOT Azure, use the corresponding generic postgresql-* reference instead.
+
 # Vector Search with DiskANN
 
 ## Prerequisites
@@ -120,14 +122,14 @@ SELECT pg_size_pretty(pg_relation_size('idx_docs_embedding_diskann'));
 1. **[MEDIUM] DiskANN availability**: `pg_diskann` requires Flexible Server. Verify with `SELECT * FROM pg_available_extensions WHERE name = 'pg_diskann'` before using in code
 2. **[CRITICAL] Wrong operator class**: Must match distance operator to class. `vector_cosine_ops` for `<=>`, `vector_l2_ops` for `<->`, `vector_ip_ops` for `<#>`. Mismatched class silently returns wrong ordering
 
-   ❌ Wrong:
+   Ã¢ÂÅ’ Wrong:
    ```sql
    CREATE INDEX ON docs USING diskann (embedding vector_cosine_ops);
-   -- Then query with L2 operator — index NOT used, wrong results
+   -- Then query with L2 operator Ã¢â‚¬â€ index NOT used, wrong results
    SELECT * FROM docs ORDER BY embedding <-> $1::vector LIMIT 10;
    ```
 
-   ✅ Right:
+   Ã¢Å“â€¦ Right:
    ```sql
    CREATE INDEX ON docs USING diskann (embedding vector_cosine_ops);
    -- Use matching cosine operator
@@ -138,7 +140,7 @@ SELECT pg_size_pretty(pg_relation_size('idx_docs_embedding_diskann'));
 4. **[HIGH] DiskANN filtered search advantage**: DiskANN handles WHERE clause pre-filtering natively (graph traversal with label filter). HNSW post-filters and may return fewer results than LIMIT. For multi-tenant apps, DiskANN is significantly faster
 5. **[CRITICAL] Missing allowlist entries**: Both `vector` AND `pg_diskann` must be in `azure.extensions` server parameter. Forgetting `pg_diskann` gives `ERROR: access to library "pg_diskann" is not allowed`
 
-   ❌ Wrong:
+   Ã¢ÂÅ’ Wrong:
    ```bash
    # Only allowlisted vector, forgot pg_diskann
    az postgres flexible-server parameter set --name azure.extensions --value "vector"
@@ -148,7 +150,7 @@ SELECT pg_size_pretty(pg_relation_size('idx_docs_embedding_diskann'));
    -- ERROR: access to library "pg_diskann" is not allowed
    ```
 
-   ✅ Right:
+   Ã¢Å“â€¦ Right:
    ```bash
    # Allowlist BOTH extensions
    az postgres flexible-server parameter set --name azure.extensions --value "vector,pg_diskann"

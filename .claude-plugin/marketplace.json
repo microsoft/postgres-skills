@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
   "name": "postgresql-agent-skills",
   "display_name": "PostgreSQL Agent Skills",
-  "description": "Expert PostgreSQL and Azure Database for PostgreSQL skills for AI coding agents",
-  "version": "0.1.0",
+  "description": "Expert PostgreSQL and Azure Database for PostgreSQL skills with connection-aware routing",
+  "version": "0.2.0",
   "publisher": {
     "name": "Microsoft",
     "url": "https://github.com/microsoft"
@@ -13,16 +13,10 @@
   "repository": "https://github.com/microsoft/postgresql-agent-skills",
   "plugins": [
     {
-      "name": "postgresql-skills",
-      "source": "plugins/postgresql-skills",
-      "description": "Generic PostgreSQL best practices — indexing, partitioning, JSONB, full-text search, RLS, replication, connection management, query tuning",
+      "name": "postgresql-agent-skills",
+      "source": "plugins/postgresql-agent-skills",
+      "description": "Single plugin with intelligent routing — generic PG always available, Azure skills gated by connection detection",
       "category": "databases"
-    },
-    {
-      "name": "azure-postgresql-skills",
-      "source": "plugins/azure-postgresql-skills",
-      "description": "Azure Database for PostgreSQL — DiskANN vector search, Entra ID auth, GenAI/RAG patterns, HA/DR, intelligent tuning",
-      "category": "cloud"
     }
   ],
   "activation": {

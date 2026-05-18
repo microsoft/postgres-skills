@@ -27,6 +27,8 @@ activation:
     - "`azure-postgresql/ha-disaster-recovery/`"
 ---
 
+> **âš ï¸ AZURE GATE:** This reference contains Azure Database for PostgreSQL-specific guidance. Before applying any operational steps, confirm the target is Azure by calling `pgsql_get_server_capabilities` and verifying `isAzure: true`. If the connection is NOT Azure, use the corresponding generic postgresql-* reference instead.
+
 # Provisioning
 
 ## Prerequisites
@@ -91,30 +93,30 @@ az postgres flexible-server show --resource-group myRG --name myserver \
 
 1. **[CRITICAL] Storage immutability**: Storage only scales UP. Once you provision 256 GB, you cannot shrink to 128 GB. Overprovision storage leads to permanent cost. Start conservative and scale up as needed (auto-grow handles this if enabled)
 
-   ❌ Wrong:
+   Ã¢ÂÅ’ Wrong:
    ```bash
-   # Provisioned 512 GB "just in case" — cannot ever reduce
+   # Provisioned 512 GB "just in case" Ã¢â‚¬â€ cannot ever reduce
    az postgres flexible-server create --storage-size 512
    # Later: az postgres flexible-server update --storage-size 128
    # ERROR: storage size can only be increased
    ```
 
-   ✅ Right:
+   Ã¢Å“â€¦ Right:
    ```bash
    # Start conservative, enable auto-grow
    az postgres flexible-server create --storage-size 64 --storage-auto-grow Enabled
-   # Storage grows automatically when needed — but never shrinks
+   # Storage grows automatically when needed Ã¢â‚¬â€ but never shrinks
    ```
 
 2. **[HIGH] SKU format divergence**: CLI uses `Standard_D4ds_v5`. Terraform uses `GP_Standard_D4ds_v5` (tier prefix: B_ for Burstable, GP_ for General Purpose, MO_ for Memory Optimized). ARM templates use yet another format. Always check provider docs
 
-   ❌ Wrong:
+   Ã¢ÂÅ’ Wrong:
    ```hcl
-   # Terraform with CLI format — fails validation
+   # Terraform with CLI format Ã¢â‚¬â€ fails validation
    sku_name = "Standard_D4ds_v5"
    ```
 
-   ✅ Right:
+   Ã¢Å“â€¦ Right:
    ```hcl
    # Terraform requires tier prefix
    sku_name = "GP_Standard_D4ds_v5"  # GP_ = General Purpose
@@ -125,14 +127,14 @@ az postgres flexible-server show --resource-group myRG --name myserver \
 5. **[HIGH] Auto-grow behavior**: When enabled, storage auto-grows by the greater of 5GB or 10% of current storage when free space drops below 10%. Growth is permanent (cannot shrink). Monitor `storage_percent` metric to avoid surprise growth
 6. **[CRITICAL] Compute tier restrictions**: Cannot change between Burstable and General Purpose/Memory Optimized in-place. Must create new server and migrate. Plan tier choice at provisioning time
 
-   ❌ Wrong:
+   Ã¢ÂÅ’ Wrong:
    ```bash
    # Cannot switch from Burstable to General Purpose in-place
    az postgres flexible-server update --name myserver --sku-name Standard_D4ds_v5
    # ERROR: cannot change compute tier from Burstable to GeneralPurpose
    ```
 
-   ✅ Right:
+   Ã¢Å“â€¦ Right:
    ```bash
    # Create new GP server and migrate data
    az postgres flexible-server create --name myserver-gp --sku-name Standard_D4ds_v5

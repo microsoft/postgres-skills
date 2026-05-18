@@ -2,21 +2,16 @@
   "$schema": "https://codex.openai.com/plugins/schema/v1",
   "name": "postgresql-agent-skills",
   "display_name": "PostgreSQL Agent Skills",
-  "description": "Expert PostgreSQL and Azure Database for PostgreSQL skills for AI coding agents",
-  "version": "0.1.0",
+  "description": "Expert PostgreSQL and Azure Database for PostgreSQL skills with connection-aware routing",
+  "version": "0.2.0",
   "publisher": "microsoft",
   "license": "MIT",
   "repository": "https://github.com/microsoft/postgresql-agent-skills",
   "plugins": [
     {
-      "name": "postgresql-skills",
-      "source": "plugins/postgresql-skills",
-      "description": "Generic PostgreSQL best practices"
-    },
-    {
-      "name": "azure-postgresql-skills",
-      "source": "plugins/azure-postgresql-skills",
-      "description": "Azure Database for PostgreSQL skills"
+      "name": "postgresql-agent-skills",
+      "source": "plugins/postgresql-agent-skills",
+      "description": "Single plugin with intelligent routing — Azure skills gated by connection type"
     }
   ],
   "capabilities": {
