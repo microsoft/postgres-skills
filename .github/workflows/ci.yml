@@ -113,9 +113,9 @@ jobs:
           - cli: codex-cli
             os: ubuntu-latest
             install_cmd: npm install -g @openai/codex@latest
-            add_marketplace_cmd: codex marketplace add .
-            add_plugin_cmd: codex install ./plugins/azure-postgresql-skills
-            verify_cmd: codex plugins list
+            add_marketplace_cmd: codex plugin marketplace add .
+            add_plugin_cmd: codex mcp add azure-postgresql-skills -- node ./plugins/azure-postgresql-skills/run_mcp.js
+            verify_cmd: codex mcp list
 
     steps:
       - uses: actions/checkout@v4
