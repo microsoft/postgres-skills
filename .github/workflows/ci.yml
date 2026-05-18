@@ -106,8 +106,8 @@ jobs:
           - cli: claude-code
             os: ubuntu-latest
             install_cmd: npm install -g @anthropic-ai/claude-code@latest
-            add_marketplace_cmd: claude marketplace add .
-            add_plugin_cmd: claude mcp add azure-postgresql-skills --from ./plugins/azure-postgresql-skills
+            add_marketplace_cmd: claude plugin marketplace list
+            add_plugin_cmd: claude mcp add azure-postgresql-skills -- node ./plugins/azure-postgresql-skills/run_mcp.js
             verify_cmd: claude mcp list
 
           - cli: codex-cli
