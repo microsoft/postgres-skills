@@ -280,10 +280,15 @@ class EvalPipeline:
         return self.challenges
 
     def load_skill(self, skill_path: str) -> str:
-        """Load a SKILL.md file content."""
-        full_path = self.skills_root / skill_path / "SKILL.md"
-        if full_path.exists():
-            return full_path.read_text(encoding="utf-8")
+        """Load a skill/reference file content."""
+        # New flat structure: skill_path is like "skills/references/postgresql-advanced-indexing"
+        # Try as .md file first, then as directory with SKILL.md
+        md_path = self.skills_root / f"{skill_path}.md"
+        if md_path.exists():
+            return md_path.read_text(encoding="utf-8")
+        dir_path = self.skills_root / skill_path / "SKILL.md"
+        if dir_path.exists():
+            return dir_path.read_text(encoding="utf-8")
         return ""
 
     def run_challenge(self, challenge: Challenge, agent_fn, group: str, model: str) -> EvalResult:
