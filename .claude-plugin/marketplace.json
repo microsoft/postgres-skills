@@ -14,7 +14,7 @@
   "plugins": [
     {
       "name": "postgresql-agent-skills",
-      "source": "plugins/postgresql-agent-skills",
+      "source": ".",
       "description": "Single plugin with intelligent routing — generic PG always available, Azure skills gated by connection detection",
       "category": "databases"
     }

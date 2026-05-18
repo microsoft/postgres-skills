@@ -10,7 +10,7 @@
   "skills": [
     {
       "id": "postgresql-agent-skills",
-      "path": "plugins/postgresql-agent-skills/skills/SKILL.md",
+      "path": "skills/SKILL.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
         "postgresql",
@@ -37,7 +37,7 @@
         "database index"
       ],
       "always_load": false,
-      "references_dir": "plugins/postgresql-agent-skills/skills/references/"
+      "references_dir": "skills/references/"
     }
   ],
   "connection_gating": {

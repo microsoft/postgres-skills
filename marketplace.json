@@ -10,7 +10,7 @@
   "plugins": [
     {
       "name": "postgresql-agent-skills",
-      "source": "plugins/postgresql-agent-skills",
+      "source": ".",
       "description": "Single plugin with intelligent routing — Azure skills gated by connection type"
     }
   ],
