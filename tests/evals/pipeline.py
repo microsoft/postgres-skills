@@ -737,7 +737,15 @@ def azure_openai_agent(task: str, skill_context: str, model: str) -> str:
 
     system_prompt = "You are a PostgreSQL expert assistant helping developers with database tasks."
     if skill_context:
-        system_prompt += f"\n\nUse the following skill reference:\n\n{skill_context}"
+        system_prompt += (
+            "\n\nYou have access to the following reference material. "
+            "Consult it when relevant but answer naturally — do not force-include "
+            "every detail from the reference. Cite specific constraints, thresholds, "
+            "or Azure-specific facts only when they directly apply to the user's question. "
+            "If the reference doesn't add value beyond your existing knowledge for this "
+            "particular question, rely on your expertise and answer directly."
+            f"\n\n---\n{skill_context}\n---"
+        )
 
     response = client.chat.completions.create(
         model=deployment,
@@ -769,7 +777,15 @@ def openai_agent(task: str, skill_context: str, model: str) -> str:
 
     system_prompt = "You are a PostgreSQL expert assistant helping developers with database tasks."
     if skill_context:
-        system_prompt += f"\n\nUse the following skill reference:\n\n{skill_context}"
+        system_prompt += (
+            "\n\nYou have access to the following reference material. "
+            "Consult it when relevant but answer naturally — do not force-include "
+            "every detail from the reference. Cite specific constraints, thresholds, "
+            "or Azure-specific facts only when they directly apply to the user's question. "
+            "If the reference doesn't add value beyond your existing knowledge for this "
+            "particular question, rely on your expertise and answer directly."
+            f"\n\n---\n{skill_context}\n---"
+        )
 
     response = client.chat.completions.create(
         model=model,

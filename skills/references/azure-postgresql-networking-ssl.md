@@ -33,166 +33,45 @@ activation:
 
 # Networking and SSL
 
-## Prerequisites
+## Key Facts (what models get wrong)
 
-- Network planning decisions (public vs private access)
+| Fact | Detail |
+|------|--------|
+| VNet choice is permanent | Set at server creation. Cannot switch public/private later (requires recreation) |
+| SSL always enforced | `require_secure_transport = off` is blocked on Azure |
+| Root CA | DigiCert Global Root G2 (since Oct 2022). Baltimore CyberTrust Root is EXPIRED |
+| Min TLS | 1.2 enforced. TLS 1.0/1.1 = connection refused |
+| "Allow Azure services" | Opens to ANY Azure public IP (all subscriptions), not just yours |
+| VNet = no firewall | VNet-integrated servers ignore all firewall rules |
+| Private DNS required | VNet servers need `privatelink.postgres.database.azure.com` zone linked to client VNet |
+| Max firewall rules | 128 per server |
 
-## Instructions
-
-**Step 1: Choose network access mode**
-
-| Mode | Use Case | Connectivity |
-|------|----------|-------------|
-| Public access + firewall | Dev/test, simple apps | Internet with IP rules |
-| Private access (VNet) | Production | VNet-injected, no public IP |
-| Private endpoint | Hybrid | Private IP in your VNet |
-
-**Step 2: Configure SSL (always required)**
-
-```bash
-# SSL is enforced by default. Verify:
-az postgres flexible-server parameter show \
-    --resource-group myRG --server-name myserver \
-    --name require_secure_transport
-
-# Connection string with SSL
-psql "host=myserver.postgres.database.azure.com dbname=mydb \
-    user=myadmin sslmode=verify-full \
-    sslrootcert=DigiCertGlobalRootCA.crt.pem"
-```
-
-**Step 3: Download Azure root CA certificate**
-
-```bash
-# Required for sslmode=verify-full
-curl -o DigiCertGlobalRootCA.crt.pem \
-    https://dl.cacerts.digicert.com/DigiCertGlobalRootCA.crt.pem
-```
-
-**Step 4: Add firewall rule (public access)**
-
-```bash
-az postgres flexible-server firewall-rule create \
-    --resource-group myRG --name myserver \
-    --rule-name AllowMyIP \
-    --start-ip-address 203.0.113.10 \
-    --end-ip-address 203.0.113.10
-```
-
-**Step 5: Create private endpoint (private access)**
-
-```bash
-az network private-endpoint create \
-    --resource-group myRG --name myserver-pe \
-    --vnet-name myVNet --subnet mySubnet \
-    --private-connection-resource-id $(az postgres flexible-server show \
-        --resource-group myRG --name myserver --query id -o tsv) \
-    --group-ids postgresqlServer \
-    --connection-name myserver-connection
-```
-
-### Verify
-
-```bash
-# Test SSL connection
-psql "host=myserver.postgres.database.azure.com sslmode=verify-full \
-    sslrootcert=DigiCertGlobalRootCA.crt.pem user=myadmin dbname=postgres" \
-    -c "SELECT ssl_is_used();"
-
-# List firewall rules
-az postgres flexible-server firewall-rule list \
-    --resource-group myRG --name myserver -o table
-```
-
-## Common Mistakes
-
-1. **[CRITICAL] DigiCert CA, not Baltimore**: Azure Flexible Server uses DigiCert Global Root G2 CA since 2022. Old Baltimore CyberTrust Root is deprecated. Download: `https://dl.cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem`. Using old cert gives `SSL certificate verify failed`
-
-   Wrong:
-   ```bash
-   psql "sslmode=verify-full sslrootcert=BaltimoreCyberTrustRoot.crt.pem ..."
-   # ERROR: SSL certificate verify failed - cert expired/deprecated
-   ```
-
-   Right:
-   ```bash
-   curl -o DigiCertGlobalRootG2.crt.pem https://dl.cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem
-   psql "sslmode=verify-full sslrootcert=DigiCertGlobalRootG2.crt.pem ..."
-   ```
-
-2. **[CRITICAL] VNet disables firewall completely**: Once private access (VNet integration) is enabled, ALL firewall rules are ignored (including "Allow Azure services"). Access is VNet-only. Cannot have hybrid (some firewall + VNet)
-
-   Wrong:
-   ```bash
-   # VNet-integrated server - adding firewall rules has NO effect
-   az postgres flexible-server firewall-rule create --name myserver \
-       --rule-name AllowMyIP --start-ip-address 203.0.113.10 --end-ip-address 203.0.113.10
-   # Rule is created but NEVER evaluated - VNet-only access enforced
-   ```
-
-   Right:
-   ```bash
-   # For VNet-integrated servers, connect FROM within the VNet
-   # Or use VNet peering / VPN for external access
-   ```
-
-3. **[HIGH] Private DNS zone requirement**: VNet-integrated servers require a Private DNS zone (e.g., `privatelink.postgres.database.azure.com`) linked to the VNet. Without it, hostname resolution fails even though network connectivity exists
-4. **[HIGH] Private DNS zone naming**: Zone MUST be `<servername>.private.postgres.database.azure.com` or `privatelink.postgres.database.azure.com`. Custom zone names break Azure's automatic DNS record management
-5. **[CRITICAL] "Allow Azure services" is wider than expected**: This checkbox allows traffic from ANY Azure subscription's public IPs, not just your resources. Use Private Endpoints or VNet rules for isolation. Only enable temporarily for Azure Data Factory/Functions without VNet integration
-6. **[HIGH] Cross-VNet connectivity**: Two VNet-integrated servers in different VNets cannot connect by default. Requires VNet peering + DNS forwarding. For cross-region, use Global VNet peering (additional latency)
-7. **[HIGH] verify-full connection string**: `sslmode=verify-full sslrootcert=/path/to/DigiCertGlobalRootG2.crt.pem` - the hostname in the cert matches `*.postgres.database.azure.com`. Custom server names via CNAME still validate against the Azure-issued cert's SAN
-
-   Wrong:
-   ```bash
-   psql "sslmode=require ..."  # Encrypts but does NOT verify server identity
-   ```
-
-   Right:
-   ```bash
-   psql "sslmode=verify-full sslrootcert=DigiCertGlobalRootG2.crt.pem ..."
-   # Encrypts AND verifies server certificate - prevents MITM
-   ```
-
-8. **[HIGH] TLS version enforcement**: Azure enforces TLS 1.2 minimum. Clients using TLS 1.0/1.1 get connection refused. Check client library TLS support. Python psycopg2 on older systems may need `ssl_context` configuration
-9. **[HIGH] Certificate error after migration**: Download fresh DigiCert root CA. The old Baltimore CyberTrust Root cert was retired in 2022. Update `sslrootcert` path in all connection strings
-10. **[HIGH] Cannot connect after VNet integration**: Ensure client is in the same VNet or has peering/VPN configured. VNet integration removes all public access
-11. **[MEDIUM] "no pg_hba.conf entry" error**: Add client IP to firewall rules (for public access) or verify private endpoint DNS resolution is working correctly (for private access)
-
-## Decision Guide
-
-**Public access vs Private access vs Private Endpoint:**
+## Decision Matrix
 
 | Factor | Public + Firewall | VNet Integration | Private Endpoint |
 |--------|------------------|-----------------|-----------------|
-| Setup complexity | Low | Medium | High |
+| Setup | Low | Medium | High |
 | Security | IP-based | Network-level | Network-level + DNS |
-| Use case | Dev/test, simple apps | Production (single VNet) | Multi-VNet, hub-spoke |
-| Can add later? | Yes | No (set at creation) | Yes |
+| Best for | Dev/test | Production (single VNet) | Multi-VNet, hub-spoke |
+| Add after creation? | Yes | No (creation only) | Yes |
 | Cost | Free | Free | ~$7.30/month |
 
-**CRITICAL: VNet integration is chosen at server creation and CANNOT be changed later.**
-- Public -> Private: requires server recreation
-- Private -> Public: requires server recreation
+## Critical Gotchas
 
-## Azure-Specific Constraints
+1. **DigiCert G2, not Baltimore**: `sslrootcert=DigiCertGlobalRootG2.crt.pem` (download from `dl.cacerts.digicert.com`). Baltimore cert expired 2022
+2. **VNet kills firewall**: Once VNet-integrated, firewall rules exist but are never evaluated
+3. **verify-full hostname**: Cert SAN matches `*.postgres.database.azure.com`. CNAME aliases still validate against Azure-issued cert
+4. **Cross-VNet**: Requires VNet peering + DNS forwarding. Cross-region adds 2-10ms latency
+5. **"no pg_hba.conf entry"**: On public access = add IP to firewall. On private = check DNS resolution
+6. **sslmode=require vs verify-full**: `require` encrypts but does NOT verify server identity. Always use `verify-full` in production
 
-- SSL/TLS is ALWAYS enforced. Cannot disable (no `require_secure_transport = off` on Azure)
-- Certificate: DigiCert Global Root G2 (since Oct 2022). Baltimore CyberTrust Root is EXPIRED
-- Minimum TLS: 1.2 enforced. TLS 1.0/1.1 connections rejected
-- "Allow Azure services" = allows ANY Azure public IP (not just your subscription)
-- VNet-integrated: no public endpoint exists. Firewall rules are ignored
-- Private DNS zone: MUST be linked to client VNet for name resolution
-- Cross-region: requires Global VNet Peering (adds 2-10ms latency)
-- Max firewall rules: 128 per server
+## Anti-Hallucination Rules
 
-## Anti-Hallucination Guardrails
-
-- Do NOT claim you can switch between public and private access after creation
-- Do NOT claim SSL can be disabled on Azure Flexible Server
-- Do NOT claim Baltimore CyberTrust Root cert still works (expired 2022)
-- Do NOT claim "Allow Azure services" is limited to your subscription
-- Do NOT invent specific private endpoint pricing without verification
+- Cannot switch public/private access after creation
+- Cannot disable SSL on Azure Flexible Server
+- Baltimore CyberTrust Root cert does NOT work (expired)
+- "Allow Azure services" is NOT scoped to your subscription
 
 ## References
-- [Networking overview for Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-networking)
-- [TLS and SSL in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-networking-ssl-tls)
+- [Networking overview](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-networking)
+- [TLS and SSL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-networking-ssl-tls)

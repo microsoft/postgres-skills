@@ -53,13 +53,15 @@ Score them as CORRECT when referenced appropriately:
 1. **Correctness**: Is the SQL/CLI syntactically valid and semantically correct? Penalize heavily for non-existent syntax, wrong function names, or incorrect version claims. Refer to Ground Truth above before marking anything as hallucinated.
 2. **Specificity**: Does the response include production-grade details (monitoring queries, specific GUC settings, version-aware caveats) rather than generic textbook answers?
 3. **Safety**: Does it avoid dangerous operations (DROP without WHERE, ALTER SYSTEM on managed, etc.)? Does it include appropriate warnings?
-4. **Differentiated Knowledge**: Does the response contain insights a developer would NOT easily find in basic documentation? (e.g., partition pruning gotchas, replication slot monitoring, specific thresholds)
-5. **Managed Service Awareness**: Does it respect Azure PostgreSQL constraints (no superuser, no filesystem access, correct extension allowlisting)?
+4. **Differentiated Knowledge**: Does the response contain insights a developer would NOT easily find in basic documentation? This includes: Azure-specific constraints (no superuser, allowlisting required, storage can't shrink), correct thresholds, version-gated syntax, or platform-specific gotchas.
+5. **Directness**: Does the response answer the user's actual question efficiently? A focused, correct answer scores higher than a verbose one that dumps tangential information. Penalize responses that are overly generic or hedge excessively when a direct answer is possible.
 
-IMPORTANT: Score a generic but correct answer as 5-6 on Specificity and Differentiated Knowledge.
-Only score 8+ if the response contains genuinely advanced, production-tested guidance.
-A wrong or hallucinated answer should score 0-2 on Correctness regardless of other criteria.
-Check the Ground Truth section before penalizing any Azure-specific or PostgreSQL 14+ features.
+IMPORTANT SCORING GUIDANCE:
+- A correct, focused answer that directly solves the user's problem scores 7-8 even without exhaustive detail.
+- A response that includes Azure-specific constraints the model wouldn't know without guidance scores 8-10 on Differentiated Knowledge.
+- A verbose answer that buries the solution in caveats and step-by-step boilerplate scores LOWER on Directness (3-5).
+- A wrong or hallucinated answer should score 0-2 on Correctness regardless of other criteria.
+- Check the Ground Truth section before penalizing any Azure-specific or PostgreSQL 14+ features.
 
 ## Output Format (JSON)
 {{
@@ -67,7 +69,7 @@ Check the Ground Truth section before penalizing any Azure-specific or PostgreSQ
   "specificity": <0-10>,
   "safety": <0-10>,
   "differentiated_knowledge": <0-10>,
-  "managed_awareness": <0-10>,
+  "directness": <0-10>,
   "reasoning": "<brief explanation>",
   "overall_pass": <true/false>
 }}
@@ -92,12 +94,16 @@ The other was generated WITH specialized skill context (Test).
 2. **Depth**: Which provides more actionable, production-grade guidance?
 3. **Specificity**: Which includes more concrete settings, thresholds, or version-aware caveats?
 4. **Safety**: Which better addresses failure modes and dangerous operations?
+5. **Directness**: Which answers the user's actual question more efficiently without unnecessary boilerplate?
 
 ## Instructions
-- If Response B is meaningfully better (more correct, deeper, more specific), choose "B_wins"
-- If Response A is meaningfully better, choose "A_wins"
+- If Response B is meaningfully better (more correct, deeper, more specific, or includes platform-specific knowledge the other lacks), choose "B_wins"
+- If Response A is meaningfully better (more direct, correct, and focused without being diluted by irrelevant details), choose "A_wins"
 - If they are roughly equivalent in quality, choose "tie"
 - A response with hallucinated syntax should ALWAYS lose, regardless of depth
+- A verbose response that buries the answer in boilerplate should NOT win over a concise, correct one
+- A response that includes correct Azure-specific constraints (e.g., no superuser, allowlisting required, storage limits) that the other misses SHOULD win — this is the primary value of skill context
+- If both are correct and similar depth, but one is more focused, the more focused response wins
 
 ## Output Format (JSON)
 {{
@@ -229,15 +235,15 @@ class SkillJudge:
                 "specificity": parsed.get("specificity", 0) / 10.0,
                 "safety": parsed.get("safety", 0) / 10.0,
                 "differentiated_knowledge": parsed.get("differentiated_knowledge", 0) / 10.0,
-                "managed_awareness": parsed.get("managed_awareness", 0) / 10.0,
+                "directness": parsed.get("directness", 0) / 10.0,
             }
-            # Weight differentiation criteria higher to amplify delta
+            # Weight: correctness and differentiation highest, directness rewards focused answers
             weights = {
                 "correctness": 2.0,
                 "specificity": 1.5,
                 "safety": 1.0,
-                "differentiated_knowledge": 2.0,
-                "managed_awareness": 1.0,
+                "differentiated_knowledge": 2.5,
+                "directness": 1.5,
             }
             overall = sum(criteria[k] * weights[k] for k in criteria) / sum(weights.values())
 
