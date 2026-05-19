@@ -361,7 +361,7 @@ challenges:
   - id: az-emb-01
     task: "I want to generate embeddings for my existing table data without leaving the database. I'm on Azure PostgreSQL."
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-genai-rag
+    target_skill: skills/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -371,7 +371,7 @@ challenges:
   - id: az-emb-02
     task: "I need to batch-embed 1 million rows. How do I avoid rate limits?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-rag
+    target_skill: skills/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -382,7 +382,7 @@ challenges:
   - id: az-rag-01
     task: "Build me a RAG system that combines vector similarity search with keyword search for my knowledge base on Azure PostgreSQL."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-rag
+    target_skill: skills/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -392,7 +392,7 @@ challenges:
   - id: az-rag-02
     task: "My RAG system returns irrelevant results when users ask specific technical questions. How do I improve retrieval quality?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-rag
+    target_skill: skills/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -759,7 +759,7 @@ challenges:
   - id: enrich-az-emb-03
     task: "Show me the exact SQL to generate embeddings for a text column using azure_openai in Azure PostgreSQL and store them as a vector(1536) column."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-rag
+    target_skill: skills/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -825,7 +825,7 @@ challenges:
   - id: enrich-az-rag-03
     task: "In my RAG pipeline on Azure PostgreSQL, I want to embed the user's search query directly in SQL instead of calling an external API. How do I combine embedding + vector search in one query?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-rag
+    target_skill: skills/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -907,7 +907,7 @@ challenges:
   - id: az-emb-enr-01
     task: "Show me the exact SQL to generate embeddings using azure_openai.create_embeddings on Azure PostgreSQL and store them in a vector column. I'm using text-embedding-ada-002 with 1536 dimensions."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-rag
+    target_skill: skills/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -976,7 +976,7 @@ challenges:
   - id: az-rag-enr-01
     task: "I want to do the entire RAG pipeline inside Azure PostgreSQL — embed the user's query, search similar documents, and generate a response, all in SQL using the azure_ai extension. Show me the pattern."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-rag
+    target_skill: skills/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1018,7 +1018,7 @@ challenges:
   - id: neg-basic-sql-01
     task: "Write a SQL query to find duplicate rows in a table based on email column."
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-genai-rag
+    target_skill: skills/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: false
 
