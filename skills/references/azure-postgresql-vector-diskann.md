@@ -26,6 +26,17 @@ activation:
     - "`azure-postgresql/genai-patterns/`"
 ---
 
+## Prerequisites
+
+- `azure_pg_admin` role (not superuser — Azure Flexible Server admin role)
+- Both extensions allowlisted: `azure.extensions` must include `vector` and `pg_diskann`
+- Tier: General Purpose or Memory Optimized (DiskANN not available on Burstable)
+
+## Quick Decision
+
+- < 1M vectors → use **HNSW** (standard pgvector, works on any PostgreSQL)
+- > 1M vectors → use **DiskANN** (Azure-only, disk-based, large datasets)
+
 ## Key Facts (what models get wrong)
 
 | Fact | Detail |
@@ -50,7 +61,44 @@ activation:
 | Filtered search | Native (efficient) | Post-filter (may under-return) | Post-filter |
 | Multi-tenant apps | Preferred | Slower | Not recommended |
 
-## Critical Gotchas
+## SQL Examples
+
+**Setup: install both extensions**
+
+```sql no-execute
+-- Must allowlist both via azure.extensions server parameter first
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS pg_diskann;
+```
+
+**Create HNSW index (< 1M vectors, standard pgvector)**
+
+```sql no-execute
+-- HNSW: best for < 1M vectors; operator class must match distance function
+CREATE INDEX ON your_table USING hnsw (embedding vector_cosine_ops)
+  WITH (m = 16, ef_construction = 64);
+-- For queries: ORDER BY embedding <=> $1 LIMIT 10
+```
+
+**Create DiskANN index (> 1M vectors, Azure only)**
+
+```sql no-execute
+-- DiskANN: Azure Flexible Server only; efficient filtered search
+CREATE INDEX ON your_table USING diskann (embedding vector_cosine_ops);
+-- For queries: ORDER BY embedding <=> $1 LIMIT 10
+```
+
+**Similarity search query**
+
+```sql no-execute
+-- Cosine similarity search — operator must match index ops class
+SELECT id, content, embedding <=> $1 AS distance
+FROM your_table
+ORDER BY embedding <=> $1
+LIMIT 10;
+```
+
+## Common Mistakes
 
 1. **Mismatched ops class is silent**: Index is simply not used; query returns wrong ordering with no error
 2. **Allowlist both extensions**: Forgetting `pg_diskann` in `azure.extensions` gives `ERROR: access to library "pg_diskann" is not allowed`
