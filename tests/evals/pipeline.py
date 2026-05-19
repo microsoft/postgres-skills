@@ -294,6 +294,10 @@ class EvalPipeline:
         dir_path = self.skills_root / skill_path / "SKILL.md"
         if dir_path.exists():
             return dir_path.read_text(encoding="utf-8")
+        # "skills/references" means "root SKILL.md" (tests principles/routing)
+        root_skill = self.skills_root / "skills" / "SKILL.md"
+        if skill_path in ("skills/references", "skills") and root_skill.exists():
+            return root_skill.read_text(encoding="utf-8")
         return ""
 
     def run_challenge(self, challenge: Challenge, agent_fn, group: str, model: str) -> EvalResult:
