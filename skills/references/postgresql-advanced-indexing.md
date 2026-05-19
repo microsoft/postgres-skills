@@ -35,43 +35,20 @@ activation:
 
 # Advanced Indexing Strategy
 
-## Instructions
+## When to use this skill
 
-**Step 1: Index type decision tree**
+Use for production PostgreSQL issues involving:
+- Choosing between B-tree, GIN, GiST, BRIN index types
+- Partial indexes, expression indexes, covering indexes (INCLUDE)
+- BRIN correlation requirements
+- Index not being used by planner
+- REINDEX safety in production
 
-| Query Pattern | Index Type | When NOT to use |
-|--------------------------|-----------|---------|
-| Equality, range on scalars | B-tree | — |
-| JSONB `@>`, arrays, tsvector | GIN | Write-heavy tables (batch updates) |
-| JSONB only `@>` (no `?` ops) | GIN (jsonb_path_ops) | Need key-existence queries |
-| Range overlap, geometric | GiST | Large result sets |
-| Time-ordered append-only | BRIN | `correlation < 0.9` (check `pg_stats`) |
+Do NOT use for basic `CREATE INDEX` syntax or when the user simply needs EXPLAIN interpretation (route to `query-performance`).
 
-**Step 2: Partial indexes (constant predicates)**
+## Response focus
 
-```sql
--- Only indexes 'active' rows — 10x smaller if 90% are inactive
-CREATE INDEX idx_orders_active ON orders(created_at)
-  WHERE status = 'active';
-```
-
-**Step 3: Expression indexes**
-
-```sql
-CREATE INDEX idx_users_email_lower ON users(lower(email));
--- Expression must EXACTLY match query predicate
-```
-
-### Verify
-
-```sql
--- Confirm index is used
-EXPLAIN (ANALYZE, BUFFERS) <your_query>;
--- Look for: "Index Scan" or "Bitmap Index Scan" (not "Seq Scan")
-
--- Check index size savings (partial vs full)
-SELECT pg_size_pretty(pg_relation_size('idx_orders_active'));
-```
+Prioritize index type tradeoffs, version-gated features, and common misapplications. Avoid explaining what a B-tree is or basic CREATE INDEX syntax unless directly requested.
 
 ## Common Mistakes
 

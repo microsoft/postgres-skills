@@ -32,24 +32,30 @@ activation:
 
 # Query Performance Tuning
 
-## Instructions
+## When to use this skill
 
-**Step 1: Read EXPLAIN ANALYZE**
+Use for production PostgreSQL issues involving:
+- Stale statistics causing bad estimates
+- Row estimation errors (10x+ off)
+- work_mem / JIT / parallel query tuning
+- pg_stat_statements top-N analysis
+- CTE materialization traps (version-gated)
+- OFFSET pagination at scale
 
-- `actual_time` is per-loop — multiply by `loops` for true cost
-- `Sort Method: external merge` → `SET work_mem = '256MB'` for session
+Do NOT use for basic EXPLAIN ANALYZE reading or when the fix is adding an index (route to `advanced-indexing`).
+
+## Response focus
+
+Prioritize estimation errors, parameter tuning, version-gated behavior, and production anti-patterns. Avoid explaining basic EXPLAIN output format unless directly asked.
+
+## High-value reminders
+
+- `actual_time` in EXPLAIN is per-loop — multiply by `loops` for true cost
+- `Sort Method: external merge` → increase `work_mem` for that session
 - `Rows Removed by Filter` → missing index (route to `advanced-indexing`)
+- On managed PostgreSQL, `ALTER SYSTEM SET` is unavailable. Use `ALTER DATABASE` for runtime params or portal for postmaster params.
 
-**Step 2: Session-level config (no restart)**
-
-```sql
-SET work_mem = '256MB';  -- per-session only; cannot ALTER SYSTEM on managed PG
-SET effective_cache_size = '24GB';  -- hint only, no allocation
-```
-
-> On managed PostgreSQL, `ALTER SYSTEM SET` is unavailable. Use `ALTER DATABASE` for runtime params or the portal for postmaster params.
-
-**Step 3: Detect stale statistics**
+## Stale statistics detection
 
 ```sql
 SELECT schemaname, relname, n_live_tup, n_mod_since_analyze
@@ -59,20 +65,12 @@ WHERE n_mod_since_analyze > n_live_tup * 0.1;
 ANALYZE <table_name>;
 ```
 
-**Step 4: Row estimation errors**
+## Row estimation fix
 
 Compare `rows=` (estimated) vs actual. If 10x+ off:
 ```sql
 ALTER TABLE t ALTER COLUMN c SET STATISTICS 1000;  -- default 100
 ANALYZE t;
-```
-
-### Verify
-
-```sql
--- Re-run EXPLAIN after fix and compare actual time
-EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT) <optimized_query>;
--- Confirm: no "Sort Method: external merge", reduced actual time
 ```
 
 ## Common Mistakes

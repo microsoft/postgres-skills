@@ -139,3 +139,11 @@ EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at = '2024-01-15';
 10. **[MEDIUM] Wrong partition boundaries**: Attach new partition with correct bounds, migrate rows, detach wrong one
 
 11. **[MEDIUM] Partition pruning in JOINs (PG 12+)**: PG 12+ enables partition-wise joins (`enable_partitionwise_join = on`). On PG 11, joins scan all partitions even when only one matches. Enable explicitly: `SET enable_partitionwise_join = on` (off by default due to planning cost)
+
+## Anti-Hallucination Rules
+
+- Do NOT claim foreign keys can reference partitioned tables directly on PG < 12. PG 12+ supports FKs referencing partitioned tables.
+- Do NOT claim UNIQUE indexes work without including the partition key — this is a hard PostgreSQL constraint.
+- Do NOT invent partition management syntax that doesn't exist (e.g., `ALTER TABLE MERGE PARTITIONS` is not standard PostgreSQL).
+- Do NOT claim `DETACH PARTITION CONCURRENTLY` works on PG < 14.
+- Do NOT recommend partitioning tables with fewer than 10M rows unless there is a clear data lifecycle reason (archival, TTL).

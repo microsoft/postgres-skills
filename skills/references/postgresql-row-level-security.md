@@ -31,45 +31,33 @@ activation:
 
 # Row-Level Security (RLS)
 
-## Instructions
+## When to use this skill
 
-**Step 1: Enable RLS + set tenant context per transaction**
+Use for production PostgreSQL issues involving:
+- Multi-tenant data isolation with RLS policies
+- Connection pooler safety (SET LOCAL vs SET)
+- FORCE ROW LEVEL SECURITY on table owner
+- SECURITY DEFINER function bypass risks
+- Permissive vs Restrictive policy stacking (PG 10+)
+
+Avoid explaining basic `CREATE POLICY` syntax or `ENABLE ROW LEVEL SECURITY` unless the user asks for a runnable example.
+
+## Response focus
+
+Prioritize pooler-safe patterns, bypass risks, and policy stacking logic. The base model knows basic RLS setup.
+
+## Critical pattern: Pooler-safe tenant isolation
 
 ```sql
-ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE orders FORCE ROW LEVEL SECURITY;  -- also enforce on owner
-
 -- With connection poolers: SET LOCAL (transaction-scoped, not session)
 BEGIN;
 SET LOCAL app.current_tenant = 'tenant_123';
 -- ... queries ...
 COMMIT;
-```
 
-**Step 2: Policy with pooler-safe pattern**
-
-```sql
+-- Policy using current_setting
 CREATE POLICY tenant_isolation ON orders
     USING (tenant_id = current_setting('app.current_tenant'));
-
--- Separate INSERT policy
-CREATE POLICY insert_own ON orders FOR INSERT
-    WITH CHECK (tenant_id = current_setting('app.current_tenant'));
-```
-
-### Verify
-
-```sql
--- Test as a non-owner role
-SET ROLE app_user;
-SET app.current_tenant = 'tenant_A';
-SELECT count(*) FROM orders;  -- Should only see tenant_A rows
-
-SET app.current_tenant = 'tenant_B';
-SELECT count(*) FROM orders;  -- Should only see tenant_B rows
-
--- Verify policy exists
-SELECT * FROM pg_policies WHERE tablename = 'orders';
 ```
 
 ## Common Mistakes

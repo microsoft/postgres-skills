@@ -32,53 +32,28 @@ activation:
 
 # Logical Replication
 
-## Instructions
+## When to use this skill
 
-**Step 1: Configure publisher**
+Use for production PostgreSQL issues involving:
+- Replication lag diagnosis, slot bloat, WAL retention
+- Logical replication failure modes (conflicts, missing PK, sequence gaps)
+- DDL coordination across publisher/subscriber
+- Partitioned table replication (version-gated)
+- Zero-downtime migration or CDC setup
 
-```sql
-SHOW wal_level;  -- Must be 'logical'; requires restart to change
-CREATE PUBLICATION my_pub FOR TABLE orders, customers;
-```
+Do NOT use for basic `CREATE PUBLICATION` / `CREATE SUBSCRIPTION` syntax unless the user asks for a runnable example.
 
-> On managed PG: change `wal_level` via portal/API, not `postgresql.conf`.
+## Response focus
 
-**Step 2: Handle tables without primary keys**
+Prioritize gotchas, version boundaries, and production-safe corrections. Avoid generic setup explanations the base model already knows.
 
-```sql
--- Required for UPDATE/DELETE replication on tables without PK
-ALTER TABLE audit_log REPLICA IDENTITY FULL;
--- WARNING: sends entire row on UPDATE/DELETE (slower)
-```
+## High-value reminders
 
-**Step 3: Monitor replication lag**
-
-```sql
-SELECT slot_name, active,
-       pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn) AS lag_bytes
-FROM pg_replication_slots;
-```
-
-**Step 4: Critical gotchas**
-
-- **Sequences NOT replicated** — reset on subscriber after failover
-- **DDL NOT replicated** — apply on subscriber FIRST, then publisher
-- **Conflicts halt replication** — subscriber must resolve duplicates manually
-
-### Verify
-
-```sql
--- Publisher: confirm publication exists
-SELECT * FROM pg_publication_tables WHERE pubname = 'my_pub';
-
--- Subscriber: confirm subscription is active
-SELECT subname, subenabled, subconninfo FROM pg_subscription;
-
--- Check replication is flowing (lag should be near 0)
-SELECT slot_name, active, 
-       pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn)) AS lag
-FROM pg_replication_slots;
-```
+- `wal_level = logical` requires restart; on managed PG change via portal/API
+- Sequences are NOT replicated — subscriber sequences do not advance; risk of duplicate keys after failover
+- DDL is NOT replicated — apply schema changes on subscriber FIRST
+- Conflicts halt replication silently — subscriber must resolve manually
+- `REPLICA IDENTITY FULL` is required for UPDATE/DELETE on tables without PK (but is slower)
 
 ## Common Mistakes
 
@@ -134,20 +109,15 @@ FROM pg_replication_slots;
 
 11. **[HIGH] wal_level not set to logical**: Requires restart. On Azure, change via Server Parameters then restart
 
-12. **[CRITICAL] Sequence values not replicated**: Logical replication does NOT replicate sequences
+12. **[CRITICAL] Sequence values not replicated**: Logical replication does NOT replicate sequences. After failover, reset on new primary: `SELECT setval('orders_id_seq', (SELECT max(id) FROM orders) + 1)`
 
 13. **[MEDIUM] Logical replication for partitioned tables (PG 13+)**: Before PG 13, you must add each partition individually to the publication. PG 13+ supports `ALTER PUBLICATION pub ADD TABLE partitioned_parent` directly
 
 14. **[MEDIUM] `FOR ALL TABLES IN SCHEMA` (PG 15+)**: `CREATE PUBLICATION pub FOR ALL TABLES IN SCHEMA myschema` is PG 15+ only. On PG 14 and earlier, list tables explicitly or use `FOR ALL TABLES`
 
-   ❌ Wrong:
-   ```sql
-   -- After failover to subscriber, sequences still at 1
-   INSERT INTO orders(id) VALUES (DEFAULT);  -- duplicate key!
-   ```
+## Anti-Hallucination Rules
 
-   ✅ Right:
-   ```sql
-   -- After failover, reset sequences on new primary
-   SELECT setval('orders_id_seq', (SELECT max(id) FROM orders) + 1);
-   ```
+- Do NOT claim logical replication keeps sequence state synchronized. Inserted row values replicate, but sequence counters do not advance on subscribers. After failover, sequences must be manually reset.
+- Do NOT claim DDL changes replicate automatically — they never do in any PostgreSQL version.
+- Do NOT assume `wal_level` can be changed without restart.
+- Do NOT claim bidirectional replication is natively supported — it requires third-party extensions (e.g., BDR) or application-level conflict handling.

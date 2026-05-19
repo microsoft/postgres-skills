@@ -142,3 +142,14 @@ User asks about PostgreSQL...
 └── Generic topic (indexing, JSONB, partitioning, RLS, FTS, replication)
     └── → postgresql-* reference (regardless of connection type)
 ```
+
+---
+
+## Global Anti-Hallucination Policy
+
+When using ANY skill reference:
+
+1. **Verify before asserting** — For Azure-specific capabilities (SKUs, extensions, limits, parameter names), prefer live database verification first (`pg_available_extensions`, `SHOW`, `pg_settings`). If unavailable, cite Azure documentation rather than guessing.
+2. **State uncertainty explicitly** — If a detail is not in the skill reference and you are not confident, say "verify in Azure documentation" or "check your PostgreSQL version" rather than inventing an answer.
+3. **Do not extrapolate** — Skill references cover specific versions and configurations. Do not assume behavior extends to other versions, tiers, or providers without evidence.
+4. **Generic skills are supplements, not scripts** — Generic PostgreSQL skill content highlights gotchas and anti-patterns. Use it to enrich your existing knowledge, not as the sole basis for answers. If a question only needs basic syntax you already know, answer directly without over-relying on skill text.

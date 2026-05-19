@@ -29,57 +29,34 @@ activation:
 
 # Connection Management
 
-## Instructions
+## When to use this skill
 
-**Step 1: Diagnose connection state**
+Use for production PostgreSQL issues involving:
+- "too many clients" errors or connection exhaustion
+- PgBouncer mode selection (session vs transaction)
+- Prepared statements broken by transaction-mode pooling
+- Idle connections holding locks/preventing VACUUM
+- Serverless connection patterns (Lambda, Cloud Functions)
 
-```sql
-SELECT state, count(*) FROM pg_stat_activity GROUP BY state;
+Avoid explaining basic `pg_stat_activity` queries or `max_connections` unless the user asks for setup guidance.
 
-SELECT pid, now() - state_change AS idle_time, query, application_name
-FROM pg_stat_activity
-WHERE state = 'idle in transaction'
-ORDER BY idle_time DESC;
-```
+## Response focus
 
-**Step 2: Safety timeouts**
+Prioritize pooling mode tradeoffs, production failure modes, and managed-service constraints. The base model knows basic connection diagnostics well.
 
-```sql
-ALTER DATABASE mydb SET idle_in_transaction_session_timeout = '5min';
-ALTER DATABASE mydb SET idle_session_timeout = '30min';  -- PG 14+
-```
+## High-value reminders
 
-> On managed PG: use `ALTER DATABASE` or portal. `ALTER SYSTEM SET` is unavailable.
+- `max_connections` is postmaster-level — requires restart; cannot use `SET` or `ALTER SYSTEM` on managed services
+- `idle_in_transaction_session_timeout` prevents crashed clients from holding locks indefinitely
+- PgBouncer transaction mode breaks `PREPARE`/`EXECUTE` across backends
+- Total connections = `pool_size_per_instance × num_instances` — easy to exceed limits
 
-**Step 3: max_connections formula**
+## Pooling decision tree
 
-```
-max_connections = 2-4x CPU cores (OLTP)
-Each connection ≈ 5-10MB RAM (work_mem + sort buffers)
-total_app_connections = pool_size_per_instance × num_instances
-```
-
-> `max_connections` is postmaster-level — requires restart. Cannot use `SET`.
-
-**Step 4: Pooling decision tree**
-
-- **< 50 connections**: No pooler
+- **< 50 connections**: No pooler needed
 - **50-200 + simple queries**: PgBouncer transaction mode
 - **> 200 or serverless**: External pooler required
 - **Prepared statements needed**: PgBouncer session mode OR PG 14+ protocol-level prepared statements
-
-### Verify
-
-```sql
--- Verify timeout settings
-SHOW idle_in_transaction_session_timeout;
-SHOW idle_session_timeout;
-
--- Monitor connection headroom
-SELECT count(*) AS active, 
-       (SELECT setting::int FROM pg_settings WHERE name = 'max_connections') AS max_conn
-FROM pg_stat_activity;
-```
 
 ## Common Mistakes
 

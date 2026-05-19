@@ -40,58 +40,20 @@ activation:
 
 # JSONB Patterns & Optimization
 
-## Instructions
+## When to use this skill
 
-**Step 1: GIN indexing strategies**
+Use for production PostgreSQL issues involving:
+- GIN index strategy selection (jsonb_path_ops vs default)
+- Type casting pitfalls with `->>` operator
+- In-place update patterns (jsonb_set vs full-doc replacement)
+- Version-gated features (subscripts PG14+, json_table PG17+)
+- GIN index not being used for `->>` queries
 
-```sql
--- General queries (@>, ?, ?|, ?& operators)
-CREATE INDEX idx_data_gin ON docs USING gin(data);
+Avoid explaining basic JSONB operators (`->`, `->>`, `@>`) unless the user asks for a runnable example or is a beginner.
 
--- Only @> containment (2-3x smaller index, faster writes)
-CREATE INDEX idx_data_pathops ON docs USING gin(data jsonb_path_ops);
-```
+## Response focus
 
-**Decision**: Use `jsonb_path_ops` when all queries are `@>` containment. Use default GIN if you need `?` (key existence), `?|`, or `?&`.
-
-**Step 2: Type casting — critical for correctness**
-
-```sql
--- WRONG: lexical comparison ('9' > '100' is TRUE)
-WHERE (data ->> 'price') > '9'
-
--- CORRECT: numeric cast
-WHERE (data ->> 'price')::numeric > 9
-```
-
-**Step 3: Partial indexes on JSONB paths**
-
-```sql
--- Index only active documents (small + fast)
-CREATE INDEX idx_active_docs ON docs USING gin(data jsonb_path_ops)
-    WHERE data @> '{"status":"active"}';
-```
-
-**Step 4: In-place updates (avoid full-document rewrite)**
-
-```sql
-UPDATE users SET profile = jsonb_set(profile, '{address,city}', '"Seattle"')
-WHERE id = 1;
-
--- Merge top-level keys
-UPDATE users SET profile = profile || '{"verified": true}' WHERE id = 1;
-```
-
-### Verify
-
-```sql
--- Confirm GIN index is used for containment
-EXPLAIN SELECT * FROM docs WHERE data @> '{"status":"active"}';
--- Should show: Bitmap Index Scan on idx_data_gin
-
--- Verify jsonb_path_ops works for your query pattern
-EXPLAIN SELECT * FROM docs WHERE data @> '{"nested":{"key":"val"}}';
-```
+Prioritize indexing mismatches, type casting traps, and version-gated syntax. The base model knows basic JSONB operators well.
 
 ## Common Mistakes
 

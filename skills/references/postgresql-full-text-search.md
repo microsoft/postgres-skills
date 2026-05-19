@@ -31,51 +31,20 @@ activation:
 
 # Full-Text Search
 
-## Instructions
+## When to use this skill
 
-**Step 1: Stored tsvector column + GIN index**
+Use for production PostgreSQL issues involving:
+- tsquery function selection (websearch vs phrase vs plain)
+- Multilingual configuration pitfalls
+- Phrase proximity operators and version requirements
+- GIN index not being used for FTS queries
+- Hybrid search combining FTS with trigram/similarity
 
-```sql
-ALTER TABLE articles ADD COLUMN search_vector tsvector
-    GENERATED ALWAYS AS (
-        setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
-        setweight(to_tsvector('english', coalesce(body, '')), 'B')
-    ) STORED;
+Avoid explaining basic tsvector/tsquery setup or GIN index creation unless the user asks for a runnable example.
 
-CREATE INDEX idx_articles_search ON articles USING gin(search_vector);
-```
+## Response focus
 
-**Step 2: tsquery function selection**
-
-| Function | Use Case |
-|----------|----------|
-| `websearch_to_tsquery` | User-facing search (handles special chars) |
-| `phraseto_tsquery` | Exact adjacent phrase |
-| `to_tsquery` | Boolean operators (& \| !) |
-| `plainto_tsquery` | Simple AND of all words |
-
-**Step 3: Phrase proximity with `<->` operator**
-
-```sql
--- Adjacent words only
-SELECT * FROM articles WHERE search_vector @@ phraseto_tsquery('big data');
-
--- Allow N words between (use <N> operator)
-SELECT * FROM articles WHERE search_vector @@ to_tsquery('big <2> data');
-```
-
-### Verify
-
-```sql
--- Confirm GIN index is used
-EXPLAIN SELECT * FROM articles WHERE search_vector @@ to_tsquery('postgresql');
--- Should show: Bitmap Index Scan on idx_articles_search
-
--- Test ranking returns relevant results first
-SELECT title, ts_rank(search_vector, to_tsquery('performance & tuning')) AS rank
-FROM articles WHERE search_vector @@ to_tsquery('performance & tuning')
-ORDER BY rank DESC LIMIT 5;
-```
+Prioritize function selection, version-gated features (websearch PG11+), and common production mistakes. The base model knows basic FTS well.
 
 ## Common Mistakes
 
