@@ -278,14 +278,16 @@ jobs:
       - name: Run eval pipeline
         env:
           PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
         run: |
-          if [ -z "$PGSQL_TEST_CONNECTION_STRING" ] || [ -z "$OPENAI_API_KEY" ]; then
+          if [ -z "$PGSQL_TEST_CONNECTION_STRING" ] || [ -z "$AZURE_OPENAI_ENDPOINT" ] || [ -z "$AZURE_OPENAI_API_KEY" ]; then
             echo "⚠ Required secrets not set — skipping eval pipeline"
             exit 0
           fi
           cd tests/evals
-          python pipeline.py --output results/
+          python pipeline.py --provider azure --output results/
       - name: Check for negative deltas
         if: success()
         run: |
