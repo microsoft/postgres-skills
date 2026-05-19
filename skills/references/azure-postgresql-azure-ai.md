@@ -25,160 +25,44 @@ activation:
     - "`azure-postgresql/extension-lifecycle/`"
 ---
 
-## Prerequisites
-- `azure_ai` listed in `azure.extensions` allowlist (requires `azure_pg_admin` role)
-- Azure OpenAI resource deployed in same region (or accessible via Private Link)
-- Azure OpenAI model deployment (e.g., `gpt-4o`, `gpt-4o-mini`)
+## Key Facts (what models get wrong)
 
-## Instructions
+| Fact | Detail |
+|------|--------|
+| create() vs create_embeddings() | `azure_openai.create()` = text generation (returns text). `azure_openai.create_embeddings()` = vector embeddings (returns vector type) |
+| Function schema | Functions live in `azure_openai` schema (not `azure_ai`). Config via `azure_ai.set_setting()` |
+| Deployment name not model name | First arg is your deployment name (e.g., `my-gpt4o`), NOT the model name (`gpt-4o`) |
+| Endpoint format | `https://<resource>.openai.azure.com` with no trailing slash, no `/openai/` path |
+| Managed identity RBAC | Server identity needs "Cognitive Services OpenAI User" role on the OpenAI resource; propagation up to 10 min |
+| azure.extensions allowlist | `azure_ai` must be added to `azure.extensions` server parameter before CREATE EXTENSION |
+| Single-text-per-call | Each `create()` call processes one text value; batch with SQL LIMIT + loops |
+| Key stored per-session | `set_setting()` values are session-scoped unless persisted via server parameters |
 
-### Step 1 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Install and configure the extension
+## Decision Matrix
 
-```sql
-CREATE EXTENSION IF NOT EXISTS azure_ai;
+| Auth Method | When to Use | Setup |
+|-------------|-------------|-------|
+| API Key | Dev/test, quick start | `azure_ai.set_setting('azure_openai.subscription_key', '<key>')` |
+| Managed Identity | Production, no secrets in DB | Grant RBAC role to server identity; no key needed |
 
--- API key auth
-SELECT azure_ai.set_setting('azure_openai.endpoint', 'https://<resource>.openai.azure.com');
-SELECT azure_ai.set_setting('azure_openai.subscription_key', '<key>');
+## Critical Gotchas
 
--- OR managed identity (recommended for production)
-SELECT azure_ai.set_setting('azure_openai.endpoint', 'https://<resource>.openai.azure.com');
--- Grant "Cognitive Services OpenAI User" RBAC role to the server's managed identity
-```
+1. **Extension not in allowlist**: Must add `azure_ai` to `azure.extensions` server parameter first; requires `azure_pg_admin` role
+2. **Wrong endpoint format**: No trailing slash, no `/openai/` suffix
+3. **Deployment name is case-sensitive**: Must match exactly what is in Azure OpenAI Studio
+4. **Rate limiting (429)**: Batch with `LIMIT 50-100` per query; use `pg_sleep()` between batches
+5. **RBAC propagation delay**: Managed identity role assignment takes up to 10 minutes to propagate
+6. **Temperature for classification**: Always set `temperature => 0.0` for deterministic tasks
+7. **NULL results**: Usually means deployment name is wrong, endpoint is wrong, or model is not deployed
+8. **403 Forbidden**: RBAC not assigned or `azure_pg_admin` role missing
 
-Verify: `SELECT azure_ai.version();` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â must return a version string.
+## Anti-Hallucination Rules
 
-### Step 2 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Multi-service configuration (optional)
-
-Chain additional Azure AI services:
-
-```sql
--- Azure AI Language (sentiment, NER, key phrases)
-SELECT azure_ai.set_setting('azure_ai_language.endpoint', 'https://<resource>.cognitiveservices.azure.com');
-SELECT azure_ai.set_setting('azure_ai_language.subscription_key', '<key>');
-```
-
-### Step 3 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Text generation with azure_openai.create()
-
-```sql
-SELECT azure_openai.create(
-  '<deployment_name>',           -- your Azure OpenAI deployment
-  'Summarize this ticket briefly.',  -- system prompt
-  ticket_text,                   -- user content from column
-  max_tokens => 200
-) AS summary
-FROM support_tickets
-WHERE summary IS NULL
-LIMIT 100;                       -- batch to avoid rate limits
-```
-
-### Step 4 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Classification pattern
-
-```sql
-UPDATE products
-SET category = azure_openai.create(
-  '<deployment_name>',
-  'Classify into exactly one category: Electronics, Clothing, Food, Other. Reply with the category name only.',
-  description,
-  max_tokens => 10,
-  temperature => 0.0
-)
-WHERE category IS NULL;
-```
-
-### Step 5 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Entity extraction pattern
-
-```sql
-SELECT id,
-  azure_openai.create(
-    '<deployment_name>',
-    'Extract all company names mentioned. Return as JSON array.',
-    content,
-    max_tokens => 200
-  ) AS companies
-FROM articles;
-```
-
-### Step 6 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Scoring / sentiment pattern
-
-```sql
-UPDATE reviews
-SET sentiment_score = (azure_openai.create(
-  '<deployment_name>',
-  'Rate the sentiment of this review from 1 (very negative) to 5 (very positive). Reply with the number only.',
-  review_text,
-  max_tokens => 5,
-  temperature => 0.0
-))::int
-WHERE sentiment_score IS NULL;
-```
-
-### Verify
-
-```sql
--- Confirm extension
-SELECT azure_ai.version();
-
--- Test generation
-SELECT azure_openai.create('<deployment>', 'Reply with: OK', 'test');
--- Expected: returns 'OK' or similar short response
-```
-
-## Common Mistakes
-
-1. **[CRITICAL] Extension not in allowlist**: `CREATE EXTENSION` fails ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ add `azure_ai` to `azure.extensions` server parameter (requires `azure_pg_admin` role). If you see 403: verify you hold the `azure_pg_admin` role: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'MEMBER');`
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
-   ```sql
-   -- As a non-admin user or without allowlisting
-   CREATE EXTENSION azure_ai;
-   -- ERROR: extension "azure_ai" is not allowlisted
-   ```
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
-   ```bash
-   # First allowlist, then create as azure_pg_admin
-   az postgres flexible-server parameter set --name azure.extensions --value "azure_ai,vector"
-   ```
-   ```sql
-   CREATE EXTENSION azure_ai;
-   ```
-
-2. **[HIGH] Wrong endpoint format**: Must be `https://<resource>.openai.azure.com` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â no trailing slash, no `/openai/` path.
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
-   ```sql
-   SELECT azure_ai.set_setting('azure_openai.endpoint', 'https://myresource.openai.azure.com/openai/');
-   ```
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
-   ```sql
-   SELECT azure_ai.set_setting('azure_openai.endpoint', 'https://myresource.openai.azure.com');
-   ```
-
-3. **[HIGH] Deployment name ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â  model name**: Pass the *deployment* name (e.g., `my-gpt4o`), not the model name (`gpt-4o`).
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
-   ```sql
-   SELECT azure_openai.create('gpt-4o', 'Summarize', content);
-   -- Returns NULL or error ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â no deployment named "gpt-4o"
-   ```
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
-   ```sql
-   SELECT azure_openai.create('my-gpt4o-deployment', 'Summarize', content);
-   -- Use the deployment name from Azure OpenAI Studio
-   ```
-
-4. **[MEDIUM] Rate limiting (429)**: Batch with `LIMIT` + `pg_sleep()` between batches. Start with batches of 50-100 rows.
-5. **[CRITICAL] Managed identity RBAC chain**: Server identity ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ "Cognitive Services OpenAI User" on OpenAI resource. Takes up to 10 minutes to propagate.
-6. **[MEDIUM] Key rotation**: Update via `azure_ai.set_setting()` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â no server restart needed, but value is per-session if not persisted.
-7. **[MEDIUM] Confusing create() vs create_embeddings()**: `azure_openai.create()` = text generation (returns text). `azure_openai.create_embeddings()` = vector embeddings (returns vector). For embeddings, use `azure-postgresql/genai-patterns/`.
-8. **[MEDIUM] Temperature for classification**: Always set `temperature => 0.0` for deterministic classification/scoring tasks.
-9. **[CRITICAL] "extension azure_ai does not exist"**: Not in allowlist. Check `SHOW azure.extensions;` and add `azure_ai`.
-10. **[CRITICAL] 403 Forbidden**: RBAC not assigned. Verify managed identity has "Cognitive Services OpenAI User" on the OpenAI resource.
-11. **[MEDIUM] Timeout on large batches**: Use `LIMIT` + loop pattern; set `statement_timeout` higher if needed.
-12. **[HIGH] NULL results**: Check deployment name matches exactly (case-sensitive), endpoint is correct, and model is deployed.
+- Do NOT use model name (e.g., `gpt-4o`) as the first argument; use deployment name
+- Do NOT claim `azure_openai.create()` returns embeddings; it returns text
+- Do NOT omit the allowlist step; CREATE EXTENSION will fail without it
+- Do NOT add trailing slash or path segments to the endpoint URL
+- Do NOT claim batch/array input is supported; it is one text per call
 
 ## References
 - [Azure AI extension for Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/generative-ai-azure-overview)

@@ -284,21 +284,97 @@ class EvalPipeline:
         print(f"Loaded {len(self.challenges)} challenges")
         return self.challenges
 
-    def load_skill(self, skill_path: str) -> str:
-        """Load a skill/reference file content."""
+    def load_skill(self, skill_path: str, task: str = "") -> str:
+        """Load a skill/reference file content, optionally trimmed to relevant sections."""
         # New flat structure: skill_path is like "skills/references/postgresql-advanced-indexing"
         # Try as .md file first, then as directory with SKILL.md
         md_path = self.skills_root / f"{skill_path}.md"
         if md_path.exists():
-            return md_path.read_text(encoding="utf-8")
-        dir_path = self.skills_root / skill_path / "SKILL.md"
-        if dir_path.exists():
-            return dir_path.read_text(encoding="utf-8")
-        # "skills/references" means "root SKILL.md" (tests principles/routing)
-        root_skill = self.skills_root / "skills" / "SKILL.md"
-        if skill_path in ("skills/references", "skills") and root_skill.exists():
-            return root_skill.read_text(encoding="utf-8")
-        return ""
+            content = md_path.read_text(encoding="utf-8")
+        elif (self.skills_root / skill_path / "SKILL.md").exists():
+            content = (self.skills_root / skill_path / "SKILL.md").read_text(encoding="utf-8")
+        elif skill_path in ("skills/references", "skills"):
+            root_skill = self.skills_root / "skills" / "SKILL.md"
+            if root_skill.exists():
+                content = root_skill.read_text(encoding="utf-8")
+            else:
+                return ""
+        else:
+            return ""
+
+        # Challenge-aware trimming: if task provided, extract relevant sections
+        if task and len(content) > 2000:
+            content = self._extract_relevant_sections(content, task)
+        return content
+
+    def _extract_relevant_sections(self, content: str, task: str) -> str:
+        """Extract sections most relevant to the task, keeping total under ~1500 tokens."""
+        # Always keep: Key Facts table, Anti-Hallucination Rules, Decision Matrix
+        # Selectively include: Gotchas that match task keywords
+        lines = content.split("\n")
+        task_lower = task.lower()
+        task_words = set(task_lower.split())
+
+        # Split into sections by ## headers
+        sections = []
+        current_section = {"header": "", "lines": []}
+        for line in lines:
+            if line.startswith("## "):
+                if current_section["lines"]:
+                    sections.append(current_section)
+                current_section = {"header": line, "lines": [line]}
+            else:
+                current_section["lines"].append(line)
+        if current_section["lines"]:
+            sections.append(current_section)
+
+        # Priority sections (always include)
+        priority_headers = {"key facts", "anti-hallucination", "decision matrix", "decision"}
+        # Secondary sections (include if they match task keywords)
+        always_include = []
+        conditional_include = []
+
+        for sec in sections:
+            header_lower = sec["header"].lower()
+            if any(p in header_lower for p in priority_headers):
+                always_include.append(sec)
+            elif "critical gotcha" in header_lower or "gotcha" in header_lower:
+                # Filter gotchas to only relevant ones
+                relevant_lines = [sec["lines"][0]]  # header
+                for line in sec["lines"][1:]:
+                    line_lower = line.lower()
+                    if any(w in line_lower for w in task_words if len(w) > 3):
+                        relevant_lines.append(line)
+                    elif line.startswith(("1.", "2.", "3.", "4.", "5.", "6.")):
+                        relevant_lines.append(line)
+                if len(relevant_lines) > 1:
+                    always_include.append({"header": sec["header"], "lines": relevant_lines})
+            elif not sec["header"]:
+                # Frontmatter/preamble - always include
+                always_include.append(sec)
+            else:
+                # Check if section is relevant to task
+                section_text = " ".join(sec["lines"]).lower()
+                overlap = sum(1 for w in task_words if len(w) > 3 and w in section_text)
+                if overlap >= 2:
+                    conditional_include.append((overlap, sec))
+
+        # Build output: always sections + top conditional sections (within budget)
+        output_lines = []
+        for sec in always_include:
+            output_lines.extend(sec["lines"])
+
+        # Add conditional sections sorted by relevance, up to ~1500 tokens
+        conditional_include.sort(key=lambda x: x[0], reverse=True)
+        current_chars = sum(len(l) for l in output_lines)
+        for _, sec in conditional_include:
+            sec_chars = sum(len(l) for l in sec["lines"])
+            if current_chars + sec_chars < 6000:  # ~1500 tokens
+                output_lines.extend(sec["lines"])
+                current_chars += sec_chars
+
+        result = "\n".join(output_lines)
+        return result if result.strip() else content  # fallback to full if extraction failed
 
     def run_challenge(self, challenge: Challenge, agent_fn, group: str, model: str) -> EvalResult:
         """Run a single challenge against the agent function."""
@@ -307,7 +383,7 @@ class EvalPipeline:
         # Call agent (control = no skill context, test = with skill context)
         skill_context = ""
         if group == "test":
-            skill_context = self.load_skill(challenge.target_skill)
+            skill_context = self.load_skill(challenge.target_skill, task=challenge.task)
 
         output = agent_fn(challenge.task, skill_context, model)
         latency_ms = (time.time() - start) * 1000
@@ -501,6 +577,39 @@ class EvalPipeline:
         # Paired win-rate
         winrate_summary = stats.paired_winrate(self.winrate_results)
 
+        # Segmented win-rates (by platform scope and difficulty)
+        challenge_map = {c.id: c for c in self.challenges}
+        azure_winrate_items = [
+            w for w in self.winrate_results
+            if challenge_map.get(w.get("challenge_id"), Challenge("","","","","",False)).platform_scope == "azure-postgresql"
+        ]
+        generic_winrate_items = [
+            w for w in self.winrate_results
+            if challenge_map.get(w.get("challenge_id"), Challenge("","","","","",False)).platform_scope == "generic"
+        ]
+        hard_winrate_items = [
+            w for w in self.winrate_results
+            if challenge_map.get(w.get("challenge_id"), Challenge("","","","","",False)).difficulty in ("hard", "medium")
+        ]
+
+        # Difficulty-weighted win rate: hard=3x, medium=2x, easy=1x
+        difficulty_weights = {"hard": 3.0, "medium": 2.0, "easy": 1.0}
+        weighted_wins = 0.0
+        weighted_losses = 0.0
+        weighted_ties = 0.0
+        weighted_total = 0.0
+        for w in self.winrate_results:
+            cid = w.get("challenge_id", "")
+            c = challenge_map.get(cid)
+            weight = difficulty_weights.get(c.difficulty, 1.0) if c else 1.0
+            weighted_total += weight
+            if w.get("winner") == "B_wins":
+                weighted_wins += weight
+            elif w.get("winner") == "A_wins":
+                weighted_losses += weight
+            else:
+                weighted_ties += weight
+
         report = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "summary": {
@@ -523,6 +632,17 @@ class EvalPipeline:
                 "bootstrap_95_ci": bootstrap_ci,
                 "wilcoxon_test": wilcoxon,
                 "paired_winrate": winrate_summary,
+                "segmented_winrate": {
+                    "azure": stats.paired_winrate(azure_winrate_items),
+                    "generic": stats.paired_winrate(generic_winrate_items),
+                    "hard_medium": stats.paired_winrate(hard_winrate_items),
+                },
+                "weighted_winrate": {
+                    "win_rate": round(weighted_wins / weighted_total, 3) if weighted_total else 0,
+                    "loss_rate": round(weighted_losses / weighted_total, 3) if weighted_total else 0,
+                    "tie_rate": round(weighted_ties / weighted_total, 3) if weighted_total else 0,
+                    "weighting": "hard=3x, medium=2x, easy=1x",
+                },
             },
             "per_skill": {
                 skill: {
@@ -672,6 +792,19 @@ class EvalPipeline:
         far = report['summary']['false_activation_rate']
         print(f"False Activation Rate: {far:.1%}")
 
+        # Segmented win-rates
+        seg = report['delta'].get('segmented_winrate', {})
+        if seg:
+            print(f"\n{'='*60}")
+            print("SEGMENTED WIN RATES")
+            print(f"{'='*60}")
+            for scope, sr in seg.items():
+                if sr and sr.get('total', 0) > 0:
+                    print(f"  {scope:12s}: {sr['win_rate']:.1%} wins, {sr['loss_rate']:.1%} losses, {sr['tie_rate']:.1%} ties ({sr['total']} matchups)")
+            wwr = report['delta'].get('weighted_winrate', {})
+            if wwr:
+                print(f"  {'weighted':12s}: {wwr['win_rate']:.1%} wins, {wwr['loss_rate']:.1%} losses, {wwr['tie_rate']:.1%} ties ({wwr['weighting']})")
+
         # Per-skill breakdown (losses, hallucinations, false activations)
         print(f"\n{'='*60}")
         print("PER-SKILL BREAKDOWN")
@@ -739,11 +872,13 @@ def azure_openai_agent(task: str, skill_context: str, model: str) -> str:
     if skill_context:
         system_prompt += (
             "\n\nYou have access to the following reference material. "
-            "Consult it when relevant but answer naturally — do not force-include "
-            "every detail from the reference. Cite specific constraints, thresholds, "
-            "or Azure-specific facts only when they directly apply to the user's question. "
+            "Answer the user's question FIRST with a direct, actionable response. "
+            "Then cite specific Azure constraints or gotchas from the reference ONLY "
+            "when they directly apply to the user's scenario. "
+            "Do NOT: dump the entire reference content, add caveats for scenarios the user "
+            "didn't ask about, or restructure your answer around the reference's format. "
             "If the reference doesn't add value beyond your existing knowledge for this "
-            "particular question, rely on your expertise and answer directly."
+            "particular question, ignore it and answer directly."
             f"\n\n---\n{skill_context}\n---"
         )
 
@@ -779,11 +914,13 @@ def openai_agent(task: str, skill_context: str, model: str) -> str:
     if skill_context:
         system_prompt += (
             "\n\nYou have access to the following reference material. "
-            "Consult it when relevant but answer naturally — do not force-include "
-            "every detail from the reference. Cite specific constraints, thresholds, "
-            "or Azure-specific facts only when they directly apply to the user's question. "
+            "Answer the user's question FIRST with a direct, actionable response. "
+            "Then cite specific Azure constraints or gotchas from the reference ONLY "
+            "when they directly apply to the user's scenario. "
+            "Do NOT: dump the entire reference content, add caveats for scenarios the user "
+            "didn't ask about, or restructure your answer around the reference's format. "
             "If the reference doesn't add value beyond your existing knowledge for this "
-            "particular question, rely on your expertise and answer directly."
+            "particular question, ignore it and answer directly."
             f"\n\n---\n{skill_context}\n---"
         )
 

@@ -27,123 +27,51 @@ activation:
     - "`azure-postgresql/ha-disaster-recovery/`"
 ---
 
-# Provisioning
+## Key Facts (what models get wrong)
 
-## Prerequisites
+| Fact | Detail |
+|------|--------|
+| Storage cannot shrink | Once provisioned or auto-grown, storage only scales UP; never decreases |
+| IOPS scale with storage | Base = 3 IOPS/GB (min 100, max 20K premium); additional provisioned IOPS on GP/MO only |
+| VNet chosen at creation | Network connectivity (public vs VNet) is set at creation; cannot change later |
+| Auto-grow behavior | Grows by greater of 5 GB or 10% when free space < 10%; growth is permanent |
+| Tier change restrictions | Cannot switch between Burstable and GP/MO in-place; requires new server + migration |
+| SKU format differs per tool | CLI: `Standard_D4ds_v5`, Terraform: `GP_Standard_D4ds_v5` (tier prefix), ARM: different again |
+| Terraform resource | `azurerm_postgresql_flexible_server`; `storage_mb` is in MB (131072 = 128 GB) |
+| Burstable limitations | Fixed IOPS cap, no DiskANN, no HA pairing with GP/MO |
+| Zone lock-in | Server pinned to its AZ; moving zones requires new server + migration |
 
-- Azure subscription with Contributor role
-- Decision on: region, SKU tier, storage size, HA requirement
+## Decision Matrix
 
-## Instructions
+| Factor | Burstable (B) | General Purpose (D) | Memory Optimized (E) |
+|--------|---------------|--------------------|-----------------------|
+| vCores | 1-20 | 2-96 | 2-96 |
+| Use case | Dev/test, low traffic | Production OLTP | Analytics, caching, large working sets |
+| Max storage | 32 TB | 32 TB | 32 TB |
+| HA support | Same-zone only | Zone-redundant | Zone-redundant |
+| DiskANN | No | Yes | Yes |
+| IOPS | Fixed cap | Scalable + provisioned | Scalable + provisioned |
+| Tier switching | Cannot switch to GP/MO | Can switch to MO | Can switch to GP |
 
-**Step 1: Choose SKU tier**
+## Critical Gotchas
 
-| Tier | vCores | Use Case | Max Storage |
-|------|--------|----------|-------------|
-| Burstable (B) | 1-20 | Dev/test, low traffic | 32 TB |
-| General Purpose (D) | 2-96 | Production OLTP | 32 TB |
-| Memory Optimized (E) | 2-96 | Analytics, caching | 32 TB |
+1. **Storage is permanent**: Start conservative with auto-grow enabled; you can never reduce storage size
+2. **SKU format varies by tool**: CLI omits tier prefix; Terraform requires `GP_`/`B_`/`MO_` prefix; always check provider docs
+3. **Burstable to GP requires migration**: Cannot update in-place; must create new server and pg_dump/pg_restore
+4. **Auto-grow is irreversible per increment**: Each growth event is permanent; monitor `storage_percent` metric
+5. **HA adds 2x compute cost**: Budget from day one if HA is required; zone-redundant HA can be enabled post-creation with downtime
+6. **Region + AZ are fixed**: Changing availability zone means creating a new server
+7. **Backup storage free tier**: Up to 1x provisioned storage is free; beyond that billed per-GB/month
+8. **IOPS on Burstable**: Fixed cap with no option to provision additional IOPS
 
-**Step 2: Provision with az CLI**
+## Anti-Hallucination Rules
 
-```bash
-az postgres flexible-server create \
-    --resource-group myRG \
-    --name myserver \
-    --location eastus \
-    --sku-name Standard_D4ds_v5 \
-    --storage-size 128 \
-    --version 16 \
-    --admin-user myadmin \
-    --admin-password '<SECURE_PASSWORD>' \
-    --tier GeneralPurpose
-```
-
-**Step 3: Terraform example**
-
-```hcl
-resource "azurerm_postgresql_flexible_server" "main" {
-  name                = "myserver"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  version             = "16"
-  sku_name            = "GP_Standard_D4ds_v5"
-  storage_mb          = 131072  # 128 GB
-  
-  administrator_login    = "myadmin"
-  administrator_password = var.admin_password
-  
-  zone = "1"
-}
-```
-
-> WARNING: Storage size can only be increased, never decreased. Choose initial size carefully.
-
-### Verify
-
-```bash
-# Confirm server is ready
-az postgres flexible-server show --resource-group myRG --name myserver \
-    --query "{state:state, version:version, sku:sku.name, storage:storage.storageSizeGb}"
-```
-
-## Common Mistakes
-
-1. **[CRITICAL] Storage immutability**: Storage only scales UP. Once you provision 256 GB, you cannot shrink to 128 GB. Overprovision storage leads to permanent cost. Start conservative and scale up as needed (auto-grow handles this if enabled)
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
-   ```bash
-   # Provisioned 512 GB "just in case" ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â cannot ever reduce
-   az postgres flexible-server create --storage-size 512
-   # Later: az postgres flexible-server update --storage-size 128
-   # ERROR: storage size can only be increased
-   ```
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
-   ```bash
-   # Start conservative, enable auto-grow
-   az postgres flexible-server create --storage-size 64 --storage-auto-grow Enabled
-   # Storage grows automatically when needed ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â but never shrinks
-   ```
-
-2. **[HIGH] SKU format divergence**: CLI uses `Standard_D4ds_v5`. Terraform uses `GP_Standard_D4ds_v5` (tier prefix: B_ for Burstable, GP_ for General Purpose, MO_ for Memory Optimized). ARM templates use yet another format. Always check provider docs
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
-   ```hcl
-   # Terraform with CLI format ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â fails validation
-   sku_name = "Standard_D4ds_v5"
-   ```
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
-   ```hcl
-   # Terraform requires tier prefix
-   sku_name = "GP_Standard_D4ds_v5"  # GP_ = General Purpose
-   ```
-
-3. **[HIGH] IOPS tiers and provisioning**: Base IOPS = 3 IOPS/GB (min 100, max 20K for premium). Additional provisioned IOPS available on General Purpose and Memory Optimized. Use `az postgres flexible-server update --iops 5000`. Burstable tier has fixed IOPS cap
-4. **[HIGH] HA must be planned at creation**: Zone-redundant HA can be enabled post-creation but requires downtime (server restart). Same-zone HA can be added anytime. Budget for 2x compute cost from day one if HA is required
-5. **[HIGH] Auto-grow behavior**: When enabled, storage auto-grows by the greater of 5GB or 10% of current storage when free space drops below 10%. Growth is permanent (cannot shrink). Monitor `storage_percent` metric to avoid surprise growth
-6. **[CRITICAL] Compute tier restrictions**: Cannot change between Burstable and General Purpose/Memory Optimized in-place. Must create new server and migrate. Plan tier choice at provisioning time
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
-   ```bash
-   # Cannot switch from Burstable to General Purpose in-place
-   az postgres flexible-server update --name myserver --sku-name Standard_D4ds_v5
-   # ERROR: cannot change compute tier from Burstable to GeneralPurpose
-   ```
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
-   ```bash
-   # Create new GP server and migrate data
-   az postgres flexible-server create --name myserver-gp --sku-name Standard_D4ds_v5
-   # Then use pg_dump/pg_restore to migrate
-   ```
-
-7. **[HIGH] Region + availability zone lock-in**: Server is pinned to its availability zone. Moving to another zone requires new server + migration. Choose zone strategically if using zone-redundant HA (standby goes to a different zone automatically)
-8. **[MEDIUM] Backup storage billing**: Backup storage up to 1x provisioned storage is free. Beyond that, billed per-GB/month. With 35-day retention and high churn, backup storage can exceed provisioned storage significantly
-9. **[MEDIUM] Provisioning failed**: Check `az monitor activity-log list` for the resource group to identify root cause
-10. **[MEDIUM] Wrong SKU selected**: Scale with `az postgres flexible-server update --sku-name <new_sku>` (some changes require restart)
-11. **[MEDIUM] Forgot HA at creation**: Enable later with `az postgres flexible-server update --high-availability ZoneRedundant`
+- Do NOT claim storage can be reduced after provisioning
+- Do NOT use CLI SKU format (`Standard_D4ds_v5`) in Terraform; must use tier-prefixed format
+- Do NOT claim Burstable tier supports DiskANN or provisioned IOPS
+- Do NOT claim tier changes between Burstable and GP/MO can be done in-place
+- Do NOT claim VNet configuration can be changed after server creation
+- Do NOT claim Terraform uses `storage_gb`; the attribute is `storage_mb`
 
 ## References
 - [Quickstart: Create an Azure Database for PostgreSQL Flexible Server](https://learn.microsoft.com/azure/postgresql/flexible-server/quickstart-create-server-portal)

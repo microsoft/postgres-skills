@@ -1,6 +1,6 @@
 # Agent Challenges
 #
-# 107 challenges across 21 skills (generic + Azure + 2 root skills)
+# 115 challenges across 22 skills (generic + Azure + root)
 # Each challenge tests whether the agent activates the correct skill
 # and produces syntactically valid, non-hallucinated output.
 
@@ -1145,3 +1145,94 @@ challenges:
     expected_patterns:
       - "genai-patterns|vector-diskann|azure-ai"
     notes: "Tests routing table — should point to genai-patterns and/or vector-diskann skills"
+
+  # --- AZURE-SPECIFIC CONSTRAINT CHALLENGES (test reference-only knowledge) ---
+
+  - id: az-constraint-01
+    task: "I want to switch my Azure PostgreSQL server from public access to VNet integration. How do I do this?"
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-networking-ssl
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "cannot|recreation|create.*new"
+    anti_patterns:
+      - "simply change|just update|modify the setting"
+
+  - id: az-constraint-02
+    task: "How do I downgrade my Azure PostgreSQL server from version 16 back to 15?"
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "cannot|not.*supported|one-way|PITR|restore"
+    anti_patterns:
+      - "az postgres flexible-server upgrade.*--version 15"
+
+  - id: az-constraint-03
+    task: "I need to shrink the storage on my Azure PostgreSQL Flexible Server from 256GB to 128GB to save costs."
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-provisioning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "cannot.*shrink|not.*reduce|only.*increase"
+    anti_patterns:
+      - "az postgres flexible-server update.*--storage-size 128"
+
+  - id: az-constraint-04
+    task: "I want to use DiskANN indexing on my self-hosted PostgreSQL 16 server. How do I install pg_diskann?"
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-vector-diskann
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "Azure.*only|not.*available.*self-hosted|Flexible Server"
+    anti_patterns:
+      - "apt.*install|pip.*install|compile.*from.*source"
+
+  - id: az-constraint-05
+    task: "Can azure_openai.create_embeddings process a batch of 100 texts in a single call for better performance?"
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-genai-patterns
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "one.*at.*time|single.*text|loop|cannot.*batch"
+    anti_patterns:
+      - "pass.*array|batch.*input.*supported"
+
+  - id: az-constraint-06
+    task: "My Baltimore CyberTrust Root certificate is failing to connect to Azure PostgreSQL. What's wrong?"
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-networking-ssl
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "DigiCert|expired|deprecated|2022"
+    anti_patterns:
+      - "Baltimore.*is.*correct|renew.*Baltimore"
+
+  - id: az-constraint-07
+    task: "I want to skip from PostgreSQL 13 directly to 16 on my Azure Flexible Server. What's the upgrade command?"
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "sequential|one.*version.*at.*time|cannot.*skip"
+    anti_patterns:
+      - "--version 16.*works"
+
+  - id: az-constraint-08
+    task: "I enabled 'Allow Azure services' on my server for security. Is my database now properly isolated to just my Azure resources?"
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-networking-ssl
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "any.*Azure|all.*subscription|not.*just.*your|wider"
+    anti_patterns:
+      - "yes.*isolated|only.*your.*resources"
+

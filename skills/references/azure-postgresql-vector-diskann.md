@@ -26,144 +26,47 @@ activation:
     - "`azure-postgresql/genai-patterns/`"
 ---
 
-# Vector Search with DiskANN
+## Key Facts (what models get wrong)
 
-## Prerequisites
+| Fact | Detail |
+|------|--------|
+| DiskANN is Azure-only | Requires `pg_diskann` extension on Flexible Server only; not available on community PostgreSQL |
+| Streaming DiskANN is Preview | Not GA; do not promise production-ready streaming indexing |
+| Requires pgvector 0.7+ | Both `vector` AND `pg_diskann` must be installed; pgvector is a prerequisite |
+| CREATE EXTENSION pg_diskann required | Separate from pgvector; must explicitly create both extensions |
+| Not available on Burstable tier | DiskANN indexes require General Purpose or Memory Optimized SKUs |
+| Operator/ops class must match | `vector_cosine_ops` pairs with `<=>`, `vector_l2_ops` with `<->`, `vector_ip_ops` with `<#>` |
+| Both extensions need allowlisting | `azure.extensions` server parameter must include both `vector` and `pg_diskann` |
+| HNSW tuning params | `m` (connectivity, default 16), `ef_construction` (build quality, default 64) |
 
-- Role: `azure_pg_admin` (required for extension management; never superuser on Flexible Server)
-- Extensions: `vector` (pgvector) and `pg_diskann` allowlisted and installed
+## Decision Matrix
 
-## Instructions
+| Factor | DiskANN | HNSW | IVFFlat |
+|--------|---------|------|---------|
+| Dataset size | > 1M vectors | < 1M vectors | Legacy only |
+| Memory usage | Low (disk-based) | High (in-memory) | Medium |
+| Build speed | Fast | Slow | Fast |
+| Recall | 95-98% | 95-99% | 85-95% |
+| Filtered search | Native (efficient) | Post-filter (may under-return) | Post-filter |
+| Multi-tenant apps | Preferred | Slower | Not recommended |
 
-**Step 1: Install vector extensions**
+## Critical Gotchas
 
-```sql
-CREATE EXTENSION vector;       -- pgvector for vector type + HNSW
-CREATE EXTENSION pg_diskann;   -- DiskANN index support
-```
+1. **Mismatched ops class is silent**: Index is simply not used; query returns wrong ordering with no error
+2. **Allowlist both extensions**: Forgetting `pg_diskann` in `azure.extensions` gives `ERROR: access to library "pg_diskann" is not allowed`
+3. **HNSW ef_search default is low**: Default 40; set `SET hnsw.ef_search = 200` for production recall
+4. **DiskANN search_list_size**: Default 100; increase with `SET diskann.search_list_size = 200` for higher recall
+5. **Index build monitoring**: Use `pg_stat_progress_create_index`; prefer `CREATE INDEX CONCURRENTLY` to avoid blocking
+6. **Seq scan fallback**: If index not used, run `ANALYZE` on table or increase `LIMIT` value
+7. **HNSW OOM**: Large tables may exhaust `maintenance_work_mem`; switch to DiskANN
 
-**Step 2: Create table with vector column**
+## Anti-Hallucination Rules
 
-```sql
-CREATE TABLE documents (
-    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    content text,
-    metadata jsonb,
-    embedding vector(1536)  -- dimension matches your model output
-);
-```
-
-**Step 3: Choose index type**
-
-| Index | Best For | Memory | Build Time | Recall |
-|-------|----------|--------|-----------|--------|
-| HNSW | < 1M vectors, high recall needed | High (in-memory) | Slow | 95-99% |
-| DiskANN | > 1M vectors, cost-sensitive | Low (disk-based) | Fast | 95-98% |
-| IVFFlat | Legacy, not recommended | Medium | Fast | 85-95% |
-
-**Step 4: Create DiskANN index**
-
-```sql
--- DiskANN for large-scale, cost-effective vector search
-CREATE INDEX idx_docs_embedding_diskann ON documents
-    USING diskann (embedding vector_cosine_ops);
-```
-
-**Step 5: Create HNSW index (alternative)**
-
-```sql
--- HNSW for smaller datasets with maximum recall
-CREATE INDEX idx_docs_embedding_hnsw ON documents
-    USING hnsw (embedding vector_cosine_ops)
-    WITH (m = 16, ef_construction = 200);
-```
-
-**Step 6: Query with similarity search**
-
-```sql
--- Cosine similarity (most common for text embeddings)
-SELECT id, content, embedding <=> $1::vector AS distance
-FROM documents
-ORDER BY embedding <=> $1::vector
-LIMIT 10;
-
--- Filtered vector search (DiskANN supports this efficiently)
-SELECT id, content, embedding <=> $1::vector AS distance
-FROM documents
-WHERE metadata->>'category' = 'technical'
-ORDER BY embedding <=> $1::vector
-LIMIT 10;
-```
-
-**Distance operators:**
-
-| Operator | Distance | Use Case |
-|----------|----------|----------|
-| `<=>` | Cosine | Text embeddings (normalized) |
-| `<->` | L2 (Euclidean) | Image embeddings |
-| `<#>` | Negative inner product | When vectors are pre-normalized |
-
-### Verify
-
-```sql
--- Verify index is being used
-EXPLAIN (ANALYZE) SELECT id FROM documents
-ORDER BY embedding <=> '[0.1,0.2,...]'::vector LIMIT 10;
--- Should show: Index Scan using idx_docs_embedding_diskann
-
--- Check index size
-SELECT pg_size_pretty(pg_relation_size('idx_docs_embedding_diskann'));
-```
-
-## Common Mistakes
-
-1. **[MEDIUM] DiskANN availability**: `pg_diskann` requires Flexible Server. Verify with `SELECT * FROM pg_available_extensions WHERE name = 'pg_diskann'` before using in code
-2. **[CRITICAL] Wrong operator class**: Must match distance operator to class. `vector_cosine_ops` for `<=>`, `vector_l2_ops` for `<->`, `vector_ip_ops` for `<#>`. Mismatched class silently returns wrong ordering
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
-   ```sql
-   CREATE INDEX ON docs USING diskann (embedding vector_cosine_ops);
-   -- Then query with L2 operator ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â index NOT used, wrong results
-   SELECT * FROM docs ORDER BY embedding <-> $1::vector LIMIT 10;
-   ```
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
-   ```sql
-   CREATE INDEX ON docs USING diskann (embedding vector_cosine_ops);
-   -- Use matching cosine operator
-   SELECT * FROM docs ORDER BY embedding <=> $1::vector LIMIT 10;
-   ```
-
-3. **[HIGH] HNSW `ef_search` tuning**: `SET hnsw.ef_search = 200` for query-time recall. Default is 40. Higher = better recall but slower
-4. **[HIGH] DiskANN filtered search advantage**: DiskANN handles WHERE clause pre-filtering natively (graph traversal with label filter). HNSW post-filters and may return fewer results than LIMIT. For multi-tenant apps, DiskANN is significantly faster
-5. **[CRITICAL] Missing allowlist entries**: Both `vector` AND `pg_diskann` must be in `azure.extensions` server parameter. Forgetting `pg_diskann` gives `ERROR: access to library "pg_diskann" is not allowed`
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
-   ```bash
-   # Only allowlisted vector, forgot pg_diskann
-   az postgres flexible-server parameter set --name azure.extensions --value "vector"
-   ```
-   ```sql
-   CREATE EXTENSION pg_diskann;
-   -- ERROR: access to library "pg_diskann" is not allowed
-   ```
-
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
-   ```bash
-   # Allowlist BOTH extensions
-   az postgres flexible-server parameter set --name azure.extensions --value "vector,pg_diskann"
-   ```
-   ```sql
-   CREATE EXTENSION vector;
-   CREATE EXTENSION pg_diskann;
-   ```
-
-6. **[HIGH] Wrong distance operator for use case**: `<=>` (cosine) for normalized text embeddings, `<->` (L2) for image embeddings, `<#>` (negative inner product) for pre-normalized vectors
-7. **[MEDIUM] Index build monitoring**: For large tables, monitor DiskANN build progress: `SELECT * FROM pg_stat_progress_create_index`. Use `CREATE INDEX CONCURRENTLY` to avoid blocking writes
-8. **[HIGH] Index not used**: Set `SET enable_seqscan = off` to test. If it works, the planner estimates are wrong. Increase `LIMIT` or run `ANALYZE`
-9. **[HIGH] Low recall**: For HNSW, increase `hnsw.ef_search` (default 40). For DiskANN, increase `diskann.search_list_size` (default 100) at query time: `SET diskann.search_list_size = 200;`
-10. **[HIGH] Build out of memory (HNSW)**: Increase `maintenance_work_mem` or switch to DiskANN
-11. **[CRITICAL] 403 / permission denied on CREATE EXTENSION**: Verify your role has `azure_pg_admin`: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` Also verify both `vector` and `pg_diskann` are in `azure.extensions` server parameter
+- Do NOT claim DiskANN works on community PostgreSQL or any non-Azure deployment
+- Do NOT claim DiskANN is available on Burstable tier
+- Do NOT mix operator and ops class (e.g., `<->` with `vector_cosine_ops`)
+- Do NOT omit `CREATE EXTENSION pg_diskann` (it is separate from pgvector)
+- Do NOT claim IVFFlat is recommended for new workloads
 
 ## References
 - [pg_diskann extension for Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-use-pgvector)
