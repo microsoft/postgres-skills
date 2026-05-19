@@ -37,6 +37,30 @@ const CONN_STRING =
     process.exit(1);
   })();
 
+function toLibpqString(cs) {
+  const trimmed = cs.trim();
+  if (!/^postgres(?:ql)?:\/\//i.test(trimmed)) return trimmed;
+
+  const url = new URL(trimmed);
+  const parts = [
+    `host=${url.hostname}`,
+    `port=${url.port || "5432"}`,
+    `dbname=${decodeURIComponent(url.pathname.replace(/^\//, "") || "postgres")}`,
+    `user=${decodeURIComponent(url.username || "postgres")}`,
+  ];
+
+  if (url.password) {
+    parts.push(`password=${decodeURIComponent(url.password)}`);
+  }
+
+  const sslmode = url.searchParams.get("sslmode");
+  if (sslmode) {
+    parts.push(`sslmode=${sslmode}`);
+  }
+
+  return parts.join(" ");
+}
+
 const SCHEMA = `test_rag_app_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`;
 
 // ---------------------------------------------------------------------------
@@ -1378,8 +1402,9 @@ async function main() {
 
   // Spawn MCP server
   console.log("Starting MCP server...");
+  const libpqConnString = toLibpqString(CONN_STRING);
   const proc = spawn("node", [SCRIPT], {
-    env: { ...process.env, PGSQL_CONNECTION_STRING: CONN_STRING },
+    env: { ...process.env, PGSQL_CONNECTION_STRING: libpqConnString },
     stdio: ["pipe", "pipe", "pipe"],
   });
 
