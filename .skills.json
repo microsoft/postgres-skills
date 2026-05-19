@@ -38,6 +38,103 @@
       ],
       "always_load": false,
       "references_dir": "skills/references/"
+    },
+    {
+      "id": "azure-postgresql",
+      "path": "skills/references/azure-postgresql-provisioning.md",
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": [
+        "azure database for postgresql",
+        "azure postgresql",
+        "flexible server"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "extension-lifecycle",
+      "path": "skills/references/azure-postgresql-extension-lifecycle.md",
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": [
+        "pgvector extension",
+        "azure.extensions",
+        "shared_preload_libraries"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "genai-patterns",
+      "path": "skills/references/azure-postgresql-genai-patterns.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "rag pipeline",
+        "embeddings",
+        "semantic search with pgvector"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "vector-diskann",
+      "path": "skills/references/azure-postgresql-vector-diskann.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "hnsw",
+        "diskann",
+        "pgvector"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "full-text-search",
+      "path": "skills/references/postgresql-full-text-search.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "tsvector",
+        "tsquery",
+        "full text search"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "jsonb-patterns",
+      "path": "skills/references/postgresql-jsonb-patterns.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "jsonb",
+        "jsonb_path_ops"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "advanced-indexing",
+      "path": "skills/references/postgresql-advanced-indexing.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "create index",
+        "partial index",
+        "covering index"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "row-level-security",
+      "path": "skills/references/postgresql-row-level-security.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "row level security",
+        "enable row level security"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "query-performance",
+      "path": "skills/references/postgresql-query-performance.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "explain analyze",
+        "query plan",
+        "autovacuum"
+      ],
+      "always_load": false
     }
   ],
   "connection_gating": {
