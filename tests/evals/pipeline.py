@@ -662,6 +662,32 @@ class EvalPipeline:
         far = report['summary']['false_activation_rate']
         print(f"False Activation Rate: {far:.1%}")
 
+        # Per-skill breakdown (losses, hallucinations, false activations)
+        print(f"\n{'='*60}")
+        print("PER-SKILL BREAKDOWN")
+        print(f"{'='*60}")
+        per_skill = report.get("per_skill", {})
+        for skill_id, m in sorted(per_skill.items(), key=lambda x: x[1].get("avg_judge_score") or 0):
+            flags = []
+            if m["fp"] > 0:
+                flags.append(f"FP={m['fp']}")
+            if m["fn"] > 0:
+                flags.append(f"FN={m['fn']}")
+            if m["hallucinations"] > 0:
+                flags.append(f"halluc={m['hallucinations']}")
+            judge_str = f"judge={m['avg_judge_score']}" if m.get("avg_judge_score") is not None else "no-judge"
+            print(f"  {skill_id}: pattern={m['avg_pattern_score']} {judge_str} TP={m['tp']} {' '.join(flags)}")
+
+        # Per-challenge losses (where test lost to control)
+        print(f"\n{'='*60}")
+        print("CHALLENGE LOSSES (test < control)")
+        print(f"{'='*60}")
+        loss_details = [v for v in self.winrate_results if v.get("winner") == "A_wins"]
+        for v in loss_details[:20]:
+            print(f"  {v.get('challenge_id', '?')}: skill={v.get('target_skill', '?')}")
+        if len(loss_details) > 20:
+            print(f"  ... and {len(loss_details) - 20} more")
+
         return report
 
 
