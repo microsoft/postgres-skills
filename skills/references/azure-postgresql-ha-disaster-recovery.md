@@ -31,6 +31,8 @@ activation:
 
 ## Key Facts (what models get wrong)
 
+> **Response focus:** Prioritize PITR-creates-new-server, geo-backup is creation-time-only, and replica promotion is permanent. Avoid explaining generic HA concepts or basic backup theory.
+
 | Fact | Detail |
 |------|--------|
 | PITR creates a NEW server | Restore produces a new hostname; it is NOT an in-place rollback |

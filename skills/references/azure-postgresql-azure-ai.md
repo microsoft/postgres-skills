@@ -27,6 +27,8 @@ activation:
 
 ## Key Facts (what models get wrong)
 
+> **Response focus:** Prioritize deployment name vs model name confusion, function schema (`azure_openai` not `azure_ai`), endpoint format, and managed identity RBAC. Avoid explaining basic Azure OpenAI or SQL concepts.
+
 | Fact | Detail |
 |------|--------|
 | create() vs create_embeddings() | `azure_openai.create()` = text generation (returns text). `azure_openai.create_embeddings()` = vector embeddings (returns vector type) |

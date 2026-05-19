@@ -9,36 +9,15 @@ activation:
 
 # PostgreSQL Agent Skills — Routing Table
 
-This skill routes to specialized PostgreSQL references based on your question and connection context. Use references as supplemental, authoritative context — combine them with your PostgreSQL knowledge. Do not treat reference text as the only source. If reference guidance is incomplete, answer with appropriate caveats rather than inventing details.
+Use references as supplemental context — combine them with your PostgreSQL knowledge. If reference guidance is incomplete, answer with appropriate caveats rather than inventing details.
 
-## Principles
+## Key Constraints
 
-**1. Know your PostgreSQL version before writing SQL:**
-```sql
-SELECT version();
-```
-Version-gated features: `MERGE` (PG 15+), `json_table` (PG 17+), `DETACH CONCURRENTLY` (PG 14+). If syntax error, check version first.
-
-**2. Confirm every change — do not assume success:**
-- Extension installed? → `SELECT * FROM pg_extension WHERE extname = 'x';`
-- Table/index created? → query `pg_class` or `information_schema`
-- Parameter changed? → `SHOW param;` (check `pending_restart` in `pg_settings`)
-
-**3. When stuck, diagnose — do not retry blindly:**
-
-| Error pattern | Likely cause | Fix |
-|---|---|---|
-| `permission denied for table` | Missing role grant | `GRANT SELECT ON table TO role;` |
-| `relation "x" does not exist` | Wrong schema/search_path | `SET search_path TO myschema, public;` |
-| `could not connect to server` | Host/port or pg_hba.conf | Check `listen_addresses` and pg_hba rules |
-
-**4. Safety rules:**
 - Never use `ALTER SYSTEM` on managed services — use portal/CLI/ARM instead
 - Never assume `SUPERUSER` — use `azure_pg_admin` (Azure) or equivalent managed role
 - Use `CONCURRENTLY` for `CREATE INDEX` / `REINDEX` / `DETACH PARTITION` in production
-- Always include `IF NOT EXISTS` / `IF EXISTS` guards in DDL scripts
-- Indexes are NOT free — each adds write overhead and storage
 - `pgsql_modify` does NOT return row data (no RETURNING support)
+- Version-gated features: `MERGE` (PG 15+), `json_table` (PG 17+), `DETACH CONCURRENTLY` (PG 14+)
 
 ---
 
@@ -104,19 +83,10 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 | Query Store, index recommendations, performance insights, intelligent tuning, query performance azure, slow queries azure, indexes Azure PostgreSQL recommends | [azure-postgresql-intelligent-tuning](references/azure-postgresql-intelligent-tuning.md) | Azure-specific monitoring. Generic `postgresql-query-performance` covers EXPLAIN-based tuning |
 | major version upgrade, maintenance window, in-place upgrade, MVU, upgrade postgres azure, schedule maintenance, upgrade my Azure PostgreSQL, upgrade from version | [azure-postgresql-upgrades-maintenance](references/azure-postgresql-upgrades-maintenance.md) | Azure-specific. No generic equivalent. |
 
-**Azure-specific gotchas (when `isAzure: true`):**
-- Check tier first: `SELECT current_setting('azure.server_tier', true);` — Burstable does NOT support read replicas or zone-redundant HA
-- Check allowlist: `SHOW azure.extensions;` — extensions must be allowlisted before `CREATE EXTENSION`
-- `az postgres flexible-server parameter set --value` for list params **replaces entire list** — always include existing values
-- `--sku-name` format is `Standard_{series}` (e.g., `Standard_D2ds_v4`), NOT just the series name
-- Some parameter changes require restart — check `pg_settings.pending_restart`
-
-| Azure error | Cause | Fix |
-|---|---|---|
-| `permission denied for function` | Missing role | `GRANT azure_pg_admin TO youruser;` |
-| `extension is not available` | Not allowlisted | Allowlist via Portal/CLI first |
-| `must be loaded via shared_preload_libraries` | Needs preload + restart | Set param via CLI, then restart |
-| `SSL connection is required` | sslmode missing | Use `sslmode=require` |
+**Azure quick-reference (when `isAzure: true`):**
+- Check tier: `SELECT current_setting('azure.server_tier', true);` — Burstable has limitations
+- Check allowlist: `SHOW azure.extensions;` — must allowlist before `CREATE EXTENSION`
+- `az ... parameter set --value` for list params **replaces entire list** — always GET current + append
 
 ---
 

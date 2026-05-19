@@ -31,42 +31,30 @@ activation:
 
 # Entra ID Authentication
 
-## Prerequisites
+## When to use this skill
 
-- Entra ID authentication enabled on the server
-- User-assigned or system-assigned managed identity (for applications)
+Use for Azure PostgreSQL issues involving:
+- Token-based (passwordless) authentication setup
+- Managed identity RBAC configuration
+- Token scope errors and auth failures
+- pgaadauth_create_principal workflow
+- PgBouncer + token auth conflicts
 
-## Instructions
+Avoid explaining basic Azure CLI commands or generic identity concepts. The base model knows these. Focus on PostgreSQL-specific token auth patterns and failure modes.
 
-**Step 1: Enable Entra ID auth on the server**
+## Key Facts (what models get wrong)
 
-```bash
-az postgres flexible-server update \
-    --resource-group myRG --name myserver \
-    --active-directory-auth Enabled
-```
+| Fact | Detail |
+|------|--------|
+| Token resource scope | `https://ossrdbms-aad.database.windows.net/.default` — NOT `https://management.azure.com` |
+| Token expiry | ~1 hour. Must refresh before expiry or connection fails with generic auth error |
+| pgaadauth_create_principal required | Azure RBAC Contributor does NOT grant database login. Must explicitly create principal |
+| Username format varies | Managed identity = client/object ID. User = `user@domain.com`. Service principal = application ID |
+| PgBouncer requires session mode | Transaction mode breaks token auth (auth context is per-connection) |
+| Propagation delay | RBAC role assignment takes up to 10 minutes to propagate |
+| Entra admin is mandatory | Must set an Entra admin before any token-based login works |
 
-**Step 2: Set an Entra admin**
-
-```bash
-az postgres flexible-server ad-admin create \
-    --resource-group myRG --server-name myserver \
-    --display-name "DBA Team" \
-    --object-id "<entra-group-object-id>"
-```
-
-**Step 3: Connect with Entra token (interactive user)**
-
-```bash
-# Get access token
-export PGPASSWORD=$(az account get-access-token \
-    --resource-type oss-rdbms --query accessToken -o tsv)
-
-psql "host=myserver.postgres.database.azure.com dbname=postgres \
-    user=user@domain.com sslmode=require"
-```
-
-**Step 4: Application with managed identity**
+## Critical Code Pattern: Managed Identity Connection
 
 ```python
 from azure.identity import DefaultAzureCredential
@@ -78,46 +66,31 @@ token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default
 conn = psycopg2.connect(
     host="myserver.postgres.database.azure.com",
     dbname="mydb",
-    user="my-managed-identity-name",
+    user="my-managed-identity-client-id",  # client ID, NOT display name
     password=token.token,
     sslmode="require"
 )
 ```
 
-**Step 5: Create database roles for Entra identities**
+## Critical Code Pattern: Create Database Principal
 
 ```sql
--- As Entra admin, create role for managed identity
+-- As Entra admin — required for each identity that needs DB access
 SELECT * FROM pgaadauth_create_principal('my-managed-identity-name', false, false);
 GRANT ALL ON DATABASE mydb TO "my-managed-identity-name";
 ```
 
-### Verify
-
-```sql
--- Check if Entra auth is working
-SELECT * FROM pgaadauth_list_principals();
-
--- Verify current session auth method
-SELECT usename, application_name FROM pg_stat_activity WHERE pid = pg_backend_pid();
-```
-
-```bash
-# Verify Entra admin is set
-az postgres flexible-server ad-admin list --resource-group myRG --server-name myserver
-```
-
 ## Common Mistakes
 
-1. **[CRITICAL] Token resource scope**: The resource for PostgreSQL tokens is `https://ossrdbms-aad.database.windows.net/.default` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â not the generic `https://management.azure.com`. Wrong scope gives valid token that is rejected by PostgreSQL
+1. **[CRITICAL] Token resource scope**: The resource for PostgreSQL tokens is `https://ossrdbms-aad.database.windows.net/.default` not the generic `https://management.azure.com`. Wrong scope gives valid token that is rejected by PostgreSQL
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
+   Wrong:
    ```python
    token = credential.get_token("https://management.azure.com/.default")
-   # Valid token but REJECTED by PostgreSQL ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â wrong audience
+   # Valid token but REJECTED by PostgreSQL wrong audience
    ```
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
+   Right:
    ```python
    token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default")
    # Correct scope for Azure Database for PostgreSQL
@@ -126,13 +99,13 @@ az postgres flexible-server ad-admin list --resource-group myRG --server-name my
 2. **[HIGH] Token refresh before expiry**: Entra tokens expire in ~1 hour. Cache and refresh when `expires_on - time.time() < 300`. Stale tokens give `FATAL: password authentication failed` with no hint about expiry
 3. **[CRITICAL] `pgaadauth_create_principal` required**: Azure Contributor role manages the server resource but does NOT grant database login. Must run `SELECT * FROM pgaadauth_create_principal('myapp', false, false)` as Entra admin for each identity
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
+   Wrong:
    ```sql
    -- Assuming Azure RBAC Contributor = database access
-   -- App connects ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ FATAL: password authentication failed for user "myapp"
+   -- App connects FATAL: password authentication failed for user "myapp"
    ```
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
+   Right:
    ```sql
    -- As Entra admin, explicitly create the database principal
    SELECT * FROM pgaadauth_create_principal('myapp', false, false);
@@ -143,13 +116,13 @@ az postgres flexible-server ad-admin list --resource-group myRG --server-name my
 5. **[HIGH] PgBouncer session mode required**: Token auth fails in transaction pooling mode because auth context is per-connection. Set `pgbouncer.pool_mode = session` for token auth, or use password auth for PgBouncer
 6. **[HIGH] Username format matrix**: Managed identity = client ID or object ID. User = `user@domain.com`. Service principal = application (client) ID. Group = display name. Mismatch gives generic auth failure
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
+   Wrong:
    ```python
    conn = psycopg2.connect(user="my-managed-identity")  # display name
    # FATAL: password authentication failed
    ```
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
+   Right:
    ```python
    conn = psycopg2.connect(user="a1b2c3d4-e5f6-...")  # client ID or object ID
    ```

@@ -33,6 +33,8 @@ activation:
 
 # Networking and SSL
 
+> **Response focus:** Prioritize VNet-is-permanent, DigiCert G2 (not Baltimore), and "Allow Azure services" scope. Avoid explaining basic TLS concepts or generic firewall rules.
+
 ## Key Facts (what models get wrong)
 
 | Fact | Detail |
@@ -56,14 +58,13 @@ activation:
 | Add after creation? | Yes | No (creation only) | Yes |
 | Cost | Free | Free | ~$7.30/month |
 
-## Critical Gotchas
+## Common Mistakes
 
-1. **DigiCert G2, not Baltimore**: `sslrootcert=DigiCertGlobalRootG2.crt.pem` (download from `dl.cacerts.digicert.com`). Baltimore cert expired 2022
-2. **VNet kills firewall**: Once VNet-integrated, firewall rules exist but are never evaluated
-3. **verify-full hostname**: Cert SAN matches `*.postgres.database.azure.com`. CNAME aliases still validate against Azure-issued cert
-4. **Cross-VNet**: Requires VNet peering + DNS forwarding. Cross-region adds 2-10ms latency
-5. **"no pg_hba.conf entry"**: On public access = add IP to firewall. On private = check DNS resolution
-6. **sslmode=require vs verify-full**: `require` encrypts but does NOT verify server identity. Always use `verify-full` in production
+1. **[CRITICAL] Baltimore cert expired**: Use `DigiCertGlobalRootG2.crt.pem` (download from `dl.cacerts.digicert.com`). Baltimore CyberTrust Root expired 2022
+2. **[HIGH] sslmode=require vs verify-full**: `require` encrypts but does NOT verify server identity. Use `verify-full` in production
+3. **[HIGH] VNet kills firewall rules**: Once VNet-integrated, firewall rules are never evaluated even if they exist
+4. **[MEDIUM] Cross-VNet connectivity**: Requires VNet peering + DNS forwarding. Cross-region adds 2-10ms latency
+5. **[MEDIUM] "no pg_hba.conf entry" on Azure**: On public access = add IP to firewall. On private = check DNS resolution (likely `privatelink.postgres.database.azure.com` zone not linked)
 
 ## Anti-Hallucination Rules
 

@@ -31,6 +31,8 @@ activation:
 
 # Table Partitioning
 
+> **Response focus:** Prioritize partition pruning failures, PK-must-include-partition-key, DEFAULT partition traps, and version-gated DETACH CONCURRENTLY. Avoid explaining basic partitioning concepts or strategy selection unless asked.
+
 ## Instructions
 
 **Step 1: Strategy selection**

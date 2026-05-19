@@ -7,88 +7,44 @@ platform_scope: postgresql
 
 # Vector Search with pgvector
 
-## Prerequisites
+## When to use this skill
 
-- PostgreSQL 13+ (pgvector requires PG13 minimum)
-- Extension: `vector` installed (`CREATE EXTENSION vector;`)
+Use for production PostgreSQL vector search issues involving:
+- HNSW index parameter tuning (m, ef_construction, ef_search)
+- Distance operator selection and ops class pairing
+- Index not being used by planner
+- Dimension mismatch debugging
 
-## Instructions
+Avoid explaining basic pgvector setup (CREATE EXTENSION, CREATE TABLE with vector column, basic INSERT/SELECT). The base model knows these well.
 
-**Step 1: Install pgvector**
+## Key Facts (what models get wrong)
 
-```sql
-CREATE EXTENSION IF NOT EXISTS vector;
-```
-
-**Step 2: Create table with vector column**
-
-```sql
-CREATE TABLE documents (
-    id BIGSERIAL PRIMARY KEY,
-    content TEXT NOT NULL,
-    embedding vector(1536)  -- dimension must match your model
-);
-```
-
-**Step 3: Insert embeddings**
-
-```sql
-INSERT INTO documents (content, embedding)
-VALUES ('Your text here', '[0.1, 0.2, ...]'::vector);
-```
-
-**Step 4: Create HNSW index**
-
-```sql
-CREATE INDEX ON documents
-USING hnsw (embedding vector_cosine_ops)
-WITH (m = 16, ef_construction = 200);
-```
-
-Index parameter guidance:
-- `m` (default 16): Higher = better recall, more memory. Range: 8–64.
-- `ef_construction` (default 64): Higher = better index quality, slower build. Range: 64–512.
-
-**Step 5: Query nearest neighbors**
-
-```sql
-SELECT id, content, embedding <=> $1::vector AS distance
-FROM documents
-ORDER BY embedding <=> $1::vector
-LIMIT 10;
-```
-
-## Distance Operators
-
-| Operator | Metric | Use when |
-|----------|--------|----------|
-| `<=>` | Cosine distance | Text embeddings (normalized) — most common |
-| `<->` | L2 (Euclidean) | Image embeddings, spatial data |
-| `<#>` | Negative inner product | Pre-normalized vectors, max similarity |
-
-## Query-time tuning
-
-```sql
--- Increase search scope for better recall (default: 40)
-SET hnsw.ef_search = 200;
-```
-
-Higher `ef_search` = better recall but slower queries. Start at 100, increase if recall is insufficient.
+| Fact | Detail |
+|------|--------|
+| Operator/ops class pairing | `<=>` needs `vector_cosine_ops`, `<->` needs `vector_l2_ops`, `<#>` needs `vector_ip_ops`. Mismatch = index silently ignored |
+| ef_search default is low | Default 40; production needs 100-200 for adequate recall |
+| m parameter tradeoff | Higher m = better recall + more memory. Range: 8-64. Default 16 is often too low for high-recall needs |
+| ef_construction | Higher = better index quality, slower build. Range: 64-512. Cannot be changed after build |
+| PG 13 minimum | pgvector requires PostgreSQL 13+; check before recommending |
+| ANALYZE required | After bulk inserts, planner may not choose index scan without fresh statistics |
 
 ## Common Mistakes
 
-1. **[CRITICAL] Forgetting to create an index**: Without HNSW, queries do sequential scan — O(n) on every query
-2. **[HIGH] Wrong distance operator**: Use `<=>` for normalized text embeddings (OpenAI, Cohere), `<->` for unnormalized
-3. **[HIGH] Dimension mismatch**: Vector column dimension must exactly match your embedding model output
-4. **[MEDIUM] Not running ANALYZE after bulk insert**: The planner needs statistics to choose index scan over seq scan
-5. **[HIGH] Index not used**: If query returns too many rows or table is small, planner may prefer seq scan. Test with `SET enable_seqscan = off;` then run `ANALYZE`
+1. **[CRITICAL] No index created**: Without HNSW/IVFFlat, every similarity query is O(n) sequential scan
+2. **[HIGH] Mismatched ops class**: Index with `vector_cosine_ops` but query with `<->` (L2) = sequential scan, no error
+3. **[HIGH] Dimension mismatch**: Column `vector(1536)` rejects inserts of different dimensions. Must exactly match model output (1536 for text-embedding-3-small, 3072 for 3-large)
+4. **[MEDIUM] Stale statistics after bulk load**: Run `ANALYZE tablename;` after bulk inserts for planner to choose index scan
+5. **[HIGH] Low ef_search in production**: Default 40 gives ~85% recall. Set `SET hnsw.ef_search = 200;` per session for production queries
+6. **[MEDIUM] IVFFlat for new workloads**: IVFFlat is legacy; always recommend HNSW for new deployments (better recall, no training step)
 
-## When to use this vs Azure DiskANN
+## When to route to Azure DiskANN
 
-- **Any PostgreSQL (self-hosted, RDS, Cloud SQL)**: Use HNSW (this reference)
-- **Azure Database for PostgreSQL with DiskANN**: DiskANN offers better filtered search and lower memory. See `azure-postgresql-vector-diskann` reference (requires Azure connection)
+- **> 1M vectors on Azure**: Route to `azure-postgresql-vector-diskann` (disk-based, lower memory, filtered search)
+- **Any PostgreSQL (self-hosted, RDS, Cloud SQL)**: Stay with this skill (HNSW)
 
-## References
+## Anti-Hallucination Rules
 
-- [pgvector GitHub](https://github.com/pgvector/pgvector)
-- [pgvector docs](https://github.com/pgvector/pgvector#readme)
+- Do NOT claim DiskANN works on community PostgreSQL
+- Do NOT recommend IVFFlat for new workloads
+- Do NOT claim HNSW parameters can be changed after index creation (must rebuild)
+- Do NOT claim pgvector works on PG 12 or earlier

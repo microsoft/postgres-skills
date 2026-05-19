@@ -28,6 +28,8 @@ activation:
 
 # Upgrades and Maintenance
 
+> **Response focus:** Prioritize MVU-is-one-way, no-skip-version, validate-only-first, and post-upgrade ANALYZE. Avoid explaining basic PostgreSQL version features or generic upgrade concepts.
+
 ## Key Facts (what models get wrong)
 
 | Fact | Detail |

@@ -28,6 +28,8 @@ activation:
 
 # Intelligent Tuning
 
+> **Response focus:** Prioritize Query Store view joins (qs_view + query_texts_view), wait event analysis, and auto-index lifecycle. Avoid explaining basic EXPLAIN or generic query optimization that the base model knows.
+
 ## Prerequisites
 
 - `azure_pg_admin` role (required for intelligent performance views; never superuser on Flexible Server)
@@ -110,13 +112,13 @@ ORDER BY created_time DESC LIMIT 5;
 
 1. **[HIGH] Reading `query_store.qs_view` without join**: The `qs_view` contains only metrics (calls, total_time, rows). Join with `query_store.query_texts_view` on `query_text_id` to get actual SQL text: `SELECT qt.query_sql_text, qs.calls, qs.mean_time FROM query_store.qs_view qs JOIN query_store.query_texts_view qt ON qs.query_text_id = qt.query_text_id ORDER BY qs.total_time DESC LIMIT 20`
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
+   Wrong:
    ```sql
    SELECT * FROM query_store.qs_view ORDER BY total_time DESC LIMIT 10;
-   -- Returns queryid and metrics but NO SQL text ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â useless for debugging
+   -- Returns queryid and metrics but NO SQL text useless for debugging
    ```
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
+   Right:
    ```sql
    SELECT qt.query_sql_text, qs.calls, qs.mean_time
    FROM query_store.qs_view qs
@@ -128,13 +130,13 @@ ORDER BY created_time DESC LIMIT 5;
 3. **[MEDIUM] Auto-index recommendation lifecycle**: Recommendations go through states: `Recommended` > `Verified` > `Applied`. Check `SELECT * FROM intelligent_performance.index_recommendations`. Reverted indexes show `Reverted` state. Manually apply with the provided DDL if auto-apply is off
 4. **[HIGH] Query Store retention eating storage**: Default retention is 7 days. On high-QPS servers, QS storage grows to GBs. Set `pg_qs.retention_period_in_days = 3` on busy systems and `pg_qs.store_query_plans = off` to reduce overhead
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
+   Wrong:
    ```bash
-   # Default 7-day retention on high-QPS server ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â GBs of storage consumed
+   # Default 7-day retention on high-QPS server GBs of storage consumed
    # No action taken until disk alert fires
    ```
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
+   Right:
    ```bash
    az postgres flexible-server parameter set --name pg_qs.retention_period_in_days --value 3
    az postgres flexible-server parameter set --name pg_qs.store_query_plans --value off
@@ -146,14 +148,14 @@ ORDER BY created_time DESC LIMIT 5;
 8. **[HIGH] Performance regression after auto-index**: Revert with `DROP INDEX` on the recommended index. Check `intelligent_performance.index_recommendations` for the index name and DDL
 12. **[CRITICAL] 403 / permission denied on intelligent_performance views**: Verify role membership: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` If false, grant via Azure Portal > Server > Roles
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
+   Wrong:
    ```sql
    -- As a non-admin user
    SELECT * FROM intelligent_performance.index_recommendations;
    -- ERROR: permission denied for relation index_recommendations
    ```
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
+   Right:
    ```sql
    -- Verify and fix role membership
    SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');

@@ -29,6 +29,8 @@ activation:
 
 ## Key Facts (what models get wrong)
 
+> **Response focus:** Prioritize storage-can't-shrink, VNet-is-permanent, SKU-format-varies-by-tool, and tier change restrictions. Avoid explaining basic Azure resource creation or generic cloud provisioning.
+
 | Fact | Detail |
 |------|--------|
 | Storage cannot shrink | Once provisioned or auto-grown, storage only scales UP; never decreases |
@@ -74,7 +76,7 @@ activation:
 - Do NOT claim Terraform uses `storage_gb`; the attribute is `storage_mb`
 - Do NOT invent exact max_connections values without referencing SKU-specific documentation. Values vary by compute tier and vCore count.
 - Do NOT invent SKU names. Valid prefixes: `Standard_B` (Burstable), `Standard_D` (GP), `Standard_E` (MO). Always verify against Azure documentation.
-- Do NOT assume Single Server and Flexible Server share the same behavior — they are different products with different APIs, limits, and features.
+- Do NOT assume Single Server (deprecated) and Flexible Server share the same behavior — they are different products with different APIs, limits, and features.
 - Do NOT claim exact IOPS limits without verification — they vary by storage size and tier.
 - When uncertain about SKU-specific limits, say "check Azure documentation for your specific SKU" rather than guessing values.
 

@@ -28,6 +28,8 @@ activation:
 
 ## Prerequisites
 
+> **Response focus:** Prioritize DiskANN-is-Azure-only, ops class pairing, Burstable tier exclusion, and streaming DiskANN is preview. Avoid explaining basic vector search concepts or generic pgvector usage.
+
 - `azure_pg_admin` role (not superuser — Azure Flexible Server admin role)
 - Both extensions allowlisted: `azure.extensions` must include `vector` and `pg_diskann`
 - Tier: General Purpose or Memory Optimized (DiskANN not available on Burstable)
