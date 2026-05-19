@@ -77,7 +77,7 @@ const SKILL_ID_TO_REFERENCE = {
   "full-text-search": "skills/references/postgresql-full-text-search.md",
   "extension-lifecycle": "skills/references/azure-postgresql-extension-lifecycle.md",
   "row-level-security": "skills/references/postgresql-row-level-security.md",
-  "genai-patterns": "skills/references/azure-postgresql-genai-rag.md",
+  "genai-patterns": "skills/references/azure-postgresql-genai-patterns.md",
   "advanced-indexing": "skills/references/postgresql-advanced-indexing.md",
   "jsonb-patterns": "skills/references/postgresql-jsonb-patterns.md",
   "connection-management": "skills/references/postgresql-connection-management.md",
