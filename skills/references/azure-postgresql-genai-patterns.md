@@ -46,7 +46,11 @@ activation:
 
 ## Path Decision: In-database vs External Embeddings
 
-| Factor | In-database (azure_ai) | External (app-side) |
+**Path A — In-database (azure_ai extension):** SQL-only workflows, batch processing via Azure OpenAI.
+
+**Path B — External (app-side):** App generates embeddings using any OpenAI-compatible SDK, then stores them via INSERT.
+
+| Factor | Path A: In-database (azure_ai) | Path B: External (app-side) |
 |--------|----------------------|---------------------|
 | Best for | SQL-only workflows, batch processing | App with existing OpenAI SDK |
 | Models available | Azure OpenAI only | Any embedding model |
@@ -86,6 +90,33 @@ Requirements: GIN index on tsvector column + vector index on embedding column.
 - DiskANN does NOT work on self-hosted PostgreSQL
 - Cannot use non-Azure-OpenAI models with azure_ai extension
 - azure_ai requires explicit endpoint configuration (not auto-discovered)
+
+## SQL Examples
+
+**Path B: Store externally generated embeddings**
+
+```sql no-execute
+-- Table with vector column — dimension must match your model output
+CREATE TABLE documents (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    content text NOT NULL,
+    embedding vector(1536)  -- 1536 for text-embedding-3-small
+);
+
+-- Insert with app-generated embedding (Path B: app calls OpenAI SDK)
+INSERT INTO documents (content, embedding)
+VALUES ($1, $2::vector);  -- $2 is float array from your embedding model
+```
+
+**Cosine similarity search**
+
+```sql no-execute
+-- Find top-10 most similar documents using cosine distance
+SELECT id, content, 1 - (embedding <=> $1) AS similarity
+FROM documents
+ORDER BY embedding <=> $1
+LIMIT 10;
+```
 
 ## References
 - [Generate embeddings with azure_ai](https://learn.microsoft.com/azure/postgresql/flexible-server/generative-ai-azure-openai)
