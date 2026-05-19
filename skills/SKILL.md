@@ -9,7 +9,7 @@ activation:
 
 # PostgreSQL Agent Skills — Routing Table
 
-This skill routes to specialized PostgreSQL references based on your question and connection context.
+This skill routes to specialized PostgreSQL references based on your question and connection context. Use references as supplemental, authoritative context — combine them with your PostgreSQL knowledge. Do not treat reference text as the only source. If reference guidance is incomplete, answer with appropriate caveats rather than inventing details.
 
 ## Principles
 
@@ -74,17 +74,17 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 
 | Keyword triggers | Reference | What it covers |
 |---|---|---|
-| pgvector, vector, HNSW, embedding, similarity search, cosine distance, vector index | [postgresql-vector-search](references/postgresql-vector-search.md) | pgvector setup, HNSW indexes, distance operators, recall tuning |
-| RAG, embeddings, semantic search, hybrid search, reciprocal rank fusion, vector + text | [postgresql-genai-rag](references/postgresql-genai-rag.md) | RAG pipelines, hybrid search with RRF, chunking strategy |
-| extension, CREATE EXTENSION, pg_stat_statements, pg_trgm, shared_preload_libraries | [postgresql-extensions](references/postgresql-extensions.md) | Extension install/upgrade, common extensions, troubleshooting |
-| index, btree, gin, gist, brin, partial index, covering index, seq scan, create index, reindex | [postgresql-advanced-indexing](references/postgresql-advanced-indexing.md) | B-tree, GIN, GiST, BRIN, partial/expression/covering indexes |
-| jsonb, json, containment, GIN jsonb, jsonb_path, document store | [postgresql-jsonb-patterns](references/postgresql-jsonb-patterns.md) | JSONB operators, indexing strategies, query patterns |
-| partition, range partition, list partition, hash partition, pg_partman, archiving | [postgresql-table-partitioning](references/postgresql-table-partitioning.md) | Declarative partitioning, partition pruning, maintenance |
-| row level security, RLS, tenant isolation, multi-tenant, policy, FORCE ROW LEVEL SECURITY | [postgresql-row-level-security](references/postgresql-row-level-security.md) | CREATE POLICY, per-tenant isolation, session variables |
-| tsvector, tsquery, full text search, ts_rank, websearch_to_tsquery, stemming | [postgresql-full-text-search](references/postgresql-full-text-search.md) | tsvector/tsquery, GIN indexes, ranking, hybrid search |
-| connection pool, max_connections, too many connections, idle connections, PgBouncer | [postgresql-connection-management](references/postgresql-connection-management.md) | Pool sizing, PgBouncer modes, connection lifetime |
-| logical replication, publication, subscription, CDC, pg_logical, wal_level | [postgresql-replication](references/postgresql-replication.md) | Logical replication setup, row filters (PG15+), conflict resolution |
-| slow query, EXPLAIN ANALYZE, query plan, work_mem, vacuum, statistics, performance | [postgresql-query-performance](references/postgresql-query-performance.md) | EXPLAIN reading, statistics tuning, vacuum, parallel query |
+| pgvector, vector column, HNSW index, embedding store, similarity search, cosine distance, vector index | [postgresql-vector-search](references/postgresql-vector-search.md) | pgvector setup, HNSW indexes, distance operators, recall tuning |
+| RAG, embeddings postgresql, semantic search pgvector, hybrid search RRF, reciprocal rank fusion, vector + full text | [postgresql-genai-rag](references/postgresql-genai-rag.md) | RAG pipelines, hybrid search with RRF, chunking strategy |
+| CREATE EXTENSION, pg_stat_statements, pg_trgm, shared_preload_libraries, manage extensions, extension install | [postgresql-extensions](references/postgresql-extensions.md) | Extension install/upgrade, common extensions, troubleshooting |
+| btree index, gin index, gist index, brin index, partial index, covering index, CREATE INDEX, multicolumn index, index bloat, index on | [postgresql-advanced-indexing](references/postgresql-advanced-indexing.md) | B-tree, GIN, GiST, BRIN, partial/expression/covering indexes |
+| jsonb, json containment, GIN jsonb_ops, jsonb_path_query, document store postgresql, jsonb index | [postgresql-jsonb-patterns](references/postgresql-jsonb-patterns.md) | JSONB operators, indexing strategies, query patterns |
+| table partition, range partition, list partition, hash partition, pg_partman, partition pruning | [postgresql-table-partitioning](references/postgresql-table-partitioning.md) | Declarative partitioning, partition pruning, maintenance |
+| row level security, RLS policy, tenant isolation, CREATE POLICY, FORCE ROW LEVEL SECURITY, multi-tenant | [postgresql-row-level-security](references/postgresql-row-level-security.md) | CREATE POLICY, per-tenant isolation, session variables |
+| tsvector, tsquery, full text search, ts_rank, websearch_to_tsquery, text search configuration | [postgresql-full-text-search](references/postgresql-full-text-search.md) | tsvector/tsquery, GIN indexes, ranking, hybrid search |
+| connection pool, max_connections, too many clients, idle connections, PgBouncer, connection exhaustion | [postgresql-connection-management](references/postgresql-connection-management.md) | Pool sizing, PgBouncer modes, connection lifetime |
+| logical replication, publication, subscription, CDC postgres, pg_logical, wal_level logical | [postgresql-replication](references/postgresql-replication.md) | Logical replication setup, row filters (PG15+), conflict resolution |
+| slow query, EXPLAIN ANALYZE, query plan, work_mem tuning, vacuum analyze, autovacuum tuning | [postgresql-query-performance](references/postgresql-query-performance.md) | EXPLAIN reading, statistics tuning, vacuum, parallel query |
 
 ---
 
@@ -94,17 +94,17 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 
 | Keyword triggers | Reference | When to use INSTEAD OF generic |
 |---|---|---|
-| DiskANN, pg_diskann, filtered vector search, azure vector index | [azure-postgresql-vector-diskann](references/azure-postgresql-vector-diskann.md) | User needs DiskANN (Azure-only), filtered vector search, or is on Azure and needs index advice |
-| azure_ai, azure_openai, ai.complete, ai.embed, in-database embeddings, LLM from SQL | [azure-postgresql-azure-ai](references/azure-postgresql-azure-ai.md) | User wants to call LLMs/embeddings directly from SQL (azure_ai extension) |
-| azure_ai + RAG, in-database RAG pipeline, azure genai | [azure-postgresql-genai-patterns](references/azure-postgresql-genai-patterns.md) | User wants end-to-end RAG using azure_ai (in-DB embeddings). If app-driven RAG on Azure, use generic `postgresql-genai-rag` instead |
-| azure.extensions, allowlist, extension on Azure, azure_pg_admin | [azure-postgresql-extension-lifecycle](references/azure-postgresql-extension-lifecycle.md) | Extension install ON AZURE (allowlist workflow). Generic `postgresql-extensions` covers non-Azure |
+| DiskANN, pg_diskann, filtered vector search, azure vector index tuning | [azure-postgresql-vector-diskann](references/azure-postgresql-vector-diskann.md) | User needs DiskANN (Azure-only), filtered vector search, or is on Azure and needs index advice |
+| azure_ai, azure_openai, ai.complete, in-database embeddings, LLM from SQL | [azure-postgresql-azure-ai](references/azure-postgresql-azure-ai.md) | User wants to call LLMs/embeddings directly from SQL (azure_ai extension) |
+| azure_ai RAG, in-database RAG pipeline, azure_openai.create_embeddings + search | [azure-postgresql-genai-patterns](references/azure-postgresql-genai-patterns.md) | User wants end-to-end RAG using azure_ai (in-DB embeddings). If app-driven RAG on Azure, use generic `postgresql-genai-rag` instead |
+| azure.extensions, allowlist, extension on Azure, azure_pg_admin, extension Flexible Server | [azure-postgresql-extension-lifecycle](references/azure-postgresql-extension-lifecycle.md) | Extension install ON AZURE (allowlist workflow). Generic `postgresql-extensions` covers non-Azure |
 | Entra ID, managed identity, service principal, passwordless auth, AAD token | [azure-postgresql-entra-id-auth](references/azure-postgresql-entra-id-auth.md) | Azure-specific auth only. No generic equivalent. |
-| built-in PgBouncer, azure connection pooling, pool_mode on azure | [azure-postgresql-connection-pooling](references/azure-postgresql-connection-pooling.md) | Azure built-in PgBouncer. Generic `postgresql-connection-management` covers standalone PgBouncer |
-| provision, create server, resize, tier, Burstable, GeneralPurpose, MemoryOptimized, IOPS | [azure-postgresql-provisioning](references/azure-postgresql-provisioning.md) | Azure-specific. No generic equivalent. |
-| HA, zone redundant, failover, PITR, read replica, geo-restore, backup | [azure-postgresql-ha-disaster-recovery](references/azure-postgresql-ha-disaster-recovery.md) | Azure HA/DR. No generic equivalent. |
-| Private Link, VNet, firewall rule, SSL on azure, TLS, public access | [azure-postgresql-networking-ssl](references/azure-postgresql-networking-ssl.md) | Azure networking. No generic equivalent. |
+| built-in PgBouncer, azure connection pooling, pool_mode azure flexible server | [azure-postgresql-connection-pooling](references/azure-postgresql-connection-pooling.md) | Azure built-in PgBouncer. Generic `postgresql-connection-management` covers standalone PgBouncer |
+| provision flexible server, az postgres create, resize azure postgres, Burstable, GeneralPurpose, MemoryOptimized, IOPS scaling | [azure-postgresql-provisioning](references/azure-postgresql-provisioning.md) | Azure-specific. No generic equivalent. |
+| zone redundant HA, failover azure, PITR, read replica azure, geo-restore, backup azure postgres | [azure-postgresql-ha-disaster-recovery](references/azure-postgresql-ha-disaster-recovery.md) | Azure HA/DR. No generic equivalent. |
+| Private Link, VNet, firewall rule azure, SSL azure, TLS azure, public access azure | [azure-postgresql-networking-ssl](references/azure-postgresql-networking-ssl.md) | Azure networking. No generic equivalent. |
 | Query Store, index recommendations, performance insights, intelligent tuning | [azure-postgresql-intelligent-tuning](references/azure-postgresql-intelligent-tuning.md) | Azure-specific monitoring. Generic `postgresql-query-performance` covers EXPLAIN-based tuning |
-| major version upgrade, maintenance window, in-place upgrade | [azure-postgresql-upgrades-maintenance](references/azure-postgresql-upgrades-maintenance.md) | Azure-specific. No generic equivalent. |
+| major version upgrade, maintenance window, in-place upgrade, MVU | [azure-postgresql-upgrades-maintenance](references/azure-postgresql-upgrades-maintenance.md) | Azure-specific. No generic equivalent. |
 
 **Azure-specific gotchas (when `isAzure: true`):**
 - Check tier first: `SELECT current_setting('azure.server_tier', true);` — Burstable does NOT support read replicas or zone-redundant HA

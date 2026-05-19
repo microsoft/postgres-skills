@@ -107,15 +107,15 @@ ORDER BY mean_time DESC LIMIT 10;
 
 ## Common Mistakes
 
-1. **[CRITICAL] `--validate-only` first, always**: `az postgres flexible-server upgrade --resource-group rg --name server --version 16 --validate-only` checks extension compatibility, disk space, and connection limits without performing upgrade. Takes 2-5 minutes. Never skip
+1. **[CRITICAL] validate-only first, always**: `az postgres flexible-server upgrade --resource-group rg --name server --version 16 --validate-only` checks extension compatibility, disk space, and connection limits without performing upgrade. Takes 2-5 minutes. Never skip
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
+   Wrong:
    ```bash
-   # Skipping validation ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â upgrade may fail mid-way
+   # Skipping validation - upgrade may fail mid-way
    az postgres flexible-server upgrade --name myserver --version 16
    ```
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
+   Right:
    ```bash
    # Always validate first
    az postgres flexible-server upgrade --name myserver --version 16 --validate-only
@@ -125,15 +125,15 @@ ORDER BY mean_time DESC LIMIT 10;
 
 2. **[HIGH] MVU snapshot verification**: Azure takes an automatic snapshot before MVU. Verify with: `az postgres flexible-server backup list --resource-group rg --name server`. Keep manual backup as additional safety net
 3. **[HIGH] Extension compatibility matrix**: Not all extensions support all PG versions. Check BEFORE upgrade: `SELECT e.extname, e.extversion FROM pg_extension e` then verify target version supports each. `pg_partman` and `postgis` are common blockers
-4. **[HIGH] Post-MVU `ANALYZE` requirement**: After major version upgrade, `pg_statistic` is stale. Run `ANALYZE;` on priority tables immediately, then `vacuumdb --all --analyze-in-place` for the full database
+4. **[HIGH] Post-MVU ANALYZE requirement**: After major version upgrade, `pg_statistic` is stale. Run `ANALYZE;` on priority tables immediately, then `vacuumdb --all --analyze-in-place` for the full database
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
+   Wrong:
    ```bash
    # Upgrade completes, application goes live immediately
-   # All queries regress ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â planner has no statistics for new version
+   # All queries regress - planner has no statistics for new version
    ```
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
+   Right:
    ```sql
    -- Immediately after upgrade completes:
    ANALYZE;
@@ -143,23 +143,54 @@ ORDER BY mean_time DESC LIMIT 10;
 5. **[HIGH] Post-MVU extension updates**: Run `ALTER EXTENSION vector UPDATE; ALTER EXTENSION postgis UPDATE;` for each extension to get version compatible with new PG major
 6. **[CRITICAL] Rollback strategy**: MVU is one-way (cannot downgrade). If upgrade causes issues, restore from pre-upgrade PITR backup using `az postgres flexible-server restore` (creates NEW server at old version)
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
+   Wrong:
    ```bash
    # Assuming you can downgrade if something goes wrong
    az postgres flexible-server upgrade --name myserver --version 15
    # ERROR: downgrade is not supported
    ```
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
+   Right:
    ```bash
    # Pre-upgrade: note PITR backup exists. If issues arise:
    az postgres flexible-server restore --name myserver-rollback \
-       --source-server myserver --restore-time "<pre-upgrade-timestamp>"
+       --source-server myserver --restore-time "PRE_UPGRADE_TIMESTAMP"
    # Restores to old version on a NEW server
    ```
 
 7. **[HIGH] Application connection handling during MVU**: Server restarts during upgrade. Applications get `FATAL: the database system is shutting down`. Implement retry with 30s timeout and exponential backoff
-8. **[MEDIUM] Do NOT use `ALTER SYSTEM SET` or edit `postgresql.conf` directly**: On Azure managed PostgreSQL, use `az postgres flexible-server parameter set` or the Azure Portal to change server parameters. OS-level tools like `pg_basebackup` are also unavailable; use Azure PITR instead
+8. **[MEDIUM] Do NOT use ALTER SYSTEM SET or edit postgresql.conf directly**: On Azure managed PostgreSQL, use `az postgres flexible-server parameter set` or the Azure Portal to change server parameters. OS-level tools like `pg_basebackup` are also unavailable; use Azure PITR instead
+
+## Decision Guide
+
+**When to upgrade:**
+- End-of-support is approaching (PG 13 EOL: Nov 2025, PG 14 EOL: Nov 2026)
+- New feature needed (MERGE requires PG 15+, json_table requires PG 17+)
+- Performance regression on current version (newer planner may help)
+
+**When NOT to upgrade:**
+- Critical production workload without test environment
+- Extensions with known incompatibility (check: `az postgres flexible-server upgrade --validate-only`)
+- During peak traffic periods
+
+## Azure-Specific Constraints (do NOT assume otherwise)
+
+- MVU is ONE-WAY: cannot downgrade. Only rollback option is PITR restore to a NEW server
+- Skip-version upgrades NOT supported: must go 13->14->15->16->17 sequentially
+- HA servers: upgrade affects primary AND standby. Failover occurs during upgrade (additional 30-60s)
+- Read replicas: must be upgraded SEPARATELY after primary. Replication breaks if versions mismatch
+- Burstable tier: upgrade available but may take longer (shared compute)
+- Maintenance windows: Azure respects your window for MINOR patches only. MVU runs immediately when you execute it
+- Storage: minimum 25% free disk required for upgrade process
+- Estimated downtime: 5-15 min (simple), 15-30 min (HA), 30+ min (large databases > 500GB)
+
+## Anti-Hallucination Guardrails
+
+- Do NOT claim in-place downgrade is possible
+- Do NOT claim skip-version upgrade works (e.g., 13->16 directly)
+- Do NOT claim maintenance windows control MVU timing
+- Do NOT claim read replicas auto-upgrade with primary
+- Do NOT invent specific extension compatibility unless validated with --validate-only
 
 ## References
 - [Major version upgrades in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-major-version-upgrade)

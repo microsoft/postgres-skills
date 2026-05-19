@@ -108,13 +108,13 @@ az postgres flexible-server firewall-rule list \
 
 1. **[CRITICAL] DigiCert CA, not Baltimore**: Azure Flexible Server uses DigiCert Global Root G2 CA since 2022. Old Baltimore CyberTrust Root is deprecated. Download: `https://dl.cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem`. Using old cert gives `SSL certificate verify failed`
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
+   Wrong:
    ```bash
    psql "sslmode=verify-full sslrootcert=BaltimoreCyberTrustRoot.crt.pem ..."
-   # ERROR: SSL certificate verify failed ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â cert expired/deprecated
+   # ERROR: SSL certificate verify failed - cert expired/deprecated
    ```
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
+   Right:
    ```bash
    curl -o DigiCertGlobalRootG2.crt.pem https://dl.cacerts.digicert.com/DigiCertGlobalRootG2.crt.pem
    psql "sslmode=verify-full sslrootcert=DigiCertGlobalRootG2.crt.pem ..."
@@ -122,15 +122,15 @@ az postgres flexible-server firewall-rule list \
 
 2. **[CRITICAL] VNet disables firewall completely**: Once private access (VNet integration) is enabled, ALL firewall rules are ignored (including "Allow Azure services"). Access is VNet-only. Cannot have hybrid (some firewall + VNet)
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
+   Wrong:
    ```bash
-   # VNet-integrated server ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â adding firewall rules has NO effect
+   # VNet-integrated server - adding firewall rules has NO effect
    az postgres flexible-server firewall-rule create --name myserver \
        --rule-name AllowMyIP --start-ip-address 203.0.113.10 --end-ip-address 203.0.113.10
-   # Rule is created but NEVER evaluated ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â VNet-only access enforced
+   # Rule is created but NEVER evaluated - VNet-only access enforced
    ```
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
+   Right:
    ```bash
    # For VNet-integrated servers, connect FROM within the VNet
    # Or use VNet peering / VPN for external access
@@ -140,23 +140,58 @@ az postgres flexible-server firewall-rule list \
 4. **[HIGH] Private DNS zone naming**: Zone MUST be `<servername>.private.postgres.database.azure.com` or `privatelink.postgres.database.azure.com`. Custom zone names break Azure's automatic DNS record management
 5. **[CRITICAL] "Allow Azure services" is wider than expected**: This checkbox allows traffic from ANY Azure subscription's public IPs, not just your resources. Use Private Endpoints or VNet rules for isolation. Only enable temporarily for Azure Data Factory/Functions without VNet integration
 6. **[HIGH] Cross-VNet connectivity**: Two VNet-integrated servers in different VNets cannot connect by default. Requires VNet peering + DNS forwarding. For cross-region, use Global VNet peering (additional latency)
-7. **[HIGH] `verify-full` connection string**: `sslmode=verify-full sslrootcert=/path/to/DigiCertGlobalRootG2.crt.pem` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the hostname in the cert matches `*.postgres.database.azure.com`. Custom server names via CNAME still validate against the Azure-issued cert's SAN
+7. **[HIGH] verify-full connection string**: `sslmode=verify-full sslrootcert=/path/to/DigiCertGlobalRootG2.crt.pem` - the hostname in the cert matches `*.postgres.database.azure.com`. Custom server names via CNAME still validate against the Azure-issued cert's SAN
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
+   Wrong:
    ```bash
    psql "sslmode=require ..."  # Encrypts but does NOT verify server identity
    ```
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
+   Right:
    ```bash
    psql "sslmode=verify-full sslrootcert=DigiCertGlobalRootG2.crt.pem ..."
-   # Encrypts AND verifies server certificate ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â prevents MITM
+   # Encrypts AND verifies server certificate - prevents MITM
    ```
 
 8. **[HIGH] TLS version enforcement**: Azure enforces TLS 1.2 minimum. Clients using TLS 1.0/1.1 get connection refused. Check client library TLS support. Python psycopg2 on older systems may need `ssl_context` configuration
 9. **[HIGH] Certificate error after migration**: Download fresh DigiCert root CA. The old Baltimore CyberTrust Root cert was retired in 2022. Update `sslrootcert` path in all connection strings
 10. **[HIGH] Cannot connect after VNet integration**: Ensure client is in the same VNet or has peering/VPN configured. VNet integration removes all public access
 11. **[MEDIUM] "no pg_hba.conf entry" error**: Add client IP to firewall rules (for public access) or verify private endpoint DNS resolution is working correctly (for private access)
+
+## Decision Guide
+
+**Public access vs Private access vs Private Endpoint:**
+
+| Factor | Public + Firewall | VNet Integration | Private Endpoint |
+|--------|------------------|-----------------|-----------------|
+| Setup complexity | Low | Medium | High |
+| Security | IP-based | Network-level | Network-level + DNS |
+| Use case | Dev/test, simple apps | Production (single VNet) | Multi-VNet, hub-spoke |
+| Can add later? | Yes | No (set at creation) | Yes |
+| Cost | Free | Free | ~$7.30/month |
+
+**CRITICAL: VNet integration is chosen at server creation and CANNOT be changed later.**
+- Public -> Private: requires server recreation
+- Private -> Public: requires server recreation
+
+## Azure-Specific Constraints
+
+- SSL/TLS is ALWAYS enforced. Cannot disable (no `require_secure_transport = off` on Azure)
+- Certificate: DigiCert Global Root G2 (since Oct 2022). Baltimore CyberTrust Root is EXPIRED
+- Minimum TLS: 1.2 enforced. TLS 1.0/1.1 connections rejected
+- "Allow Azure services" = allows ANY Azure public IP (not just your subscription)
+- VNet-integrated: no public endpoint exists. Firewall rules are ignored
+- Private DNS zone: MUST be linked to client VNet for name resolution
+- Cross-region: requires Global VNet Peering (adds 2-10ms latency)
+- Max firewall rules: 128 per server
+
+## Anti-Hallucination Guardrails
+
+- Do NOT claim you can switch between public and private access after creation
+- Do NOT claim SSL can be disabled on Azure Flexible Server
+- Do NOT claim Baltimore CyberTrust Root cert still works (expired 2022)
+- Do NOT claim "Allow Azure services" is limited to your subscription
+- Do NOT invent specific private endpoint pricing without verification
 
 ## References
 - [Networking overview for Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-networking)

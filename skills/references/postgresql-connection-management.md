@@ -139,3 +139,10 @@ FROM pg_stat_activity;
 9. **[MEDIUM] "too many clients" emergency**: `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND now() - state_change > interval '10 min'`
 
 10. **[MEDIUM] Permission denied on pg_terminate_backend**: Requires `pg_signal_backend` role. On Azure, `azure_pg_admin` has this
+
+## Guardrails
+
+- Do NOT claim `max_connections` can be changed with `SET` or `ALTER SYSTEM` on managed services — it requires server restart via portal/CLI
+- Do NOT recommend connection counts above 500 without PgBouncer — PostgreSQL process-per-connection model degrades rapidly
+- Do NOT claim PgBouncer transaction mode supports prepared statements natively
+- If user's exact managed service is unknown, caveat with "check your provider's max_connections limits"

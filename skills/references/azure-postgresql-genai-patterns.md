@@ -3,44 +3,44 @@ name: genai-patterns
 description: Generate vector embeddings (in-database via azure_ai OR external via app + pgvector) and build RAG pipelines with hybrid search on Azure Database for PostgreSQL.
 tags: [azure, postgresql, embeddings, vector, pgvector, rag, hybrid-search, RRF, azure-openai, genai]
 activation:
-  user_intent:
-    - generate embeddings for my table
-    - build a RAG pipeline
-    - combine vector search with keyword search
-    - store embeddings from my application
-    - hybrid search with reciprocal rank fusion
-    - semantic search on my PostgreSQL data
-    - embed user query in SQL and search similar documents
-  technical_keywords:
-    - create_embeddings
-    - embedding
-    - RAG
-    - hybrid search
-    - RRF
-    - tsvector
-    - vector similarity
-    - pgvector
-    - azure_openai.create_embeddings
-    - vector(1536)
-    - reciprocal rank fusion
-    - semantic search
-  exclusion_conditions:
-    - "when user needs vector indexing or DiskANN/HNSW tuning only, use `azure-postgresql/vector-diskann/` instead"
-    - "when user needs text generation / classification / extraction, use `azure-postgresql/azure-ai/` instead"
-  adjacent_skills:
-    - "`azure-postgresql/azure-ai/`"
-    - "`azure-postgresql/vector-diskann/`"
+ user_intent:
+ - generate embeddings for my table
+ - build a RAG pipeline
+ - combine vector search with keyword search
+ - store embeddings from my application
+ - hybrid search with reciprocal rank fusion
+ - semantic search on my PostgreSQL data
+ - embed user query in SQL and search similar documents
+ technical_keywords:
+ - create_embeddings
+ - embedding
+ - RAG
+ - hybrid search
+ - RRF
+ - tsvector
+ - vector similarity
+ - pgvector
+ - azure_openai.create_embeddings
+ - vector(1536)
+ - reciprocal rank fusion
+ - semantic search
+ exclusion_conditions:
+ - "when user needs vector indexing or DiskANN/HNSW tuning only, use `azure-postgresql/vector-diskann/` instead"
+ - "when user needs text generation / classification / extraction, use `azure-postgresql/azure-ai/` instead"
+ adjacent_skills:
+ - "`azure-postgresql/azure-ai/`"
+ - "`azure-postgresql/vector-diskann/`"
 ---
 
 ## Prerequisites
 - `vector` extension enabled (`CREATE EXTENSION vector;`)
 - For **in-database embeddings**: `azure_ai` extension configured (see `azure-postgresql/azure-ai/`)
 - For **external embeddings**: Application with access to an embedding API (Azure OpenAI, OpenAI, Cohere, etc.)
-- Azure OpenAI embedding model deployed (e.g., `text-embedding-3-small` ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â 1536 dimensions)
+- Azure OpenAI embedding model deployed (e.g., `text-embedding-3-small` -> Å¡ ->  1536 dimensions)
 
 ## Instructions
 
-### Path A ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â In-database embeddings (azure_ai)
+### Path A -> Å¡ ->  In-database embeddings (azure_ai)
 
 Generate embeddings directly in SQL without leaving the database.
 
@@ -53,23 +53,23 @@ DO $$
 DECLARE batch_size INT := 100;
 DECLARE total_rows INT;
 BEGIN
-  SELECT count(*) INTO total_rows FROM documents WHERE embedding IS NULL;
-  FOR i IN 0..ceil(total_rows::float / batch_size)::int - 1 LOOP
-    UPDATE documents
-    SET embedding = azure_openai.create_embeddings(
-      '<embedding_deployment>',
-      content
-    )::vector
-    WHERE id IN (
-      SELECT id FROM documents WHERE embedding IS NULL LIMIT batch_size
-    );
-    PERFORM pg_sleep(1);  -- rate limit pause
-    COMMIT;
-  END LOOP;
+ SELECT count(*) INTO total_rows FROM documents WHERE embedding IS NULL;
+ FOR i IN 0..ceil(total_rows::float / batch_size)::int - 1 LOOP
+ UPDATE documents
+ SET embedding = azure_openai.create_embeddings(
+ '<embedding_deployment>',
+ content
+ )::vector
+ WHERE id IN (
+ SELECT id FROM documents WHERE embedding IS NULL LIMIT batch_size
+ );
+ PERFORM pg_sleep(1); -- rate limit pause
+ COMMIT;
+ END LOOP;
 END $$;
 ```
 
-### Path B ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â External embeddings (app + pgvector)
+### Path B -> Å¡ ->  External embeddings (app + pgvector)
 
 Generate embeddings in your application and store them in PostgreSQL.
 
@@ -84,17 +84,17 @@ from openai import AzureOpenAI
 import psycopg
 
 client = AzureOpenAI(
-    azure_endpoint="https://<resource>.openai.azure.com",
-    api_version="2024-06-01"
+ azure_endpoint="https://<resource>.openai.azure.com",
+ api_version="2024-06-01"
 )
 
 with psycopg.connect(conninfo) as conn:
-    rows = conn.execute("SELECT id, content FROM documents WHERE embedding IS NULL LIMIT 100").fetchall()
-    for row_id, content in rows:
-        resp = client.embeddings.create(input=content, model="text-embedding-3-small")
-        vec = resp.data[0].embedding
-        conn.execute("UPDATE documents SET embedding = %s WHERE id = %s", (str(vec), row_id))
-    conn.commit()
+ rows = conn.execute("SELECT id, content FROM documents WHERE embedding IS NULL LIMIT 100").fetchall()
+ for row_id, content in rows:
+ resp = client.embeddings.create(input=content, model="text-embedding-3-small")
+ vec = resp.data[0].embedding
+ conn.execute("UPDATE documents SET embedding = %s WHERE id = %s", (str(vec), row_id))
+ conn.commit()
 ```
 
 **Node.js example:**
@@ -102,10 +102,10 @@ with psycopg.connect(conninfo) as conn:
 const { AzureOpenAI } = require("openai");
 const { Client } = require("pg");
 const client = new AzureOpenAI({ endpoint, apiKey, apiVersion: "2024-06-01" });
-// Similar pattern: fetch rows ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ generate embedding ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ UPDATE with vector literal
+// Similar pattern: fetch rows ->   -> ž -> generate embedding ->   -> ž -> UPDATE with vector literal
 ```
 
-### Step 2 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Create vector index
+### Step 2 -> Å¡ ->  Create vector index
 
 ```sql
 -- DiskANN (recommended for Azure PostgreSQL, large datasets)
@@ -117,51 +117,51 @@ CREATE INDEX ON documents USING hnsw (embedding vector_cosine_ops) WITH (m = 16,
 
 See `azure-postgresql/vector-diskann/` for detailed index tuning.
 
-### Step 3 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Hybrid search (vector + FTS) with RRF
+### Step 3 -> Å¡ ->  Hybrid search (vector + FTS) with RRF
 
 Combine vector similarity with keyword matching for best retrieval quality.
 
 ```sql
 -- Prerequisite: add tsvector column for FTS
 ALTER TABLE documents ADD COLUMN tsv tsvector
-  GENERATED ALWAYS AS (to_tsvector('english', content)) STORED;
+ GENERATED ALWAYS AS (to_tsvector('english', content)) STORED;
 CREATE INDEX ON documents USING gin(tsv);
 
 -- Hybrid search with Reciprocal Rank Fusion
 WITH vector_results AS (
-  SELECT id, content,
-    ROW_NUMBER() OVER (ORDER BY embedding <=> azure_openai.create_embeddings('<deployment>', $query)::vector) AS vrank
-  FROM documents
-  ORDER BY embedding <=> azure_openai.create_embeddings('<deployment>', $query)::vector
-  LIMIT 20
+ SELECT id, content,
+ ROW_NUMBER() OVER (ORDER BY embedding <=> azure_openai.create_embeddings('<deployment>', $query)::vector) AS vrank
+ FROM documents
+ ORDER BY embedding <=> azure_openai.create_embeddings('<deployment>', $query)::vector
+ LIMIT 20
 ),
 fts_results AS (
-  SELECT id, content,
-    ROW_NUMBER() OVER (ORDER BY ts_rank_cd(tsv, query) DESC) AS frank
-  FROM documents, plainto_tsquery('english', $query) query
-  WHERE tsv @@ query
-  LIMIT 20
+ SELECT id, content,
+ ROW_NUMBER() OVER (ORDER BY ts_rank_cd(tsv, query) DESC) AS frank
+ FROM documents, plainto_tsquery('english', $query) query
+ WHERE tsv @@ query
+ LIMIT 20
 )
 SELECT COALESCE(v.id, f.id) AS id,
-  COALESCE(v.content, f.content) AS content,
-  COALESCE(1.0/(60 + v.vrank), 0) + COALESCE(1.0/(60 + f.frank), 0) AS rrf_score
+ COALESCE(v.content, f.content) AS content,
+ COALESCE(1.0/(60 + v.vrank), 0) + COALESCE(1.0/(60 + f.frank), 0) AS rrf_score
 FROM vector_results v
 FULL OUTER JOIN fts_results f ON v.id = f.id
 ORDER BY rrf_score DESC
 LIMIT 10;
 ```
 
-### Step 4 ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â RAG: Format context for LLM
+### Step 4 -> Å¡ ->  RAG: Format context for LLM
 
 ```sql
 -- After retrieval, format context for the generation step
 SELECT azure_openai.create(
-  '<gpt_deployment>',
-  'Answer based only on the provided context. If unsure, say so.',
-  'Context:\n' || string_agg(content, E'\n---\n') || E'\n\nQuestion: ' || $query
+ '<gpt_deployment>',
+ 'Answer based only on the provided context. If unsure, say so.',
+ 'Context:\n' || string_agg(content, E'\n---\n') || E'\n\nQuestion: ' || $query
 ) AS answer
 FROM (
-  -- ... hybrid search subquery from Step 3 ...
+ -- ... hybrid search subquery from Step 3 ...
 ) top_docs;
 ```
 
@@ -183,56 +183,97 @@ FROM documents ORDER BY distance LIMIT 3;
 
 1. **[CRITICAL] Dimension mismatch**: `text-embedding-3-small` = 1536, `text-embedding-3-large` = 3072, `text-embedding-ada-002` = 1536. Column `vector(N)` must match model output.
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
-   ```sql
-   ALTER TABLE documents ADD COLUMN embedding vector(1536);
-   -- Then insert text-embedding-3-large output (3072 dims)
-   -- ERROR: expected 1536 dimensions, not 3072
-   ```
+ ->  -> „
+ Wrong:
+ ```sql
+ ALTER TABLE documents ADD COLUMN embedding vector(1536);
+ -- Then insert text-embedding-3-large output (3072 dims)
+ -- ERROR: expected 1536 dimensions, not 3072
+ ```
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
-   ```sql
-   -- Match column dimension to your model's output
-   ALTER TABLE documents ADD COLUMN embedding vector(3072);  -- for text-embedding-3-large
-   ```
+ -> Å
+ Right:
+ ```sql
+ -- Match column dimension to your model's output
+ ALTER TABLE documents ADD COLUMN embedding vector(3072); -- for text-embedding-3-large
+ ```
 
 2. **[HIGH] Silent truncation**: Models truncate input beyond their token limit without error. Pre-chunk long documents (500-1000 tokens per chunk recommended).
 3. **[CRITICAL] Mixing distance operators**: `<=>` (cosine), `<->` (L2), `<#>` (inner product). Use `<=>` for normalized embeddings (most common). Index must match: `vector_cosine_ops` for `<=>`.
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
-   ```sql
-   CREATE INDEX ON docs USING hnsw (embedding vector_cosine_ops);
-   -- Then query with L2 distance ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â index is NOT used
-   SELECT * FROM docs ORDER BY embedding <-> $1::vector LIMIT 10;
-   ```
+ ->  -> „
+ Wrong:
+ ```sql
+ CREATE INDEX ON docs USING hnsw (embedding vector_cosine_ops);
+ -- Then query with L2 distance -> Å¡ ->  index is NOT used
+ SELECT * FROM docs ORDER BY embedding <-> $1::vector LIMIT 10;
+ ```
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
-   ```sql
-   CREATE INDEX ON docs USING hnsw (embedding vector_cosine_ops);
-   -- Query with matching cosine operator
-   SELECT * FROM docs ORDER BY embedding <=> $1::vector LIMIT 10;
-   ```
+ -> Å
+ Right:
+ ```sql
+ CREATE INDEX ON docs USING hnsw (embedding vector_cosine_ops);
+ -- Query with matching cosine operator
+ SELECT * FROM docs ORDER BY embedding <=> $1::vector LIMIT 10;
+ ```
 
 4. **[HIGH] Forgetting FTS index for hybrid search**: Without `GIN` index on `tsvector`, keyword search degrades to sequential scan.
 5. **[HIGH] Context window overflow**: GPT-4o supports ~128K tokens. Budget: 80% for context, 20% for response. Track token count when aggregating retrieved chunks.
 6. **[MEDIUM] External vs in-database choice**: Use in-database (Path A) when data lives in PostgreSQL and you want SQL-only workflows. Use external (Path B) when your app already calls an embedding API or you need non-Azure embedding models.
 7. **[CRITICAL] "type vector does not exist"**: Run `CREATE EXTENSION vector;` first. On Azure, ensure `vector` is in the extension allowlist (see `azure-postgresql/extension-lifecycle/`).
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€šÃ‚ÂÃƒâ€¦Ã¢â‚¬â„¢ Wrong:
-   ```sql
-   ALTER TABLE docs ADD COLUMN embedding vector(1536);
-   -- ERROR: type "vector" does not exist
-   ```
+ ->  -> „
+ Wrong:
+ ```sql
+ ALTER TABLE docs ADD COLUMN embedding vector(1536);
+ -- ERROR: type "vector" does not exist
+ ```
 
-   ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Right:
-   ```sql
-   CREATE EXTENSION vector;
-   ALTER TABLE docs ADD COLUMN embedding vector(1536);
-   ```
+ -> Å
+ Right:
+ ```sql
+ CREATE EXTENSION vector;
+ ALTER TABLE docs ADD COLUMN embedding vector(1536);
+ ```
 
 8. **[CRITICAL] "azure_openai.create_embeddings does not exist"**: azure_ai extension not installed or not configured. See `azure-postgresql/azure-ai/`.
 9. **[HIGH] Dimension error on INSERT/UPDATE**: Column declared as `vector(1536)` but embedding has different length. Check model dimensions.
 10. **[HIGH] Hybrid search returns no FTS results**: Verify `tsvector` column is populated and `GIN` index exists.
+
+
+## Decision Guide
+
+**In-database (azure_ai) vs External (app-side) embeddings:**
+
+| Factor | In-database (Path A) | External (Path B) |
+|--------|---------------------|-------------------|
+| Best for | SQL-only workflows, batch processing | App with existing OpenAI SDK |
+| Latency | Higher per-row (SQL -> Azure OpenAI -> SQL) | Lower (app controls batching) |
+| Rate limits | Shared with server's azure_ai quota | Your app's API key quota |
+| Models | Azure OpenAI only | Any embedding model |
+| Offline/local | Not possible | Can use local models |
+| Chunking control | Limited (SQL string ops) | Full (app-side NLP libs) |
+
+**When to choose DiskANN vs HNSW index:**
+- DiskANN: > 1M rows, memory-constrained, Azure-only (not available on self-hosted)
+- HNSW: < 1M rows, need highest recall, cross-platform portability needed
+
+## Azure-Specific Constraints
+
+- azure_ai extension requires: allowlist + endpoint configuration + API key stored as server parameter
+- Rate limits: azure_openai.create_embeddings shares quota with your Azure OpenAI deployment. High-volume batch runs can hit 429 errors
+- Max batch: azure_openai.create_embeddings processes ONE text at a time (no array input). Loop in SQL is required
+- Dimension limit: vector column max is 16000 dimensions on Azure Flexible Server
+- DiskANN not available on Burstable tier
+- azure_ai functions are NOT available during server maintenance/restart windows
+
+## Anti-Hallucination Guardrails
+
+- Do NOT claim azure_openai.create_embeddings accepts array/batch input
+- Do NOT claim DiskANN works on self-hosted PostgreSQL (Azure-only)
+- Do NOT claim you can use non-Azure-OpenAI models with azure_ai extension's create_embeddings
+- Do NOT invent token limits for embedding models without checking the deployment
+- Do NOT claim azure_ai works without explicit endpoint configuration
 
 ## References
 - [Generate vector embeddings with azure_ai](https://learn.microsoft.com/azure/postgresql/flexible-server/generative-ai-azure-openai#generate-embeddings)
