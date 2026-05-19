@@ -7,6 +7,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -296,6 +299,20 @@ jobs:
           name: eval-results
           path: tests/evals/results/
           retention-days: 30
+      - name: Commit eval results to repo
+        if: success() && github.ref == 'refs/heads/main'
+        run: |
+          if [ -f tests/evals/results/latest.json ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add tests/evals/results/latest.json
+            if git diff --cached --quiet; then
+              echo "No changes to commit"
+            else
+              git commit -m "chore: update eval results [skip ci]"
+              git push
+            fi
+          fi
       - name: Check for negative deltas
         if: success()
         run: |

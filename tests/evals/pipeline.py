@@ -557,7 +557,13 @@ class EvalPipeline:
         with open(results_path, "w") as f:
             json.dump([asdict(r) for r in self.results], f, indent=2, default=str)
 
+        # Always write latest.json (stable path for CI commit-back)
+        latest_path = self.output_dir / "latest.json"
+        with open(latest_path, "w") as f:
+            json.dump(report, f, indent=2, default=str)
+
         print(f"Report saved: {report_path}")
+        print(f"Latest saved: {latest_path}")
         print(f"Results saved: {results_path}")
         return report_path, results_path
 
