@@ -82,7 +82,7 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 | partition, range partition, list partition, hash partition, pg_partman, archiving | [postgresql-table-partitioning](references/postgresql-table-partitioning.md) | Declarative partitioning, partition pruning, maintenance |
 | row level security, RLS, tenant isolation, multi-tenant, policy, FORCE ROW LEVEL SECURITY | [postgresql-row-level-security](references/postgresql-row-level-security.md) | CREATE POLICY, per-tenant isolation, session variables |
 | tsvector, tsquery, full text search, ts_rank, websearch_to_tsquery, stemming | [postgresql-full-text-search](references/postgresql-full-text-search.md) | tsvector/tsquery, GIN indexes, ranking, hybrid search |
-| connection pool, max_connections, too many connections, idle connections, pgbouncer | [postgresql-connection-management](references/postgresql-connection-management.md) | Pool sizing, PgBouncer modes, connection lifetime |
+| connection pool, max_connections, too many connections, idle connections, PgBouncer | [postgresql-connection-management](references/postgresql-connection-management.md) | Pool sizing, PgBouncer modes, connection lifetime |
 | logical replication, publication, subscription, CDC, pg_logical, wal_level | [postgresql-replication](references/postgresql-replication.md) | Logical replication setup, row filters (PG15+), conflict resolution |
 | slow query, EXPLAIN ANALYZE, query plan, work_mem, vacuum, statistics, performance | [postgresql-query-performance](references/postgresql-query-performance.md) | EXPLAIN reading, statistics tuning, vacuum, parallel query |
 

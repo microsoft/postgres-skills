@@ -25,6 +25,11 @@ sys.path.insert(0, str(Path(__file__).parent))
 from matchers import PatternMatcher, HallucinationDetector, SQLSyntaxValidator, TokenBudgetValidator
 from judges import SkillJudge
 
+EVALS_DIR = Path(__file__).resolve().parent
+DEFAULT_CHALLENGES_PATH = EVALS_DIR / "challenges" / "challenges.yaml"
+DEFAULT_OUTPUT_DIR = EVALS_DIR / "results"
+DEFAULT_SKILLS_ROOT = EVALS_DIR.parents[1]
+
 
 # ─── Data Models ────────────────────────────────────────────────────────────
 
@@ -747,9 +752,9 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="PostgreSQL Agent Skills Eval Pipeline")
-    parser.add_argument("--challenges", default="evals/challenges/challenges.yaml")
-    parser.add_argument("--skills-root", default=".")
-    parser.add_argument("--output", default="evals/results")
+    parser.add_argument("--challenges", default=str(DEFAULT_CHALLENGES_PATH))
+    parser.add_argument("--skills-root", default=str(DEFAULT_SKILLS_ROOT))
+    parser.add_argument("--output", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--model", default="gpt-4o-mini")
     parser.add_argument("--dry-run", action="store_true", help="Use mock agent")
     parser.add_argument("--provider", default="auto", choices=["auto", "azure", "openai"],
