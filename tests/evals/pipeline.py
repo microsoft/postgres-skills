@@ -710,7 +710,7 @@ def azure_openai_agent(task: str, skill_context: str, model: str) -> str:
             {"role": "user", "content": task},
         ],
         temperature=0.2,
-        max_tokens=1500,
+        max_completion_tokens=1500,
     )
 
     return response.choices[0].message.content or ""
@@ -742,7 +742,7 @@ def openai_agent(task: str, skill_context: str, model: str) -> str:
             {"role": "user", "content": task},
         ],
         temperature=0.2,
-        max_tokens=1500,
+        max_completion_tokens=1500,
     )
 
     return response.choices[0].message.content or ""
