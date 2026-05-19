@@ -164,6 +164,36 @@ function parseConnectionId(text) {
   return null;
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function connectWithRetry(proc, profileId, maxAttempts = 3) {
+  let lastConnectText = "";
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const connectResult = await callTool(proc, "pgsql_connect", { profileId });
+    const connectText = getToolText(connectResult);
+    lastConnectText = connectText;
+    console.log(`Connect result (attempt ${attempt}/${maxAttempts}): ${connectText.slice(0, 300)}`);
+    const connId = parseConnectionId(connectText);
+    if (connId) return { connId, connectText, attempt };
+
+    const retryable =
+      /couldn'?t get a connection/i.test(connectText) ||
+      /connection failed/i.test(connectText) ||
+      /timeout/i.test(connectText);
+    if (!retryable || attempt === maxAttempts) break;
+
+    const backoffMs = attempt * 3000;
+    console.warn(`Connection attempt ${attempt} failed; retrying in ${backoffMs}ms...`);
+    await sleep(backoffMs);
+  }
+
+  throw new Error(
+    `Failed to parse connectionId after ${maxAttempts} attempts: ${lastConnectText.slice(0, 200)}`
+  );
+}
+
 async function initMCP(proc) {
   return new Promise((resolve, reject) => {
     const id = nextId++;
@@ -1374,13 +1404,7 @@ async function main() {
     const profileMatch = profileText.match(/"profileId"\s*:\s*"([^"]+)"/);
     assert(profileMatch, "No connection profile found — is PGSQL_TEST_CONNECTION_STRING set?");
 
-    const connectResult = await callTool(proc, "pgsql_connect", {
-      profileId: profileMatch[1],
-    });
-    const connectText = getToolText(connectResult);
-    console.log(`Connect result: ${connectText.slice(0, 300)}`);
-    const connId = parseConnectionId(connectText);
-    assert(connId, `Failed to parse connectionId from: ${connectText.slice(0, 200)}`);
+    const { connId } = await connectWithRetry(proc, profileMatch[1]);
     console.log(`Connected: ${connId} ✅\n`);
 
     // Run the full application build
