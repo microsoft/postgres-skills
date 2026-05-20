@@ -927,7 +927,7 @@ class EvalPipeline:
         if wr['total'] > 0:
             print(f"Win Rate: {wr['win_rate']:.1%} wins, {wr['loss_rate']:.1%} losses, {wr['tie_rate']:.1%} ties ({wr['total']} matchups)")
         power = report.get('statistical_power', {})
-        print(f"\n⚠ Statistical power: min {power.get('min_challenges_per_skill', 0)} challenges/skill → MDD ≈ {power.get('mdd', 1.0):.2f}")
+        print(f"\n[!] Statistical power: min {power.get('min_challenges_per_skill', 0)} challenges/skill -> MDD ~ {power.get('mdd', 1.0):.2f}")
         if power.get('mdd', 1.0) > 0.15:
             print("  Consider adding more challenges per skill to detect smaller effects (target: MDD < 0.10)")
         wilcox = report['delta']['wilcoxon_test']

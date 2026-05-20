@@ -6,9 +6,12 @@ Measures whether skills improve agent output quality via control vs test group c
 
 ```
 evals/
-├── pipeline.py              # Main orchestrator
+├── pipeline.py              # Main orchestrator for quality evals
+├── routing_eval.py          # Fast routing accuracy eval across hosts
 ├── challenges/
-│   └── challenges.yaml      # 50 agent challenges (positive + negative)
+│   ├── challenges.yaml      # Quality challenges (positive + negative)
+│   └── routing_challenges.yaml
+├── host_adapters/           # Host-specific routing simulations
 ├── matchers/
 │   └── __init__.py          # Pattern matchers, hallucination detector, SQL validator
 ├── judges/
@@ -21,6 +24,9 @@ evals/
 ```bash
 # Dry run (validates pipeline structure with mock agent)
 python evals/pipeline.py --dry-run
+
+# Fast routing eval (no LLM calls)
+python evals/routing_eval.py --host all
 
 # Full run (requires configured agent)
 python evals/pipeline.py --model gpt-4o
@@ -35,6 +41,7 @@ python evals/pipeline.py --model gpt-4o
 | Token Efficiency | Pass/fail per tier |
 | Hallucination Rate | 0% |
 | Activation Precision | <20% false activations |
+| Routing Precision / Recall | Track by host via `routing_eval.py` |
 
 ## Challenge Structure (50 total)
 

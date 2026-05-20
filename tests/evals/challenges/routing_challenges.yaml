@@ -1,0 +1,319 @@
+routing_challenges:
+  - id: route-01
+    query: "My query on users table is slow, I need to add an index"
+    expected_skill: "skills/references/postgresql-advanced-indexing"
+    difficulty: easy
+    notes: "Direct keyword match for generic indexing."
+
+  - id: route-02
+    query: "How do I read EXPLAIN ANALYZE output?"
+    expected_skill: "skills/references/postgresql-query-performance"
+    difficulty: easy
+    notes: "Direct performance keyword."
+
+  - id: route-03
+    query: "I need to query a JSONB document by nested key"
+    expected_skill: "skills/references/postgresql-jsonb-patterns"
+    difficulty: easy
+    notes: "Direct JSONB match."
+
+  - id: route-04
+    query: "Should I partition my events table by event_date?"
+    expected_skill: "skills/references/postgresql-table-partitioning"
+    difficulty: medium
+    notes: "Natural phrasing for partitioning."
+
+  - id: route-05
+    query: "I need row level security for tenant isolation"
+    expected_skill: "skills/references/postgresql-row-level-security"
+    difficulty: easy
+    notes: "Direct RLS match."
+
+  - id: route-06
+    query: "How do I add full text search with tsvector and ranking?"
+    expected_skill: "skills/references/postgresql-full-text-search"
+    difficulty: easy
+    notes: "Direct full-text terms."
+
+  - id: route-07
+    query: "My app keeps hitting too many connections. Should I use PgBouncer?"
+    expected_skill: "skills/references/postgresql-connection-management"
+    difficulty: easy
+    notes: "Direct connection pooling match."
+
+  - id: route-08
+    query: "How do I replicate specific tables from production into analytics?"
+    expected_skill: "skills/references/postgresql-replication"
+    difficulty: medium
+    notes: "Logical replication keyword from routing table."
+
+  - id: route-09
+    query: "I need a HNSW index for my embeddings stored in pgvector"
+    expected_skill: "skills/references/postgresql-vector-search"
+    expected_not:
+      - "skills/references/azure-postgresql-vector-diskann"
+    difficulty: easy
+    notes: "Generic vector search, not Azure DiskANN."
+
+  - id: route-10
+    query: "How do I install pg_trgm with CREATE EXTENSION?"
+    expected_skill: "skills/references/postgresql-extensions"
+    difficulty: easy
+    notes: "Generic extension management."
+
+  - id: route-11
+    query: "Set up DiskANN index for my embeddings"
+    expected_skill: "skills/references/azure-postgresql-vector-diskann"
+    expected_not:
+      - "skills/references/postgresql-advanced-indexing"
+      - "skills/references/postgresql-vector-search"
+    difficulty: medium
+    notes: "Should route to Azure DiskANN, not generic indexing."
+
+  - id: route-12
+    query: "I want to call GPT-4 directly from a SQL function"
+    expected_skill: "skills/references/azure-postgresql-azure-ai"
+    difficulty: medium
+    notes: "In-database AI inference via azure_ai."
+
+  - id: route-13
+    query: "Can I run sentiment analysis in SQL with azure_ai?"
+    expected_skill: "skills/references/azure-postgresql-azure-ai"
+    difficulty: easy
+    notes: "Direct azure_ai keyword."
+
+  - id: route-14
+    query: "Build the entire RAG pipeline inside Azure PostgreSQL using azure_openai.create_embeddings"
+    expected_skill: "skills/references/azure-postgresql-genai-patterns"
+    expected_not:
+      - "skills/references/postgresql-genai-rag"
+    difficulty: medium
+    notes: "Azure in-database RAG should prefer azure-postgresql-genai-patterns."
+
+  - id: route-15
+    query: "Flexible Server says permission denied to CREATE EXTENSION pg_cron"
+    expected_skill: "skills/references/azure-postgresql-extension-lifecycle"
+    expected_not:
+      - "skills/references/postgresql-extensions"
+    difficulty: easy
+    notes: "Azure allowlist and permissions flow."
+
+  - id: route-16
+    query: "How do I allowlist azure.extensions for pgvector on Flexible Server?"
+    expected_skill: "skills/references/azure-postgresql-extension-lifecycle"
+    difficulty: medium
+    notes: "Direct Azure extension lifecycle routing."
+
+  - id: route-17
+    query: "How do I connect with Entra ID managed identity instead of a password?"
+    expected_skill: "skills/references/azure-postgresql-entra-id-auth"
+    difficulty: easy
+    notes: "Azure-specific authentication."
+
+  - id: route-18
+    query: "How do I use the built-in PgBouncer on Azure Flexible Server?"
+    expected_skill: "skills/references/azure-postgresql-connection-pooling"
+    expected_not:
+      - "skills/references/postgresql-connection-management"
+    difficulty: medium
+    notes: "Azure built-in pooler, not standalone PgBouncer."
+
+  - id: route-19
+    query: "Provision a new Azure Database for PostgreSQL Flexible Server with GeneralPurpose tier"
+    expected_skill: "skills/references/azure-postgresql-provisioning"
+    difficulty: easy
+    notes: "Direct provisioning keyword match."
+
+  - id: route-20
+    query: "How do I scale up vCores and storage on my Flexible Server?"
+    expected_skill: "skills/references/azure-postgresql-provisioning"
+    difficulty: easy
+    notes: "Azure sizing and scaling."
+
+  - id: route-21
+    query: "How do I configure zone-redundant HA and PITR on Azure PostgreSQL?"
+    expected_skill: "skills/references/azure-postgresql-ha-disaster-recovery"
+    difficulty: medium
+    notes: "Azure HA and disaster recovery."
+
+  - id: route-22
+    query: "I need a read replica and geo-restore plan for Azure Database for PostgreSQL"
+    expected_skill: "skills/references/azure-postgresql-ha-disaster-recovery"
+    difficulty: medium
+    notes: "Replica and geo-restore are Azure HA/DR topics."
+
+  - id: route-23
+    query: "How do I set up Private Link and firewall rules for Azure PostgreSQL?"
+    expected_skill: "skills/references/azure-postgresql-networking-ssl"
+    difficulty: easy
+    notes: "Direct Azure networking match."
+
+  - id: route-24
+    query: "psql says SSL connection is required and certificate verify failed when connecting to Flexible Server"
+    expected_skill: "skills/references/azure-postgresql-networking-ssl"
+    difficulty: medium
+    notes: "Azure SSL troubleshooting."
+
+  - id: route-25
+    query: "Query Store is recommending new indexes on Azure PostgreSQL. How should I use that?"
+    expected_skill: "skills/references/azure-postgresql-intelligent-tuning"
+    expected_not:
+      - "skills/references/postgresql-query-performance"
+    difficulty: medium
+    notes: "Azure Query Store and recommendations."
+
+  - id: route-26
+    query: "My slow queries are on Azure Database for PostgreSQL. Should I use intelligent tuning?"
+    expected_skill: "skills/references/azure-postgresql-intelligent-tuning"
+    difficulty: medium
+    notes: "Azure monitoring and tuning workflow."
+
+  - id: route-27
+    query: "How do I schedule a major version upgrade during the maintenance window on Azure PostgreSQL?"
+    expected_skill: "skills/references/azure-postgresql-upgrades-maintenance"
+    difficulty: easy
+    notes: "Direct Azure upgrade routing."
+
+  - id: route-28
+    query: "I need an in-place upgrade from PostgreSQL 14 to 16 on Flexible Server"
+    expected_skill: "skills/references/azure-postgresql-upgrades-maintenance"
+    difficulty: medium
+    notes: "Version upgrade phrasing."
+
+  - id: route-29
+    query: "I need connection pooling on Azure Flexible Server. Should I use PgBouncer?"
+    expected_skill: "skills/references/azure-postgresql-connection-pooling"
+    expected_not:
+      - "skills/references/postgresql-connection-management"
+    difficulty: medium
+    notes: "Cross-reference case: Azure built-in pooler should win."
+
+  - id: route-30
+    query: "How do I manage extensions on Azure Flexible Server?"
+    expected_skill: "skills/references/azure-postgresql-extension-lifecycle"
+    expected_not:
+      - "skills/references/postgresql-extensions"
+    difficulty: medium
+    notes: "Azure extension flow versus generic CREATE EXTENSION guidance."
+
+  - id: route-31
+    query: "I want vector search on Azure PostgreSQL using HNSW indexes"
+    expected_skill: "skills/references/azure-postgresql-vector-diskann"
+    expected_not:
+      - "skills/references/postgresql-vector-search"
+    difficulty: medium
+    notes: "Azure keyword plus HNSW should route to Azure vector guidance."
+
+  - id: route-32
+    query: "Build a RAG app on Azure with pgvector in my application code"
+    expected_skill: "skills/references/postgresql-genai-rag"
+    expected_not:
+      - "skills/references/azure-postgresql-genai-patterns"
+    difficulty: medium
+    notes: "Azure deployment but app-driven RAG should stay generic."
+
+  - id: route-33
+    query: "I want embeddings without leaving the database on Azure"
+    expected_skill: "skills/references/azure-postgresql-genai-patterns"
+    expected_not:
+      - "skills/references/postgresql-genai-rag"
+    difficulty: medium
+    notes: "In-database embeddings should prefer azure-postgresql-genai-patterns."
+
+  - id: route-34
+    query: "How do I install the pgvector extension on Azure Flexible Server?"
+    expected_skill: "skills/references/azure-postgresql-extension-lifecycle"
+    expected_not:
+      - "skills/references/postgresql-vector-search"
+    difficulty: medium
+    notes: "Extension install on Azure, not vector querying."
+
+  - id: route-35
+    query: "I already have EXPLAIN ANALYZE for a slow Azure query. Should I inspect the plan first?"
+    expected_skill: "skills/references/postgresql-query-performance"
+    expected_not:
+      - "skills/references/azure-postgresql-intelligent-tuning"
+    difficulty: medium
+    notes: "Cross-reference case where EXPLAIN should trump Azure monitoring."
+
+  - id: route-36
+    query: "How do I do database backups?"
+    expected_skill: null
+    difficulty: hard
+    notes: "Too generic for a specific skill."
+
+  - id: route-37
+    query: "What is the best schema design for an ecommerce app?"
+    expected_skill: null
+    difficulty: hard
+    notes: "General data modeling question outside current skill set."
+
+  - id: route-38
+    query: "How do I create a new role and grant database privileges?"
+    expected_skill: null
+    difficulty: hard
+    notes: "Security basics are not covered by a dedicated skill."
+
+  - id: route-39
+    query: "Should I use logical backups or physical backups for PostgreSQL?"
+    expected_skill: null
+    difficulty: hard
+    notes: "Backup strategy is out of scope for these skills."
+
+  - id: route-40
+    query: "Can I connect Power BI to PostgreSQL?"
+    expected_skill: null
+    difficulty: hard
+    notes: "Wrong domain for these routing references."
+
+  - id: route-41
+    query: "How do I encrypt data at rest in PostgreSQL?"
+    expected_skill: null
+    difficulty: hard
+    notes: "Security topic not mapped to a skill reference."
+
+  - id: route-42
+    query: "I am moving from MySQL to PostgreSQL. What should I watch out for?"
+    expected_skill: null
+    difficulty: hard
+    notes: "Migration guidance is not covered by current skills."
+
+  - id: route-43
+    query: "Why is VACUUM FULL taking so long?"
+    expected_skill: null
+    difficulty: hard
+    notes: "Related to maintenance, but no dedicated routing keyword exists."
+
+  - id: route-44
+    query: "How do I reset the postgres superuser password?"
+    expected_skill: null
+    difficulty: hard
+    notes: "Administrative topic outside skill coverage."
+
+  - id: route-45
+    query: "I need nearest neighbor search with cosine distance in pgvector"
+    expected_skill: "skills/references/postgresql-vector-search"
+    expected_not:
+      - "skills/references/azure-postgresql-vector-diskann"
+    difficulty: easy
+    notes: "Direct generic pgvector search."
+
+  - id: route-46
+    query: "How do I install extensions that require shared_preload_libraries?"
+    expected_skill: "skills/references/postgresql-extensions"
+    expected_not:
+      - "skills/references/azure-postgresql-extension-lifecycle"
+    difficulty: medium
+    notes: "Generic extension lifecycle without Azure context."
+
+  - id: route-47
+    query: "How do I implement hybrid search with reciprocal rank fusion in PostgreSQL?"
+    expected_skill: "skills/references/postgresql-genai-rag"
+    difficulty: medium
+    notes: "Generic hybrid retrieval keyword."
+
+  - id: route-48
+    query: "I get a connection timeout when using a private endpoint to reach Azure Database for PostgreSQL"
+    expected_skill: "skills/references/azure-postgresql-networking-ssl"
+    difficulty: easy
+    notes: "Azure network connectivity troubleshooting."
