@@ -30,6 +30,8 @@ activation:
 
 > **Response focus:** Prioritize MVU-is-one-way, no-skip-version, validate-only-first, and post-upgrade ANALYZE. Avoid explaining basic PostgreSQL version features or generic upgrade concepts.
 
+> **Shell execution:** MVU is high-impact mutating (irreversible, causes downtime). Always run `--validate-only` first (read-only, safe to auto-execute). The actual upgrade command requires user confirmation with explicit acknowledgment that downgrade is not possible.
+
 ## Key Facts (what models get wrong)
 
 | Fact | Detail |

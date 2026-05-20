@@ -35,6 +35,8 @@ activation:
 
 > **Response focus:** Prioritize VNet-is-permanent, DigiCert G2 (not Baltimore), and "Allow Azure services" scope. Avoid explaining basic TLS concepts or generic firewall rules.
 
+> **Shell execution:** Firewall and private endpoint commands are security-impacting mutating. Execute via shell if available; confirm resource group, server, and IP ranges with user before running. Read-only commands (`show`, `list`) can run without confirmation.
+
 ## Key Facts (what models get wrong)
 
 | Fact | Detail |

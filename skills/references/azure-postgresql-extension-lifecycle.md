@@ -38,6 +38,7 @@ activation:
 ## Prerequisites
 
 - `azure_pg_admin` role (default admin role; never superuser)
+- **Shell execution:** Steps 1-3 below require az CLI (mutating: confirm target with user). Step 4 (`CREATE EXTENSION`) is executable via `pgsql_modify`.
 
 ## Instructions
 

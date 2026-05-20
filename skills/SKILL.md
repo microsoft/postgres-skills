@@ -21,6 +21,47 @@ Use references as supplemental context — combine them with your PostgreSQL kno
 
 ---
 
+## Shell Execution Policy (az CLI)
+
+When guidance requires Azure CLI commands and you have shell/terminal access:
+
+**Prerequisites (run once per session):**
+```bash
+az version          # Verify az CLI is installed
+az account show --query "{subscription:id, name:name, tenant:tenantId, user:user.name}" -o json
+```
+If `az account show` fails, ask the user to run `az login` (or `az login --use-device-code` for headless environments). Do NOT run `az login` automatically.
+
+**Execution rules:**
+
+| Command type | Action |
+|---|---|
+| **Read-only** (`show`, `list`, `parameter show`) | Execute directly, no confirmation needed |
+| **Mutating** (`create`, `update`, `set`, `parameter set`, firewall rules) | Confirm target + get user approval before executing |
+| **High-impact mutating** (`restart`, `upgrade`, `delete`, `failover`, `stop-replication`, PITR restore) | Confirm target, state expected impact/downtime, get user approval |
+
+**Target verification (required before any mutating command):**
+Before executing state-changing commands, resolve and display:
+- Subscription name + ID
+- Resource group
+- Server name
+- Operation being performed
+
+Always pass `--subscription <id>` explicitly on mutating commands. Do not rely on ambient CLI defaults.
+
+**Discovery commands (when target is unknown):**
+```bash
+az postgres flexible-server list \
+  --query "[].{name:name, resourceGroup:resourceGroup, location:location, version:version}" -o table
+
+az group list --query "[].{name:name, location:location}" -o table
+```
+If discovery returns multiple resources, ask the user to choose. Never mutate based on name similarity or first result.
+
+**If shell access is unavailable:** Provide the commands formatted for manual execution with clear step numbering.
+
+---
+
 ## Connection Context Detection
 
 **On first activation**, determine the connection type:
