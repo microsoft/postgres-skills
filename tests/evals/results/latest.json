@@ -1,46 +1,46 @@
 {
-  "generated_at": "2026-05-20T16:04:35.297938+00:00",
+  "generated_at": "2026-05-20T16:19:50.583696+00:00",
   "summary": {
     "total_challenges": 115,
     "total_results": 230,
-    "precision": 0.907,
-    "recall": 0.933,
-    "f1_score": 0.92,
+    "precision": 0.908,
+    "recall": 0.943,
+    "f1_score": 0.925,
     "hallucination_rate": 5,
     "false_activation_rate": 0.087
   },
   "delta": {
     "method": "judge",
-    "control_avg_score": 0.65,
-    "test_avg_score": 0.756,
-    "improvement": 0.107,
-    "pattern_delta": 0.099,
-    "cohens_d": 0.904,
+    "control_avg_score": 0.644,
+    "test_avg_score": 0.768,
+    "improvement": 0.124,
+    "pattern_delta": 0.104,
+    "cohens_d": 1.004,
     "cohens_d_interpretation": "large",
     "bootstrap_95_ci": {
-      "lower": 0.0755,
-      "upper": 0.137,
-      "mean": 0.1061,
+      "lower": 0.0923,
+      "upper": 0.1566,
+      "mean": 0.1236,
       "significant": true
     },
     "wilcoxon_test": {
-      "W_statistic": 495.0,
-      "W_plus": 4656.0,
-      "W_minus": 495.0,
-      "z_score": -7.048,
+      "W_statistic": 459.0,
+      "W_plus": 4491.0,
+      "W_minus": 459.0,
+      "z_score": -7.036,
       "p_value_approx": 0.0,
       "significant": true,
-      "n_pairs": 101
+      "n_pairs": 99
     },
     "paired_winrate": {
-      "win_rate": 0.533,
-      "loss_rate": 0.4,
-      "tie_rate": 0.067,
-      "wins": 56,
-      "losses": 42,
-      "ties": 7,
+      "win_rate": 0.505,
+      "loss_rate": 0.381,
+      "tie_rate": 0.114,
+      "wins": 53,
+      "losses": 40,
+      "ties": 12,
       "total": 105,
-      "net_wins": 14
+      "net_wins": 13
     },
     "segmented_winrate": {
       "azure": {
@@ -54,41 +54,41 @@
         "net_wins": 16
       },
       "generic": {
-        "win_rate": 0.432,
-        "loss_rate": 0.486,
-        "tie_rate": 0.081,
-        "wins": 16,
-        "losses": 18,
-        "ties": 3,
+        "win_rate": 0.351,
+        "loss_rate": 0.432,
+        "tie_rate": 0.216,
+        "wins": 13,
+        "losses": 16,
+        "ties": 8,
         "total": 37,
-        "net_wins": -2
+        "net_wins": -3
       },
       "hard_medium": {
-        "win_rate": 0.523,
-        "loss_rate": 0.432,
-        "tie_rate": 0.045,
-        "wins": 46,
-        "losses": 38,
-        "ties": 4,
+        "win_rate": 0.489,
+        "loss_rate": 0.409,
+        "tie_rate": 0.102,
+        "wins": 43,
+        "losses": 36,
+        "ties": 9,
         "total": 88,
-        "net_wins": 8
+        "net_wins": 7
       }
     },
     "weighted_winrate": {
-      "win_rate": 0.528,
-      "loss_rate": 0.425,
-      "tie_rate": 0.048,
+      "win_rate": 0.492,
+      "loss_rate": 0.401,
+      "tie_rate": 0.107,
       "weighting": "hard=3x, medium=2x, easy=1x"
     }
   },
   "per_skill": {
     "skills/references/postgresql-advanced-indexing": {
-      "tp": 4,
+      "tp": 3,
       "fp": 1,
-      "fn": 0,
+      "fn": 1,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.728,
+      "avg_judge_score": 0.704,
       "hallucinations": 0
     },
     "skills/references/postgresql-query-performance": {
@@ -97,7 +97,7 @@
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.768,
+      "avg_judge_score": 0.778,
       "hallucinations": 0
     },
     "skills/references/postgresql-jsonb-patterns": {
@@ -106,7 +106,7 @@
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.771,
+      "avg_judge_score": 0.743,
       "hallucinations": 0
     },
     "skills/references/postgresql-table-partitioning": {
@@ -115,7 +115,7 @@
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.756,
+      "avg_judge_score": 0.76,
       "hallucinations": 0
     },
     "skills/references/postgresql-row-level-security": {
@@ -124,7 +124,7 @@
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.791,
+      "avg_judge_score": 0.809,
       "hallucinations": 0
     },
     "skills/references/postgresql-full-text-search": {
@@ -133,7 +133,7 @@
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.759,
+      "avg_judge_score": 0.756,
       "hallucinations": 0
     },
     "skills/references/postgresql-connection-management": {
@@ -151,7 +151,7 @@
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.657,
+      "avg_judge_score": 0.637,
       "hallucinations": 1
     },
     "skills/references/azure-postgresql-extension-lifecycle": {
@@ -160,7 +160,7 @@
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.868,
+      "avg_judge_score": 0.854,
       "hallucinations": 1
     },
     "skills/references/azure-postgresql-provisioning": {
@@ -169,7 +169,7 @@
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.841,
+      "avg_judge_score": 0.872,
       "hallucinations": 0
     },
     "skills/references/azure-postgresql-ha-disaster-recovery": {
@@ -178,7 +178,7 @@
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.806,
+      "avg_judge_score": 0.821,
       "hallucinations": 0
     },
     "skills/references/azure-postgresql-entra-id-auth": {
@@ -187,7 +187,7 @@
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.866,
+      "avg_judge_score": 0.857,
       "hallucinations": 0
     },
     "skills/references/azure-postgresql-networking-ssl": {
@@ -196,7 +196,7 @@
       "fn": 1,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.624,
+      "avg_judge_score": 0.738,
       "hallucinations": 0
     },
     "skills/references/azure-postgresql-connection-pooling": {
@@ -205,7 +205,7 @@
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.899,
+      "avg_judge_score": 0.887,
       "hallucinations": 0
     },
     "skills/references/azure-postgresql-intelligent-tuning": {
@@ -214,7 +214,7 @@
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.762,
+      "avg_judge_score": 0.813,
       "hallucinations": 0
     },
     "skills/references/azure-postgresql-upgrades-maintenance": {
@@ -223,7 +223,7 @@
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.757,
+      "avg_judge_score": 0.796,
       "hallucinations": 0
     },
     "skills/references/azure-postgresql-vector-diskann": {
@@ -232,25 +232,25 @@
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.737,
+      "avg_judge_score": 0.741,
       "hallucinations": 0
     },
     "skills/references/azure-postgresql-genai-patterns": {
-      "tp": 8,
+      "tp": 9,
       "fp": 1,
-      "fn": 1,
+      "fn": 0,
       "tn": 0,
-      "avg_pattern_score": 0.95,
-      "avg_judge_score": 0.72,
+      "avg_pattern_score": 1.0,
+      "avg_judge_score": 0.735,
       "hallucinations": 0
     },
     "skills/references/azure-postgresql-azure-ai": {
-      "tp": 5,
+      "tp": 6,
       "fp": 1,
-      "fn": 2,
+      "fn": 1,
       "tn": 0,
-      "avg_pattern_score": 0.896,
-      "avg_judge_score": 0.763,
+      "avg_pattern_score": 0.938,
+      "avg_judge_score": 0.809,
       "hallucinations": 0
     },
     "skills/references": {
@@ -259,7 +259,7 @@
       "fn": 3,
       "tn": 0,
       "avg_pattern_score": 0.8,
-      "avg_judge_score": 0.694,
+      "avg_judge_score": 0.653,
       "hallucinations": 3
     }
   },
