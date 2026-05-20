@@ -308,26 +308,21 @@ jobs:
             tests/evals/results/report_*.json
             tests/evals/results/results_*.json
           retention-days: 30
-      - name: Commit eval results to repo
-        if: success() && github.ref == 'refs/heads/main'
+      - name: Commit eval results on release tags only
+        if: success() && startsWith(github.ref, 'refs/tags/v')
         run: |
-          echo "Checking for results..."
-          ls -la tests/evals/results/ || echo "results dir not found"
+          echo "Release tag detected — snapshotting eval results..."
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          mkdir -p tests/evals/results/releases
           if [ -f tests/evals/results/latest.json ]; then
-            echo "Found latest.json, committing..."
+            cp tests/evals/results/latest.json "tests/evals/results/releases/${TAG_NAME}.json"
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add -f tests/evals/results/latest.json
-            if git diff --cached --quiet; then
-              echo "No changes to commit"
-            else
-              git commit -m "chore: update eval results [skip ci]"
-              git push
-            fi
-          else
-            echo "latest.json not found — pipeline may have been skipped"
+            git add -f "tests/evals/results/releases/${TAG_NAME}.json"
+            git commit -m "chore: snapshot eval results for ${TAG_NAME} [skip ci]"
+            git push
           fi
-      - name: Check for negative deltas
+      - name: Check for regressions
         if: success()
         run: |
           if [ -f tests/evals/results/latest.json ]; then
@@ -335,13 +330,18 @@ jobs:
           import json, sys
           with open('tests/evals/results/latest.json') as f:
               results = json.load(f)
-          regressions = [s for s in results.get('skills', []) if s.get('delta', 0) < -0.05]
+          per_skill = results.get('per_skill', {})
+          regressions = []
+          for skill_id, metrics in per_skill.items():
+              judge_score = metrics.get('avg_judge_score')
+              if judge_score is not None and judge_score < 0.5:
+                  regressions.append((skill_id, judge_score))
           if regressions:
-              print('✗ Skills with significant negative delta (> -0.05):')
-              for s in regressions:
-                  print(f'  {s[\"id\"]}: {s[\"delta\"]:+.3f}')
+              print('✗ Skills with critically low judge scores (< 0.50):')
+              for sid, score in sorted(regressions, key=lambda x: x[1]):
+                  print(f'  {sid}: {score:.3f}')
               sys.exit(1)
-          print(f'✓ No significant regressions detected')
+          print(f'✓ No significant regressions detected ({len(per_skill)} skills checked)')
           "
           fi
 

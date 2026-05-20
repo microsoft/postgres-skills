@@ -6,10 +6,12 @@ Usage:
     python evals/pipeline.py [--challenges PATH] [--output PATH] [--model MODEL]
                              [--concurrency N] [--no-judge] [--dry-run]
 """
+import hashlib
 import json
 import math
 import os
 import random
+import subprocess
 import sys
 import time
 import threading
@@ -260,7 +262,43 @@ class EvalPipeline:
         self.skill_metrics: dict[str, SkillMetrics] = {}
         self.winrate_results: list[dict] = []  # Paired win-rate verdicts
         self._judge_agent_fn = None  # Set during run() for judge LLM calls
+        self._calibration_mode = False  # When True, trims skill to task-relevant sections
+        self._model = "gpt-4o-mini"  # Set during run()
         self._lock = threading.Lock()  # Guards shared state during parallel execution
+
+    def _get_provenance(self) -> dict:
+        """Generate provenance metadata for reproducibility."""
+        # Pipeline commit SHA
+        try:
+            commit = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=str(self.skills_root),
+                stderr=subprocess.DEVNULL, text=True
+            ).strip()
+        except Exception:
+            commit = "unknown"
+
+        # Challenges file hash
+        try:
+            challenges_content = self.challenges_path.read_bytes()
+            challenges_sha = hashlib.sha256(challenges_content).hexdigest()[:12]
+        except Exception:
+            challenges_sha = "unknown"
+
+        # Skills manifest hash
+        manifest_path = self.skills_root / ".skills.json"
+        try:
+            manifest_sha = hashlib.sha256(manifest_path.read_bytes()).hexdigest()[:12]
+        except Exception:
+            manifest_sha = "unknown"
+
+        return {
+            "pipeline_commit": commit,
+            "challenges_sha256": challenges_sha,
+            "model_id": self._model,
+            "judge_model_id": self._model,
+            "calibration_mode": self._calibration_mode,
+            "total_challenges": len(self.challenges),
+        }
 
     def load_challenges(self) -> list[Challenge]:
         """Load challenge definitions from YAML."""
@@ -284,8 +322,8 @@ class EvalPipeline:
         print(f"Loaded {len(self.challenges)} challenges")
         return self.challenges
 
-    def load_skill(self, skill_path: str, task: str = "") -> str:
-        """Load a skill/reference file content, optionally trimmed to relevant sections."""
+    def load_skill(self, skill_path: str, task: str = "", calibration_mode: bool = False) -> str:
+        """Load a skill/reference file content. Only trims in calibration mode."""
         # New flat structure: skill_path is like "skills/references/postgresql-advanced-indexing"
         # Try as .md file first, then as directory with SKILL.md
         md_path = self.skills_root / f"{skill_path}.md"
@@ -302,8 +340,8 @@ class EvalPipeline:
         else:
             return ""
 
-        # Challenge-aware trimming: if task provided, extract relevant sections
-        if task and len(content) > 2000:
+        # Only trim in calibration mode (production loads full skill)
+        if calibration_mode and task and len(content) > 2000:
             content = self._extract_relevant_sections(content, task)
         return content
 
@@ -383,7 +421,7 @@ class EvalPipeline:
         # Call agent (control = no skill context, test = with skill context)
         skill_context = ""
         if group == "test":
-            skill_context = self.load_skill(challenge.target_skill, task=challenge.task)
+            skill_context = self.load_skill(challenge.target_skill, task=challenge.task, calibration_mode=self._calibration_mode)
 
         output = agent_fn(challenge.task, skill_context, model)
         latency_ms = (time.time() - start) * 1000
@@ -612,6 +650,7 @@ class EvalPipeline:
 
         report = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
+            "provenance": self._get_provenance(),
             "summary": {
                 "total_challenges": len(self.challenges),
                 "total_results": len(self.results),
@@ -619,7 +658,7 @@ class EvalPipeline:
                 "recall": round(recall, 3),
                 "f1_score": round(f1, 3),
                 "hallucination_rate": total_hallucinations,
-                "false_activation_rate": round(total_fp / len(self.challenges), 3) if len(self.challenges) > 0 else 0,
+                "false_activation_rate": round(total_fp / (total_fp + total_tn), 3) if (total_fp + total_tn) > 0 else 0,
             },
             "delta": {
                 "method": delta_method,
@@ -720,9 +759,11 @@ class EvalPipeline:
 
         print(f"  {label} done")
 
-    def run(self, agent_fn, model: str = "gpt-4o-mini", use_judge: bool = True, concurrency: int = 5):
+    def run(self, agent_fn, model: str = "gpt-4o-mini", use_judge: bool = True, concurrency: int = 5, calibration_mode: bool = False):
         """Execute full pipeline: control + test for all challenges."""
         self.load_challenges()
+        self._calibration_mode = calibration_mode
+        self._model = model
 
         # Wire up judge agent function (same LLM as the eval agent)
         if use_judge and agent_fn != mock_agent:
@@ -952,6 +993,8 @@ if __name__ == "__main__":
                         help="Disable LLM-as-judge scoring (faster, uses pattern-only delta)")
     parser.add_argument("--concurrency", type=int, default=5,
                         help="Number of challenges to run in parallel (default: 5, use 1 for sequential)")
+    parser.add_argument("--calibration-mode", action="store_true",
+                        help="Trim skill content to task-relevant sections (default: load full skill as in production)")
     args = parser.parse_args()
 
     pipeline = EvalPipeline(
@@ -961,7 +1004,7 @@ if __name__ == "__main__":
     )
 
     if args.dry_run:
-        pipeline.run(mock_agent, model=args.model, use_judge=False, concurrency=1)
+        pipeline.run(mock_agent, model=args.model, use_judge=False, concurrency=1, calibration_mode=args.calibration_mode)
     else:
         # Auto-detect provider
         provider = args.provider
@@ -987,7 +1030,7 @@ if __name__ == "__main__":
         use_judge = not args.no_judge
         if provider == "azure":
             print(f"Using Azure OpenAI (deployment: {os.environ.get('AZURE_OPENAI_DEPLOYMENT', args.model)})")
-            pipeline.run(azure_openai_agent, model=args.model, use_judge=use_judge, concurrency=args.concurrency)
+            pipeline.run(azure_openai_agent, model=args.model, use_judge=use_judge, concurrency=args.concurrency, calibration_mode=args.calibration_mode)
         else:
             print(f"Using OpenAI ({args.model})")
-            pipeline.run(openai_agent, model=args.model, use_judge=use_judge, concurrency=args.concurrency)
+            pipeline.run(openai_agent, model=args.model, use_judge=use_judge, concurrency=args.concurrency, calibration_mode=args.calibration_mode)
