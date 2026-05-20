@@ -67,6 +67,19 @@ FROM articles
 WHERE search_vector @@ websearch_to_tsquery('english', 'running shoes');
 ```
 
+## Index pattern
+
+Create a GIN index on the stored `tsvector` column so `@@` queries can use a Bitmap Index Scan:
+
+```sql no-execute
+-- GIN index on the stored tsvector column (pairs with the generated column above)
+CREATE INDEX idx_articles_search_vector
+  ON articles
+  USING gin (search_vector);
+```
+
+Pair the GIN index with `setweight` for title(A) vs body(B) ranking when you need weighted relevance.
+
 ## Common Mistakes / Gotchas
 
 1. **[HIGH] `websearch_to_tsquery` not used for raw user input**: Agents feed arbitrary user text into `to_tsquery`, which breaks on punctuation, quotes, operators, and inputs like `c++`.

@@ -60,7 +60,7 @@ Prioritize failure modes that make agents prescribe the wrong fix: row-estimate 
 
 ## High-value reminders
 
-- `actual_time` is per loop; multiply by `loops` for real node cost.
+- `actual_time` is per-loop (per loop iteration); multiply by `loops` for real node cost.
 - On managed PostgreSQL, `ALTER SYSTEM` is usually unavailable; use platform parameter APIs or session/database settings.
 - `Rows Removed by Filter` is only actionable after you check selectivity. Large filtered counts on a low-cardinality column do not automatically justify an index.
 
