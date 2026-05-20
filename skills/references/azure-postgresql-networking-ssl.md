@@ -121,7 +121,9 @@ activation:
    # Should resolve to private IP (10.x.x.x), not public IP
    ```
 
-7. **[HIGH] Cannot switch public/private after creation**:
+7. **[HIGH] Exact error recognition**: `FATAL: no pg_hba.conf entry for host "X.X.X.X"` = IP is missing from firewall rules (public access) or DNS is still resolving to a public address instead of the private IP (private access). `SSL connection is required` = client is using `sslmode=disable` or `prefer`; set `sslmode=require` at minimum
+
+8. **[HIGH] Cannot switch public/private after creation**:
 
    ❌ Wrong:
    ```bash
@@ -136,9 +138,9 @@ activation:
    # Then migrate data from old server
    ```
 
-8. **[HIGH] Client CA bundle location varies by OS/container**: Alpine uses `/etc/ssl/certs/ca-certificates.crt`, Debian uses `/etc/ssl/certs/`, and Windows uses the cert store. Give the `sslrootcert` path for the actual runtime
-9. **[MEDIUM] Hostname mismatch with private endpoints**: Keep `sslmode=verify-full` but connect with the original server FQDN, not the `privatelink` hostname. The cert is issued for `*.postgres.database.azure.com`
-10. **[MEDIUM] Corporate proxy/firewall blocks port 5432**: Many enterprise networks only allow 443 outbound. Test with `openssl s_client -connect server:5432` and recommend Private Link or VPN if blocked
+9. **[HIGH] Client CA bundle location varies by OS/container**: Alpine uses `/etc/ssl/certs/ca-certificates.crt`, Debian uses `/etc/ssl/certs/`, and Windows uses the cert store. Give the `sslrootcert` path for the actual runtime
+10. **[MEDIUM] Hostname mismatch with private endpoints**: Keep `sslmode=verify-full` but connect with the original server FQDN, not the `privatelink` hostname. The cert is issued for `*.postgres.database.azure.com`
+11. **[MEDIUM] Corporate proxy/firewall blocks port 5432**: Many enterprise networks only allow 443 outbound. Test with `openssl s_client -connect server:5432` and recommend Private Link or VPN if blocked
 
 ## Anti-Hallucination Rules
 

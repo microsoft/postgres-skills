@@ -1,6 +1,6 @@
 # Agent Challenges
 #
-# 115 challenges across 22 skills (generic + Azure + root)
+# 127 challenges across 22 skills (generic + Azure + root)
 # Each challenge tests whether the agent activates the correct skill
 # and produces syntactically valid, non-hallucinated output.
 
@@ -1235,4 +1235,146 @@ challenges:
       - "any.*Azure|all.*subscription|not.*just.*your|wider"
     anti_patterns:
       - "yes.*isolated|only.*your.*resources"
+
+  # ─── NEW CHALLENGES: Testing recently-added failure modes ─────────────────
+
+  # Tests: NULL vs missing key in JSONB
+  - id: gen-new-01
+    task: "I need to find all rows where the JSONB column 'metadata' has a key 'deleted_at' that is explicitly null, but NOT rows where the key is missing entirely. How do I write this WHERE clause?"
+    difficulty: hard
+    target_skill: skills/references/postgresql-jsonb-patterns
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+      - "\\?"
+      - "IS NULL|is null"
+    anti_patterns:
+      - "->>'deleted_at' IS NULL"
+    notes: "Agent must distinguish missing key from null value. Common failure: suggesting ->> IS NULL which matches BOTH cases."
+
+  # Tests: Partition count explosion
+  - id: gen-new-02
+    task: "I'm partitioning my events table by day. We've been running for 3 years and now have over 1000 partitions. Query planning has gotten very slow. What's wrong and how do I fix it?"
+    difficulty: hard
+    target_skill: skills/references/postgresql-table-partitioning
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+      - "planning time|planner"
+      - "monthly|coarser|merge|reduce"
+
+  # Tests: RLS WITH CHECK omission
+  - id: gen-new-03
+    task: "I set up RLS with CREATE POLICY tenant_policy ON orders USING (tenant_id = current_setting('app.tenant')). Users can SELECT their data but INSERT is being denied. What am I missing?"
+    difficulty: medium
+    target_skill: skills/references/postgresql-row-level-security
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+      - "WITH CHECK"
+    anti_patterns:
+      - "GRANT"
+
+  # Tests: Connection leak in async apps
+  - id: gen-new-04
+    task: "My Node.js app using pg pool keeps hitting 'too many clients' errors even though max is set to 20. The connections seem to leak when requests throw errors. How do I fix this?"
+    difficulty: medium
+    target_skill: skills/references/postgresql-connection-management
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+      - "finally|release|error.*handler"
+      - "pool"
+
+  # Tests: Replica identity on partitioned tables
+  - id: gen-new-05
+    task: "I set REPLICA IDENTITY FULL on my partitioned table but UPDATE and DELETE operations aren't replicating to the subscriber. What's wrong?"
+    difficulty: hard
+    target_skill: skills/references/postgresql-replication
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+      - "partition|child"
+      - "REPLICA IDENTITY"
+    notes: "Agent must know REPLICA IDENTITY must be set on each partition, not just parent"
+
+  # Tests: Index on low-cardinality column
+  - id: gen-new-06
+    task: "I added a B-tree index on orders.status (values: 'pending', 'shipped', 'delivered', 'cancelled') but the planner still does a sequential scan. The table has 50M rows. Why?"
+    difficulty: medium
+    target_skill: skills/references/postgresql-advanced-indexing
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+      - "selectivity|cardinality|partial"
+    anti_patterns:
+      - "REINDEX|reindex"
+
+  # Tests: Azure provisioning - scale up (activation gap)
+  - id: az-new-01
+    task: "My Azure PostgreSQL Flexible Server is on Burstable B1ms and it's running out of CPU. How do I scale up to General Purpose?"
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-provisioning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "new server|migration|cannot.*in-place|pg_dump"
+    anti_patterns:
+      - "az.*update.*sku"
+    notes: "Tests activation gap + knowledge that Burstable to GP requires migration"
+
+  # Tests: Azure networking - can't connect (activation gap)
+  - id: az-new-02
+    task: "I can't connect to my Azure PostgreSQL server from my application. I'm getting 'no pg_hba.conf entry for host' error. How do I fix this?"
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-networking-ssl
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "firewall|IP|private"
+
+  # Tests: Azure AI - call GPT from database (activation gap)
+  - id: az-new-03
+    task: "I want to call GPT-4 directly from a SQL query to classify customer support tickets stored in my Azure PostgreSQL database. How do I set this up?"
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-azure-ai
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "azure_ai|azure_openai"
+      - "create\\(|create_embeddings"
+
+  # Tests: DiskANN migration from HNSW
+  - id: az-new-04
+    task: "I currently have HNSW indexes on my Azure PostgreSQL for vector search. I want to switch to DiskANN for better performance at scale. How do I migrate without downtime?"
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-vector-diskann
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "CONCURRENTLY|concurrently|maintenance"
+      - "DROP.*INDEX|drop.*index"
+
+  # Tests: Extension allowlist error recognition
+  - id: az-new-05
+    task: "I'm trying to CREATE EXTENSION vector on my Azure PostgreSQL server but getting 'extension is not available'. What's wrong and how do I fix it?"
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "allowlist|azure.extensions"
+      - "az.*parameter.*set"
+
+  # Tests: Token refresh with pooled connections (Entra)
+  - id: az-new-06
+    task: "My app uses Entra ID authentication with PgBouncer in transaction mode. After about an hour, connections start failing with authentication errors. What's happening?"
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-entra-id-auth
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "token.*expir|refresh"
+      - "transaction.*mode|session.*mode"
+    notes: "Tests token refresh + pooler interaction knowledge"
 

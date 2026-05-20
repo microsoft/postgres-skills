@@ -50,6 +50,18 @@ Do NOT use for basic `CREATE INDEX` syntax or when the user simply needs EXPLAIN
 
 Prioritize index type tradeoffs, version-gated features, and common misapplications. Include runnable CREATE INDEX examples when the user asks for help creating an index.
 
+## When NOT to Index
+
+Agents frequently recommend indexes that the planner will ignore or that cause more harm than good:
+
+| Situation | Why index won't help | Better approach |
+|---|---|---|
+| Column has < 10 distinct values (status, boolean) | Selectivity too low; seq-scan wins | Partial index: `WHERE status = 'active'` |
+| Table has < 10K rows | Planner always prefers seq-scan for small tables | Don't index; full scan is fast enough |
+| Write-heavy table with > 8 indexes | Each INSERT updates all indexes; write amplification | Audit unused indexes: `SELECT * FROM pg_stat_user_indexes WHERE idx_scan = 0` |
+| Highly correlated column already matches physical order | BRIN provides same benefit at 1000x less space | Use BRIN instead of B-tree |
+| Expression in WHERE doesn't match index expression exactly | Index silently ignored | Verify with `EXPLAIN` that index is actually used |
+
 ## Common Mistakes
 
 1. **[HIGH] Missing expression match**: Expression index must exactly match the query expression (`lower(email)` index won't help `UPPER(email)` query)

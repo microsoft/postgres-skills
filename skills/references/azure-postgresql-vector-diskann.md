@@ -110,7 +110,8 @@ LIMIT 10;
 6. **Seq scan fallback**: If index not used, run `ANALYZE` on table or increase `LIMIT` value
 7. **HNSW OOM**: Large tables may exhaust `maintenance_work_mem`; switch to DiskANN
 8. **[HIGH] HNSW-to-DiskANN migration**: Cannot convert in-place. Drop HNSW, then create DiskANN; queries may seq-scan during the transition. Plan a maintenance window or build DiskANN `CONCURRENTLY` first
-9. **[MEDIUM] Region/version availability**: DiskANN is not in every Azure region or PG version. Check `SELECT * FROM pg_available_extensions WHERE name = 'pg_diskann'`; empty result = unavailable on this server
+9. **[HIGH] Exact error recognition**: `ERROR: access method "diskann" does not exist` = `pg_diskann` was not created. `ERROR: operator class "vector_cosine_ops" does not exist` = wrong ops-class reference; DiskANN uses the same `vector_cosine_ops` name as HNSW
+10. **[MEDIUM] Region/version availability**: DiskANN is not in every Azure region or PG version. Check `SELECT * FROM pg_available_extensions WHERE name = 'pg_diskann'`; empty result = unavailable on this server
 
 ## Anti-Hallucination Rules
 

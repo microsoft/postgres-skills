@@ -155,9 +155,10 @@ SHOW shared_preload_libraries;
 8. **[HIGH] Extension update path**: `ALTER EXTENSION vector UPDATE TO '0.8.0'` only works if update path exists. Check: `SELECT * FROM pg_extension_update_paths('vector') WHERE source = '0.7.0'`. Some updates require DROP + CREATE (data loss for extension-managed types)
 9. **[CRITICAL] "extension not allowlisted" error**: Run Step 2 to add the extension to the `azure.extensions` server parameter. Remember to include all existing extensions in the value
 10. **[HIGH] "must be loaded via shared_preload_libraries" error**: Run Step 3 and restart the server. The restart is required for the parameter change to take effect
-11. **[HIGH] Version/region extension availability drift**: An extension available in East US may still be missing in West Europe. Check `SELECT * FROM pg_available_extensions` on the specific target server
-12. **[MEDIUM] Extension dependency chains on drop/upgrade**: `DROP EXTENSION vector CASCADE` also removes `pg_diskann` indexes. For upgrades, dependent extensions may need updates before `ALTER EXTENSION ... UPDATE`
-13. **[MEDIUM] CLI vs Portal parameter precedence**: CLI and Portal write the same backend setting, but the Portal can lag by 1-2 minutes. Verify the live value with `SHOW` after changes
+11. **[HIGH] Exact error recognition**: `ERROR: extension "X" is not available` = not in allowlist; run `SHOW azure.extensions`. `ERROR: could not open extension control file` = allowlisted but `shared_preload_libraries` missing; add it and restart. `ERROR: permission denied to create extension` = session user lacks `azure_pg_admin`
+12. **[HIGH] Version/region extension availability drift**: An extension available in East US may still be missing in West Europe. Check `SELECT * FROM pg_available_extensions` on the specific target server
+13. **[MEDIUM] Extension dependency chains on drop/upgrade**: `DROP EXTENSION vector CASCADE` also removes `pg_diskann` indexes. For upgrades, dependent extensions may need updates before `ALTER EXTENSION ... UPDATE`
+14. **[MEDIUM] CLI vs Portal parameter precedence**: CLI and Portal write the same backend setting, but the Portal can lag by 1-2 minutes. Verify the live value with `SHOW` after changes
 
 ## References
 - [Extensions in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-extensions)

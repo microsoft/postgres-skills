@@ -51,6 +51,22 @@ Prioritize pooling mode tradeoffs, production failure modes, and managed-service
 - PgBouncer transaction mode breaks `PREPARE`/`EXECUTE` across backends
 - Total connections = `pool_size_per_instance × num_instances` — easy to exceed limits
 
+## Pool Sizing Formula
+
+**Server-side max_connections:**
+- OLTP: `4 × vCPUs` (e.g., 8 vCPU = 32 connections)
+- Mixed workload: `2 × vCPUs + 5` (for background workers)
+- Memory check: `max_connections × work_mem` must fit in RAM. 100 connections × 256MB work_mem = 25GB (likely OOM)
+
+**PgBouncer pool_size:**
+- `pool_size = max_connections × 0.8` (reserve 20% for admin/monitoring)
+- `max_client_conn = pool_size × 10` (10:1 multiplexing ratio is safe for transaction mode)
+
+**Red flags:**
+- `max_connections > 500` without PgBouncer = degraded performance
+- `pool_size > max_connections` = PgBouncer can't actually use all slots
+- Client `CONN_MAX_AGE=0` (Django default) = reconnect every request, defeats pooling
+
 ## Pooling decision tree
 
 - **< 50 connections**: No pooler needed

@@ -74,6 +74,46 @@ SELECT * FROM pg_stat_subscription;  -- on subscriber
 SELECT slot_name, active, restart_lsn FROM pg_replication_slots;  -- on publisher
 ```
 
+## Diagnostic Flow
+
+When user reports a replication issue, follow this decision tree:
+
+1. **Replication not starting?**
+   - Check `SELECT * FROM pg_stat_subscription` — `last_msg_send_time` NULL = never connected
+   - Verify network: can subscriber reach publisher on port 5432?
+   - Verify `pg_hba.conf` on publisher allows replication connections
+   - Check `max_wal_senders` not exhausted: `SELECT count(*) FROM pg_stat_replication`
+
+2. **Replication lag growing?**
+   - Check `SELECT slot_name, pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn) as bytes_lag FROM pg_replication_slots`
+   - If WAL accumulating: subscriber too slow, or idle transaction on subscriber blocking apply
+   - If sudden spike: large transaction (COPY, bulk UPDATE) on publisher
+
+3. **Data mismatch between publisher/subscriber?**
+   - Sequences are NOT replicated. Check after failover.
+   - DDL is NOT replicated. Schema drift = silent data divergence.
+   - Check `REPLICA IDENTITY` — without FULL or PK, UPDATE/DELETE may silently skip rows
+
+## Replication Slot Health
+
+Use one query to distinguish apply lag from WAL retention risk:
+
+```sql
+SELECT
+    slot_name,
+    active,
+    pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)) AS wal_retained,
+    pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), confirmed_flush_lsn)) AS apply_lag,
+    restart_lsn,
+    confirmed_flush_lsn
+FROM pg_replication_slots
+ORDER BY pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn) DESC;
+```
+
+- `wal_retained` growing but `apply_lag` flat = orphaned or stalled slot holding WAL
+- `apply_lag` growing fast = subscriber cannot consume changes quickly enough
+- Alert thresholds: > 1 GB warning, > 5 GB urgent for OLTP; inactive slot with retained WAL > 15 min is usually a cleanup incident
+
 ## Common Mistakes
 
 1. **[HIGH] Missing primary key**: Without PK or REPLICA IDENTITY, UPDATE/DELETE fail. Fix: `ALTER TABLE t REPLICA IDENTITY FULL` (slow) or add PK
