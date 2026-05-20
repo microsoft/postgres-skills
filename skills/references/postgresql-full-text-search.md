@@ -80,7 +80,7 @@ WHERE search_vector @@ websearch_to_tsquery('english', 'running shoes');
 3. **[HIGH] `tsvector` not maintained on `UPDATE`**: The agent adds a `tsvector` column, backfills it once, and forgets that future updates silently make search results stale.
 
    Fix: use a generated stored column on PG 12+:
-   ```sql
+   ```sql no-execute
    search_vector tsvector
      GENERATED ALWAYS AS (to_tsvector('english', coalesce(title, '') || ' ' || coalesce(body, '')))
      STORED

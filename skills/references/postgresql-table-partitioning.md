@@ -104,13 +104,13 @@ EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at = '2024-01-15';
 2. **[HIGH] Partition pruning failure with casts**: Type mismatch prevents pruning
 
    ❌ Wrong:
-   ```sql
+   ```sql no-execute
    -- timestamptz partition key but date literal
    WHERE created_at > '2024-01-01'::date  -- scans ALL partitions
    ```
 
    ✅ Right:
-   ```sql
+   ```sql no-execute
    WHERE created_at > '2024-01-01 00:00:00+00'::timestamptz  -- prunes correctly
    ```
 
@@ -119,12 +119,12 @@ EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at = '2024-01-15';
 4. **[HIGH] UNIQUE/PK must include partition key**: Cannot create unique index without partition key
 
    ❌ Wrong:
-   ```sql
+   ```sql no-execute
    PRIMARY KEY (id)  -- ERROR: unique constraint must include partition key
    ```
 
    ✅ Right:
-   ```sql
+   ```sql no-execute
    PRIMARY KEY (id, created_at)  -- partition key included
    ```
 
