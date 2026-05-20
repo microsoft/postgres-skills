@@ -94,6 +94,12 @@ def lint() -> list[str]:
         if not task or len(task.strip()) < 10:
             errors.append(f"{prefix}: task is too short or empty")
 
+        # correctness_checks schema
+        if "correctness_checks" in c:
+            checks = c.get("correctness_checks")
+            if not isinstance(checks, list) or not all(isinstance(check, str) for check in checks):
+                errors.append(f"{prefix}: correctness_checks must be a list of strings")
+
     return errors
 
 

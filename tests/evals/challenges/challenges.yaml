@@ -21,6 +21,10 @@ challenges:
     anti_patterns:
       - "ALTER SYSTEM"
       - "azure"
+    correctness_checks:
+      - "Does the response recommend a composite B-tree index on (email, created_at)?"
+      - "Does the response explain why column order matters for filtering then sorting?"
+      - "Is any CREATE INDEX example syntactically valid for PostgreSQL?"
 
   - id: gen-idx-02
     task: "I need to search a JSONB column for documents containing a specific nested key. The table has 5M rows."
@@ -31,6 +35,10 @@ challenges:
     expected_patterns:
       - "GIN|gin"
       - "jsonb_path_ops|jsonb_ops"
+    correctness_checks:
+      - "Does the response recommend a GIN index for the JSONB column?"
+      - "Does the response mention choosing jsonb_path_ops or jsonb_ops based on query operators?"
+      - "Does the response include a valid PostgreSQL JSONB query or index example?"
 
   - id: gen-idx-03
     task: "How do I set up DiskANN vector indexing on my PostgreSQL server?"
@@ -38,6 +46,10 @@ challenges:
     target_skill: skills/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: false
+    correctness_checks:
+      - "Does the response state that DiskANN is not a standard generic PostgreSQL index type?"
+      - "Does the response redirect the user to Azure PostgreSQL DiskANN or pgvector-specific guidance instead of generic indexing advice?"
+      - "Does the response avoid claiming that CREATE INDEX USING diskann is available on vanilla PostgreSQL?"
     notes: "Should NOT activate advanced-indexing; this is skills/references/azure-postgresql-vector-diskann territory"
 
   # query-performance
@@ -50,6 +62,10 @@ challenges:
     expected_patterns:
       - "EXPLAIN|explain"
       - "ANALYZE|analyze"
+    correctness_checks:
+      - "Does the response recommend checking the plan with EXPLAIN ANALYZE before changing indexes?"
+      - "Does the response discuss indexing the join, filter, or sort path rather than only giving generic tuning advice?"
+      - "Does the response note that SELECT * can increase I/O and should be trimmed if possible?"
 
   - id: gen-perf-02
     task: "How do I read the output of EXPLAIN ANALYZE? I see 'loops=100' but I'm not sure what it means."
@@ -60,6 +76,10 @@ challenges:
     expected_patterns:
       - "loops"
       - "actual time"
+    correctness_checks:
+      - "Does the response explain that loops is the number of times a plan node executed?"
+      - "Does the response relate high loop counts to repeated inner-node work such as nested loops?"
+      - "Does the response explain what the actual time fields mean in EXPLAIN ANALYZE output?"
 
   # jsonb-patterns
   - id: gen-json-01
@@ -71,6 +91,10 @@ challenges:
     expected_patterns:
       - "->|->>"
       - "jsonb"
+    correctness_checks:
+      - "Does the response use the correct JSONB path operators such as -> and ->> to reach notifications.email?"
+      - "Does the response compare the extracted value correctly, for example against 'true' text or a boolean cast?"
+      - "Is the SQL example valid PostgreSQL syntax?"
 
   - id: gen-json-02
     task: "What's the difference between -> and ->> operators in PostgreSQL?"
@@ -81,6 +105,10 @@ challenges:
     expected_patterns:
       - "->>"
       - "text|json"
+    correctness_checks:
+      - "Does the response state that -> returns JSON or JSONB while ->> returns text?"
+      - "Does the response explain why ->> is typically used for text comparison or display?"
+      - "Does the response avoid saying that ->> returns JSONB?"
 
   # table-partitioning
   - id: gen-part-01
@@ -92,6 +120,10 @@ challenges:
     expected_patterns:
       - "PARTITION BY RANGE|partition by range"
       - "event_date|date"
+    correctness_checks:
+      - "Does the response recommend considering range partitioning by event_date?"
+      - "Does the response explain partition pruning as the reason filtered queries can improve?"
+      - "Does the response note that partitioning helps when access patterns and retention align, not as a universal speed-up?"
 
   - id: gen-part-02
     task: "How do I detach a partition without locking the parent table?"
@@ -101,6 +133,10 @@ challenges:
     expected_activation: true
     expected_patterns:
       - "DETACH.*CONCURRENTLY|detach.*concurrently"
+    correctness_checks:
+      - "Does the response mention ALTER TABLE ... DETACH PARTITION ... CONCURRENTLY?"
+      - "Does the response note the PostgreSQL version requirement of 14 or later?"
+      - "Does the response warn that the concurrent detach has special transaction restrictions or a two-step process?"
 
   # row-level-security
   - id: gen-rls-01
@@ -112,6 +148,10 @@ challenges:
     expected_patterns:
       - "CREATE POLICY|ROW LEVEL SECURITY"
       - "current_setting|session"
+    correctness_checks:
+      - "Does the response enable row level security and define a CREATE POLICY-based filter?"
+      - "Does the response use a tenant identifier from session context, current_setting, or role mapping?"
+      - "Does the response mention that the application must set the tenant context per session or transaction?"
 
   - id: gen-rls-02
     task: "I enabled RLS but my admin user can still see all rows. Why?"
@@ -122,6 +162,10 @@ challenges:
     expected_patterns:
       - "FORCE|force"
       - "table owner|BYPASSRLS"
+    correctness_checks:
+      - "Does the response explain that table owners or roles with BYPASSRLS can bypass policies?"
+      - "Does the response mention FORCE ROW LEVEL SECURITY as the way to subject the table owner to policies?"
+      - "Does the response suggest testing with a non-owner role that does not have BYPASSRLS?"
 
   # full-text-search
   - id: gen-fts-01
@@ -133,6 +177,10 @@ challenges:
     expected_patterns:
       - "tsvector|to_tsvector"
       - "ts_rank|setweight"
+    correctness_checks:
+      - "Does the response use tsvector or to_tsvector for indexing title and body text?"
+      - "Does the response include ranking with ts_rank or ts_rank_cd?"
+      - "Does the response mention weighting title matches higher than body matches or using a GIN index on the tsvector?"
 
   - id: gen-fts-02
     task: "How do I implement autocomplete/prefix search in PostgreSQL?"
@@ -142,6 +190,10 @@ challenges:
     expected_activation: true
     expected_patterns:
       - "tsquery|:*"
+    correctness_checks:
+      - "Does the response mention prefix matching with :* in a tsquery?"
+      - "Does the response explain that prefix full-text search works on lexemes rather than arbitrary substrings?"
+      - "Does the response mention pg_trgm or another alternative for true substring-style autocomplete?"
 
   # connection-management
   - id: gen-conn-01
@@ -153,6 +205,10 @@ challenges:
     expected_patterns:
       - "pool|pgbouncer|connection limit"
       - "max_connections|pg_stat_activity"
+    correctness_checks:
+      - "Does the response recommend connection pooling such as PgBouncer or an application pool?"
+      - "Does the response explain that too many backend connections consume memory and hit max_connections?"
+      - "Does the response mention checking pg_stat_activity or sizing pool limits instead of letting every server open unbounded connections?"
 
   - id: gen-conn-02
     task: "How do I find and kill idle connections that have been open for more than 1 hour?"
@@ -163,6 +219,10 @@ challenges:
     expected_patterns:
       - "pg_stat_activity"
       - "pg_terminate_backend|idle"
+    correctness_checks:
+      - "Does the response query pg_stat_activity to find long-idle sessions?"
+      - "Does the response use pg_terminate_backend(pid) rather than unsupported syntax?"
+      - "Does the response filter on idle state duration, such as state_change older than 1 hour?"
 
   # logical-replication
   - id: gen-repl-01
@@ -174,6 +234,10 @@ challenges:
     expected_patterns:
       - "PUBLICATION|CREATE PUBLICATION"
       - "SUBSCRIPTION|CREATE SUBSCRIPTION"
+    correctness_checks:
+      - "Does the response use logical replication with a publication and subscription for selected tables?"
+      - "Does the response mention prerequisites such as wal_level=logical or connectivity/permissions?"
+      - "Does the response mention the initial data copy behavior or replication slot creation?"
 
   - id: gen-repl-02
     task: "My replication slot is growing and WAL is filling up disk. What do I do?"
@@ -184,6 +248,10 @@ challenges:
     expected_patterns:
       - "pg_replication_slots"
       - "active|drop"
+    correctness_checks:
+      - "Does the response tell the user to inspect pg_replication_slots?"
+      - "Does the response explain that an inactive or lagging slot retains WAL files?"
+      - "Does the response recommend resuming the consumer or safely dropping an unused slot instead of ignoring the WAL growth?"
 
   # Negative activation tests (should NOT trigger generic skills)
   - id: gen-neg-01
@@ -192,6 +260,10 @@ challenges:
     target_skill: skills/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: false
+    correctness_checks:
+      - "Does the response identify this as an Azure provisioning task rather than a generic query-performance problem?"
+      - "Does the response avoid making EXPLAIN ANALYZE the main answer?"
+      - "Does the response mention an Azure deployment path such as portal, CLI, Bicep, or Terraform?"
     notes: "Azure provisioning, not generic performance"
 
   - id: gen-neg-02
@@ -200,6 +272,10 @@ challenges:
     target_skill: skills/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: false
+    correctness_checks:
+      - "Does the response identify this as Azure Entra authentication rather than generic connection management?"
+      - "Does the response mention token-based or Entra-based auth setup rather than only connection pooling advice?"
+      - "Does the response avoid making idle-connection cleanup or max_connections tuning the main answer?"
     notes: "Azure auth, not generic connection management"
 
   # ─── AZURE POSTGRESQL (30 challenges: 13 skills × ~2.3 each) ──────────────
@@ -217,6 +293,10 @@ challenges:
     anti_patterns:
       - "superuser"
       - "ALTER SYSTEM"
+    correctness_checks:
+      - "Does the response mention allowlisting or enabling the extension through azure.extensions before CREATE EXTENSION?"
+      - "Does the response include valid PostgreSQL syntax such as CREATE EXTENSION vector?"
+      - "Does the response avoid requiring superuser or ALTER SYSTEM on Azure PostgreSQL?"
 
   - id: az-ext-02
     task: "I'm getting 'permission denied to create extension' on Azure PostgreSQL. I'm using the admin user."
@@ -227,6 +307,10 @@ challenges:
     expected_patterns:
       - "azure_pg_admin|allowlist"
       - "azure.extensions"
+    correctness_checks:
+      - "Does the response explain that the Azure admin role is azure_pg_admin rather than a true superuser?"
+      - "Does the response mention checking whether the extension is supported and allowlisted in azure.extensions?"
+      - "Does the response avoid implying that normal superuser escalation is available on Azure PostgreSQL?"
 
   # provisioning
   - id: az-prov-01
@@ -238,6 +322,10 @@ challenges:
     expected_patterns:
       - "azurerm_postgresql_flexible_server"
       - "high_availability|zone_redundant"
+    correctness_checks:
+      - "Does the response use the azurerm_postgresql_flexible_server Terraform resource rather than an obsolete resource type?"
+      - "Does the response include a high_availability configuration such as zone_redundant or same_zone?"
+      - "Does the response describe production-oriented settings instead of a minimal dev-only server?"
 
   # ha-disaster-recovery
   - id: az-ha-01
@@ -251,6 +339,10 @@ challenges:
       - "new server|connection string"
     anti_patterns:
       - "in-place restore"
+    correctness_checks:
+      - "Does the response explain that point-in-time restore creates a new server rather than restoring in place?"
+      - "Does the response mention restoring to a specific time or timestamp?"
+      - "Does the response tell the user to update the application connection string, DNS, or endpoint after restore?"
 
   - id: az-ha-02
     task: "What's the difference between zone-redundant HA and same-zone HA in Azure PostgreSQL?"
@@ -261,6 +353,10 @@ challenges:
     expected_patterns:
       - "zone-redundant|same-zone"
       - "failover|availability"
+    correctness_checks:
+      - "Does the response explain that zone-redundant HA places the standby in a different availability zone?"
+      - "Does the response explain that same-zone HA keeps the standby in the same zone and therefore does not protect against zone failure?"
+      - "Does the response compare resilience or availability tradeoffs between the two HA modes?"
 
   # entra-id-auth
   - id: az-auth-01
@@ -272,6 +368,10 @@ challenges:
     expected_patterns:
       - "managed identity|Entra"
       - "token|az account get-access-token"
+    correctness_checks:
+      - "Does the response mention enabling Entra authentication and mapping the managed identity or principal in PostgreSQL?"
+      - "Does the response explain that the access token is used as the password for the PostgreSQL connection?"
+      - "Does the response mention granting the Azure Function managed identity the required Azure and database permissions?"
 
   - id: az-auth-02
     task: "My token-based connection to Azure PostgreSQL keeps expiring after 1 hour. How do I handle refresh?"
@@ -282,6 +382,10 @@ challenges:
     expected_patterns:
       - "token.*refresh|expire"
       - "1 hour|3600"
+    correctness_checks:
+      - "Does the response state that Entra access tokens expire after about 1 hour?"
+      - "Does the response recommend reacquiring tokens and reconnecting or recycling pooled connections before expiry?"
+      - "Does the response avoid suggesting that the server can extend token lifetime indefinitely?"
 
   # networking-ssl
   - id: az-net-01
@@ -293,6 +397,10 @@ challenges:
     expected_patterns:
       - "private endpoint|VNet|vnet"
       - "firewall|network"
+    correctness_checks:
+      - "Does the response recommend private networking such as VNet integration or private access rather than only public firewall rules?"
+      - "Does the response explain that public exposure should be disabled or tightly restricted if only the VNet should reach the server?"
+      - "Does the response stay within Azure PostgreSQL networking concepts rather than generic PostgreSQL SSL-only advice?"
 
   # connection-pooling
   - id: az-pool-01
@@ -304,6 +412,10 @@ challenges:
     expected_patterns:
       - "PgBouncer|pgbouncer"
       - "6432|built-in"
+    correctness_checks:
+      - "Does the response mention that built-in PgBouncer is available on Azure PostgreSQL and typically listens on port 6432?"
+      - "Does the response compare built-in PgBouncer with self-managed pooling in terms of control or customization?"
+      - "Does the response relate the choice to high connection counts such as the user's 500 concurrent connections?"
 
   # intelligent-tuning
   - id: az-tune-01
@@ -315,6 +427,10 @@ challenges:
     expected_patterns:
       - "Query Store|query_store"
       - "recommend|index"
+    correctness_checks:
+      - "Does the response point the user to Azure's intelligent performance or index recommendation surface rather than generic EXPLAIN-only advice?"
+      - "Does the response mention Query Store or workload telemetry as the source for the recommendations?"
+      - "Does the response explain that the recommendation should be reviewed and applied intentionally rather than assumed blindly?"
 
   # upgrades-maintenance
   - id: az-upg-01

@@ -45,6 +45,7 @@ class Challenge:
     expected_activation: bool
     expected_patterns: list[str] = field(default_factory=list)
     anti_patterns: list[str] = field(default_factory=list)
+    correctness_checks: list[str] = field(default_factory=list)
     notes: str = ""
 
 
@@ -60,6 +61,7 @@ class EvalResult:
     token_budget: dict
     activation_correct: bool
     judge_verdict: Optional[dict] = None
+    correctness_verdict: dict | None = None
     latency_ms: float = 0.0
     timestamp: str = ""
 
@@ -316,6 +318,7 @@ class EvalPipeline:
                 expected_activation=c["expected_activation"],
                 expected_patterns=c.get("expected_patterns", []),
                 anti_patterns=c.get("anti_patterns", []),
+                correctness_checks=c.get("correctness_checks", []),
                 notes=c.get("notes", ""),
             )
             for c in data["challenges"]
@@ -471,6 +474,17 @@ class EvalPipeline:
                 "criteria_scores": verdict.criteria_scores,
             }
 
+        # Structured correctness checks (A4)
+        correctness_verdict = None
+        if challenge.correctness_checks and self._judge_agent_fn and output and not output.startswith("[MOCK]"):
+            correctness_prompt = self._build_correctness_prompt(challenge.task, output, challenge.correctness_checks)
+
+            def _call_correctness_llm(prompt: str) -> str:
+                return self._judge_agent_fn(prompt, "", self._judge_model or self._model)
+
+            raw_correctness = _call_correctness_llm(correctness_prompt)
+            correctness_verdict = self._parse_correctness_verdict(raw_correctness)
+
         result = EvalResult(
             challenge_id=challenge.id,
             group=group,
@@ -488,6 +502,7 @@ class EvalPipeline:
             token_budget=token_result,
             activation_correct=activation_correct,
             judge_verdict=judge_verdict,
+            correctness_verdict=correctness_verdict,
             latency_ms=latency_ms,
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
@@ -495,6 +510,52 @@ class EvalPipeline:
         with self._lock:
             self.results.append(result)
         return result
+
+    def _build_correctness_prompt(self, task: str, output: str, checks: list[str]) -> str:
+        checks_text = "\n".join(f"{i + 1}. {c}" for i, c in enumerate(checks))
+        return f"""You are verifying factual correctness of a PostgreSQL response.
+
+## Task
+{task}
+
+## Response to Evaluate
+{output}
+
+## Correctness Questions (answer each yes/no)
+{checks_text}
+
+## Output Format (JSON)
+{{
+  \"answers\": [
+    {{\"question\": \"<question text>\", \"answer\": true/false, \"evidence\": \"<brief quote from response or 'not found'>\"}}
+  ],
+  \"pass_rate\": <float 0.0-1.0>
+}}
+"""
+
+    def _parse_correctness_verdict(self, raw: str) -> dict:
+        """Parse structured correctness check response."""
+        try:
+            text = raw.strip()
+            if text.startswith("```"):
+                text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+            parsed = json.loads(text)
+            answers = parsed.get("answers", [])
+            pass_count = sum(1 for a in answers if a.get("answer", False))
+            return {
+                "answers": answers,
+                "pass_rate": pass_count / len(answers) if answers else 0.0,
+                "total_checks": len(answers),
+                "passed_checks": pass_count,
+            }
+        except Exception:
+            return {
+                "answers": [],
+                "pass_rate": 0.0,
+                "total_checks": 0,
+                "passed_checks": 0,
+                "parse_error": raw[:80],
+            }
 
     def compute_skill_metrics(self) -> dict[str, SkillMetrics]:
         """Compute per-skill confusion matrix from results."""
@@ -616,6 +677,32 @@ class EvalPipeline:
         # Paired win-rate
         winrate_summary = stats.paired_winrate(self.winrate_results)
 
+        # Structured correctness checks (A4)
+        correctness_results = [
+            r for r in self.results
+            if r.correctness_verdict and r.correctness_verdict.get("total_checks", 0) > 0
+        ]
+        control_correctness_results = [r for r in correctness_results if r.group == "control"]
+        test_correctness_results = [r for r in correctness_results if r.group == "test"]
+
+        def _avg_correctness(items: list[EvalResult]) -> float | None:
+            if not items:
+                return None
+            return sum(r.correctness_verdict.get("pass_rate", 0.0) for r in items if r.correctness_verdict) / len(items)
+
+        overall_correctness = _avg_correctness(correctness_results)
+        control_correctness = _avg_correctness(control_correctness_results)
+        test_correctness = _avg_correctness(test_correctness_results)
+
+        # MDD warning (A6)
+        n_per_skill = {}
+        for v in self.winrate_results:
+            skill = v.get("target_skill", "unknown")
+            n_per_skill[skill] = n_per_skill.get(skill, 0) + 1
+
+        min_n = min(n_per_skill.values()) if n_per_skill else 0
+        mdd = 2 * math.sqrt(0.25 / min_n) if min_n > 0 else 1.0
+
         # Segmented win-rates (by platform scope and difficulty)
         challenge_map = {c.id: c for c in self.challenges}
         azure_winrate_items = [
@@ -660,6 +747,11 @@ class EvalPipeline:
                 "f1_score": round(f1, 3),
                 "hallucination_rate": total_hallucinations,
                 "false_activation_rate": round(total_fp / (total_fp + total_tn), 3) if (total_fp + total_tn) > 0 else 0,
+                "correctness_pass_rate": round(overall_correctness, 3) if overall_correctness is not None else None,
+                "correctness_pass_rate_control": round(control_correctness, 3) if control_correctness is not None else None,
+                "correctness_pass_rate_test": round(test_correctness, 3) if test_correctness is not None else None,
+                "correctness_results_count": len(correctness_results),
+                "correctness_challenge_count": len({r.challenge_id for r in correctness_results}),
             },
             "delta": {
                 "method": delta_method,
@@ -695,6 +787,12 @@ class EvalPipeline:
                     "hallucinations": m.hallucination_count,
                 }
                 for skill, m in metrics.items()
+            },
+            "statistical_power": {
+                "n_per_skill": n_per_skill,
+                "min_challenges_per_skill": min_n,
+                "mdd": round(mdd, 3),
+                "recommendation": "Consider adding more challenges per skill to detect smaller effects (target: MDD < 0.10)" if mdd > 0.15 else "Current challenge count can detect moderately sized effects.",
             },
             "scoring_rubric": {
                 "syntax_accuracy": "100% required",
@@ -828,6 +926,10 @@ class EvalPipeline:
         wr = report['delta']['paired_winrate']
         if wr['total'] > 0:
             print(f"Win Rate: {wr['win_rate']:.1%} wins, {wr['loss_rate']:.1%} losses, {wr['tie_rate']:.1%} ties ({wr['total']} matchups)")
+        power = report.get('statistical_power', {})
+        print(f"\n⚠ Statistical power: min {power.get('min_challenges_per_skill', 0)} challenges/skill → MDD ≈ {power.get('mdd', 1.0):.2f}")
+        if power.get('mdd', 1.0) > 0.15:
+            print("  Consider adding more challenges per skill to detect smaller effects (target: MDD < 0.10)")
         wilcox = report['delta']['wilcoxon_test']
         if wilcox['n_pairs'] >= 5:
             wilcox_sig = " (SIGNIFICANT)" if wilcox['significant'] else " (not significant)"
@@ -835,6 +937,14 @@ class EvalPipeline:
         print(f"Hallucinations: {report['summary']['hallucination_rate']}")
         far = report['summary']['false_activation_rate']
         print(f"False Activation Rate: {far:.1%}")
+        correctness_rate = report['summary'].get('correctness_pass_rate')
+        if correctness_rate is not None:
+            control_correctness = report['summary'].get('correctness_pass_rate_control') or 0.0
+            test_correctness = report['summary'].get('correctness_pass_rate_test') or 0.0
+            print(
+                f"Correctness Pass Rate: overall {correctness_rate:.1%} | "
+                f"control {control_correctness:.1%} | test {test_correctness:.1%}"
+            )
 
         # Segmented win-rates
         seg = report['delta'].get('segmented_winrate', {})
