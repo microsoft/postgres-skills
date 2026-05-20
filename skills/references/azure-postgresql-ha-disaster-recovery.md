@@ -58,13 +58,49 @@ activation:
 ## Critical Gotchas
 
 1. **PITR needs a new server name**: Cannot restore to the same name; all connection strings, firewall rules, VNet config must be recreated on the restored server
+
+   ```bash
+   # Restore to a new server (NOT in-place)
+   az postgres flexible-server restore --resource-group myRG \
+       --name myserver-restored --source-server myserver \
+       --restore-time "2026-05-19T10:00:00Z"
+   # WARNING: Must reconfigure HA, firewall, VNet on restored server
+   ```
+
 2. **Geo-backup cannot be enabled later**: Must be set at server creation; alternative for existing servers is cross-region read replicas
+
+   ❌ Wrong:
+   ```bash
+   # DOES NOT WORK — geo-redundant backup is creation-time only
+   az postgres flexible-server update --name myserver --geo-redundant-backup Enabled
+   ```
+
+   ✅ Right:
+   ```bash
+   # Set at creation time
+   az postgres flexible-server create --name myserver --geo-redundant-backup Enabled ...
+   # For existing servers, use cross-region read replica instead
+   az postgres flexible-server replica create --resource-group myRG \
+       --replica-name myserver-replica --source-server myserver --location eastus2
+   ```
+
 3. **Replica promotion cannot be undone**: Test on throwaway replicas, not your DR replica
+
+   ```bash
+   # This is PERMANENT — cannot re-attach after promotion
+   az postgres flexible-server replica stop-replication --resource-group myRG --name myserver-replica
+   ```
+
 4. **Failover drops in-flight writes**: Applications need retry logic with 30s timeout + reconnect
 5. **Restored server loses HA/networking config**: Must reconfigure HA settings, firewall rules, and VNet after PITR
 6. **Cross-region replica lag**: Not suitable for strong consistency; use for reporting/analytics/DR only
 7. **35-day max retention**: For compliance needing 90+ days, export to Azure Blob Storage separately
-8. **Backup storage billing**: Free up to 1x provisioned storage; high churn + long retention can exceed this
+8. **Forced failover for testing**:
+
+   ```bash
+   # Test HA failover (forced)
+   az postgres flexible-server restart --resource-group myRG --name myserver --failover Forced
+   ```
 
 ## Anti-Hallucination Rules
 

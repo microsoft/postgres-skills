@@ -34,18 +34,17 @@ activation:
 
 ## When to use this skill
 
-Use for production PostgreSQL issues involving:
+Use for PostgreSQL issues involving:
 - Replication lag diagnosis, slot bloat, WAL retention
 - Logical replication failure modes (conflicts, missing PK, sequence gaps)
 - DDL coordination across publisher/subscriber
 - Partitioned table replication (version-gated)
 - Zero-downtime migration or CDC setup
-
-Do NOT use for basic `CREATE PUBLICATION` / `CREATE SUBSCRIPTION` syntax unless the user asks for a runnable example.
+- Setting up publications and subscriptions
 
 ## Response focus
 
-Prioritize gotchas, version boundaries, and production-safe corrections. Avoid generic setup explanations the base model already knows.
+Prioritize gotchas, version boundaries, and production-safe corrections. Include runnable examples when users ask for setup help.
 
 ## High-value reminders
 
@@ -54,6 +53,26 @@ Prioritize gotchas, version boundaries, and production-safe corrections. Avoid g
 - DDL is NOT replicated — apply schema changes on subscriber FIRST
 - Conflicts halt replication silently — subscriber must resolve manually
 - `REPLICA IDENTITY FULL` is required for UPDATE/DELETE on tables without PK (but is slower)
+
+## Quick Setup Reference
+
+```sql
+-- PUBLISHER: Enable logical replication (requires restart)
+ALTER SYSTEM SET wal_level = logical;
+-- Then restart PostgreSQL
+
+-- PUBLISHER: Create publication for specific tables
+CREATE PUBLICATION my_pub FOR TABLE orders, customers;
+
+-- SUBSCRIBER: Create subscription (connects to publisher)
+CREATE SUBSCRIPTION my_sub
+    CONNECTION 'host=publisher_host dbname=mydb user=repl_user password=...'
+    PUBLICATION my_pub;
+
+-- Monitor replication status
+SELECT * FROM pg_stat_subscription;  -- on subscriber
+SELECT slot_name, active, restart_lsn FROM pg_replication_slots;  -- on publisher
+```
 
 ## Common Mistakes
 

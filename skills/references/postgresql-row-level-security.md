@@ -40,7 +40,7 @@ Use for production PostgreSQL issues involving:
 - SECURITY DEFINER function bypass risks
 - Permissive vs Restrictive policy stacking (PG 10+)
 
-Avoid explaining basic `CREATE POLICY` syntax or `ENABLE ROW LEVEL SECURITY` unless the user asks for a runnable example.
+Include runnable policy examples. Focus on multi-tenant patterns, pooler-safe session variables, and common bypass mistakes.
 
 ## Response focus
 

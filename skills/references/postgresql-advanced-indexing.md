@@ -48,7 +48,7 @@ Do NOT use for basic `CREATE INDEX` syntax or when the user simply needs EXPLAIN
 
 ## Response focus
 
-Prioritize index type tradeoffs, version-gated features, and common misapplications. Avoid explaining what a B-tree is or basic CREATE INDEX syntax unless directly requested.
+Prioritize index type tradeoffs, version-gated features, and common misapplications. Include runnable CREATE INDEX examples when the user asks for help creating an index.
 
 ## Common Mistakes
 

@@ -40,7 +40,7 @@ Use for production PostgreSQL issues involving:
 - GIN index not being used for FTS queries
 - Hybrid search combining FTS with trigram/similarity
 
-Avoid explaining basic tsvector/tsquery setup or GIN index creation unless the user asks for a runnable example.
+Include runnable examples for tsvector/tsquery patterns. Focus on ranking, weighting, and language-specific configurations that models often get wrong.
 
 ## Response focus
 

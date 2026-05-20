@@ -38,7 +38,7 @@ Use for production PostgreSQL issues involving:
 - Idle connections holding locks/preventing VACUUM
 - Serverless connection patterns (Lambda, Cloud Functions)
 
-Avoid explaining basic `pg_stat_activity` queries or `max_connections` unless the user asks for setup guidance.
+Include diagnostic queries and connection pool configuration examples. Focus on production failure modes and Azure-specific connection limits.
 
 ## Response focus
 

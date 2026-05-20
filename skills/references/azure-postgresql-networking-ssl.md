@@ -61,10 +61,78 @@ activation:
 ## Common Mistakes
 
 1. **[CRITICAL] Baltimore cert expired**: Use `DigiCertGlobalRootG2.crt.pem` (download from `dl.cacerts.digicert.com`). Baltimore CyberTrust Root expired 2022
+
+   ❌ Wrong:
+   ```
+   sslrootcert=BaltimoreCyberTrustRoot.crt.pem
+   ```
+
+   ✅ Right:
+   ```
+   sslmode=verify-full sslrootcert=DigiCertGlobalRootG2.crt.pem
+   ```
+
 2. **[HIGH] sslmode=require vs verify-full**: `require` encrypts but does NOT verify server identity. Use `verify-full` in production
+
+   ❌ Wrong:
+   ```
+   psql "host=myserver.postgres.database.azure.com dbname=mydb sslmode=require"
+   ```
+
+   ✅ Right:
+   ```
+   psql "host=myserver.postgres.database.azure.com dbname=mydb sslmode=verify-full sslrootcert=DigiCertGlobalRootG2.crt.pem"
+   ```
+
 3. **[HIGH] VNet kills firewall rules**: Once VNet-integrated, firewall rules are never evaluated even if they exist
-4. **[MEDIUM] Cross-VNet connectivity**: Requires VNet peering + DNS forwarding. Cross-region adds 2-10ms latency
-5. **[MEDIUM] "no pg_hba.conf entry" on Azure**: On public access = add IP to firewall. On private = check DNS resolution (likely `privatelink.postgres.database.azure.com` zone not linked)
+
+4. **[HIGH] Private DNS zone setup for Private Endpoint**:
+
+   ```bash
+   # Create Private DNS zone
+   az network private-dns zone create --resource-group myRG \
+       --name privatelink.postgres.database.azure.com
+
+   # Link DNS zone to client VNet
+   az network private-dns zone vnet-link create --resource-group myRG \
+       --zone-name privatelink.postgres.database.azure.com \
+       --name myDNSLink --virtual-network myClientVNet --registration-enabled false
+
+   # Create private endpoint
+   az network private-endpoint create --resource-group myRG \
+       --name myPE --vnet-name myVNet --subnet mySubnet \
+       --private-connection-resource-id "/subscriptions/.../flexibleServers/myserver" \
+       --group-id postgresqlServer --connection-name myConn
+   ```
+
+5. **[MEDIUM] Cross-VNet connectivity**: Requires VNet peering + DNS forwarding. Cross-region adds 2-10ms latency
+
+6. **[MEDIUM] "no pg_hba.conf entry" on Azure**: On public access = add IP to firewall. On private = check DNS resolution (likely `privatelink.postgres.database.azure.com` zone not linked)
+
+   ```bash
+   # Add firewall rule for public access
+   az postgres flexible-server firewall-rule create --resource-group myRG \
+       --name myserver --rule-name allowMyIP --start-ip-address 1.2.3.4 --end-ip-address 1.2.3.4
+
+   # Verify DNS resolution for private access
+   nslookup myserver.postgres.database.azure.com
+   # Should resolve to private IP (10.x.x.x), not public IP
+   ```
+
+7. **[HIGH] Cannot switch public/private after creation**:
+
+   ❌ Wrong:
+   ```bash
+   # DOES NOT WORK — network access type is immutable
+   az postgres flexible-server update --name myserver --public-access Disabled
+   ```
+
+   ✅ Right:
+   ```bash
+   # Must create a new server with desired network access
+   az postgres flexible-server create --name myserver-new --vnet myVNet --subnet mySubnet ...
+   # Then migrate data from old server
+   ```
 
 ## Anti-Hallucination Rules
 
