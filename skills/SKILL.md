@@ -34,29 +34,17 @@ If `az account show` fails, ask the user to run `az login` (or `az login --use-d
 
 **Execution rules:**
 
-| Command type | Action |
-|---|---|
-| **Read-only** (`show`, `list`, `parameter show`) | Execute directly, no confirmation needed |
-| **Mutating** (`create`, `update`, `set`, `parameter set`, firewall rules) | Confirm target + get user approval before executing |
-| **High-impact mutating** (`restart`, `upgrade`, `delete`, `failover`, `stop-replication`, PITR restore) | Confirm target, state expected impact/downtime, get user approval |
+- **Execute directly** — all az CLI commands EXCEPT destructive ones. This includes `create`, `update`, `set`, `parameter set`, `list`, `show`, firewall rules, replica create, etc.
+- **Confirm with user first** — only for destructive/irreversible operations: `delete`, `restart`, `upgrade`, `failover`, `stop-replication`, PITR restore. State what will happen and whether it causes downtime.
 
-**Target verification (required before any mutating command):**
-Before executing state-changing commands, resolve and display:
-- Subscription name + ID
-- Resource group
-- Server name
-- Operation being performed
-
-Always pass `--subscription <id>` explicitly on mutating commands. Do not rely on ambient CLI defaults.
+Always pass `--subscription <id>` explicitly. Do not rely on ambient CLI defaults.
 
 **Discovery commands (when target is unknown):**
 ```bash
 az postgres flexible-server list \
   --query "[].{name:name, resourceGroup:resourceGroup, location:location, version:version}" -o table
-
-az group list --query "[].{name:name, location:location}" -o table
 ```
-If discovery returns multiple resources, ask the user to choose. Never mutate based on name similarity or first result.
+If discovery returns multiple resources, ask the user to choose.
 
 **If shell access is unavailable:** Provide the commands formatted for manual execution with clear step numbering.
 

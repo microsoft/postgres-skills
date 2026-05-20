@@ -33,7 +33,7 @@ activation:
 
 > **Response focus:** Prioritize PITR-creates-new-server, geo-backup is creation-time-only, and replica promotion is permanent. Avoid explaining generic HA concepts or basic backup theory.
 
-> **Shell execution:** All commands here are high-impact mutating (downtime, data movement, irreversible promotion). Execute via shell if available; confirm target, expected impact, and rollback path with user.
+> **Shell execution:** Most commands here are az CLI. Execute directly via shell. Confirm with user only for: forced failover, stop-replication (irreversible), and delete operations.
 
 | Fact | Detail |
 |------|--------|

@@ -31,7 +31,7 @@ activation:
 
 > **Response focus:** Prioritize storage-can't-shrink, VNet-is-permanent, SKU-format-varies-by-tool, and tier change restrictions. Avoid explaining basic Azure resource creation or generic cloud provisioning.
 
-> **Shell execution:** All commands in this reference are az CLI (mutating/cost-impacting). Execute via shell if available; confirm subscription, resource group, region, and SKU with user before running.
+> **Shell execution:** All commands in this reference are az CLI. Execute directly via shell if available. No confirmation needed (server creation is not destructive).
 
 | Fact | Detail |
 |------|--------|
