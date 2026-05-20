@@ -33,6 +33,31 @@ activation:
 
 > **Response focus:** Prioritize partition pruning failures, PK-must-include-partition-key, DEFAULT partition traps, and version-gated DETACH CONCURRENTLY. Avoid explaining basic partitioning concepts or strategy selection unless asked.
 
+## What LLMs Get Wrong
+
+1. PostgreSQL does **not** support `DROP PARTITION`. Use `ALTER TABLE ... DETACH PARTITION`, then `DROP TABLE` on the detached child.
+2. Hash partitioning is usually the wrong fit for time-series workloads because it cannot prune by date range.
+3. Partitioning is not for every large table. Without a consistent filter predicate on the partition key, you pay extra planning cost and get little or no pruning benefit.
+4. Partition-wise aggregation is **not** always on. `enable_partitionwise_aggregate = off` by default.
+
+## Proving Pruning Works
+
+```sql
+EXPLAIN (COSTS OFF)
+SELECT *
+FROM events
+WHERE created_at >= TIMESTAMPTZ '2024-01-01'
+  AND created_at < TIMESTAMPTZ '2024-02-01';
+```
+
+```text
+->  Append
+      Subplans Removed: 11    ← pruned at plan time
+      ->  Seq Scan on events_2024_01
+```
+
+If you see `Subplans Removed: 0` or no pruning mention at all, pruning failed.
+
 ## Instructions
 
 **Step 1: Strategy selection**
@@ -46,8 +71,8 @@ activation:
 **Step 2: Verify partition pruning works**
 
 ```sql
-EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at >= '2024-01-15';
--- Must show: "Partitions selected: 1" (not all)
+EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at >= TIMESTAMPTZ '2024-01-15';
+-- Must show pruning evidence such as "Subplans Removed" in the Append node
 -- If pruning fails: check type mismatch on partition key
 ```
 
@@ -75,13 +100,13 @@ CREATE TABLE events_default PARTITION OF events DEFAULT;
 SELECT inhrelid::regclass FROM pg_inherits WHERE inhparent = 'events'::regclass;
 
 -- Confirm pruning works in queries
-EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at = '2024-01-15';
--- Look for: "Partitions selected: 1" (not all)
+EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at = TIMESTAMPTZ '2024-01-15 00:00:00+00';
+-- Look for pruning evidence such as "Subplans Removed"
 ```
 
 ## Common Mistakes
 
-1. **[CRITICAL] Default partition traps data**: Once rows land in DEFAULT, creating a new partition for that range fails. Pre-create partitions ahead of time
+1. **[CRITICAL] Default partition traps data**: Once rows land in DEFAULT, creating a new partition for that range fails. Pre-create partitions ahead of time.
 
    ❌ Wrong:
    ```sql
@@ -101,7 +126,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at = '2024-01-15';
    -- Or: pre-create partitions with pg_partman before data arrives
    ```
 
-2. **[HIGH] Partition pruning failure with casts**: Type mismatch prevents pruning
+2. **[HIGH] Partition pruning failure with casts**: Type mismatch prevents pruning.
 
    ❌ Wrong:
    ```sql no-execute
@@ -114,9 +139,9 @@ EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at = '2024-01-15';
    WHERE created_at > '2024-01-01 00:00:00+00'::timestamptz  -- prunes correctly
    ```
 
-3. **[MEDIUM] Too many partitions**: >200 partitions increase planning time. Keep 50-200. Merge old monthly into yearly
+3. **[MEDIUM] Too many partitions**: >200 partitions increase planning time. Keep roughly 50-200 and merge old monthly partitions into yearly ones.
 
-4. **[HIGH] UNIQUE/PK must include partition key**: Cannot create unique index without partition key
+4. **[HIGH] UNIQUE/PK must include partition key**: Cannot create a unique index without the partition key.
 
    ❌ Wrong:
    ```sql no-execute
@@ -128,22 +153,15 @@ EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at = '2024-01-15';
    PRIMARY KEY (id, created_at)  -- partition key included
    ```
 
-5. **[HIGH] pg_partman automation**: Without it, inserts fail when next period's partition doesn't exist. Setup: `CREATE EXTENSION pg_partman; SELECT partman.create_parent('public.events', 'created_at', 'native', 'monthly')`
+5. **[HIGH] pg_partman automation**: Without it, inserts fail when the next period's partition does not exist. Setup: `CREATE EXTENSION pg_partman; SELECT partman.create_parent('public.events', 'created_at', 'native', 'monthly')`
 
-6. **[HIGH] publish_via_partition_root for replication**: `ALTER PUBLICATION pub SET (publish_via_partition_root = true)` or subscriber sees individual partition names
+6. **[HIGH] ORM queries miss the partition key**: Django and SQLAlchemy often emit `SELECT * FROM events WHERE id = 123`; without a date filter, PostgreSQL scans every partition. Fix: include the partition key in application queries and use composite lookups such as `(id, created_at)`.
 
-7. **[MEDIUM] `DETACH PARTITION CONCURRENTLY`**: PG 14+ only. On PG 13 and earlier, plan a maintenance window (ACCESS EXCLUSIVE lock)
+7. **[HIGH] publish_via_partition_root for replication**: `ALTER PUBLICATION pub SET (publish_via_partition_root = true)` or subscribers see individual partition names.
 
-8. **[MEDIUM] Insert fails "no partition"**: Add DEFAULT partition or create the missing range partition
+8. **[MEDIUM] Version and boundary gotchas**: `DETACH PARTITION CONCURRENTLY` is PG 14+ only; on older versions expect a brief `ACCESS EXCLUSIVE` lock. Wrong partition bounds or missing future partitions cause "no partition" insert failures and awkward data moves.
 
-9. **[MEDIUM] Cannot detach concurrently on older PG**: On PG < 14, brief ACCESS EXCLUSIVE lock. On 14+, session must stay connected until completion
-
-10. **[MEDIUM] Wrong partition boundaries**: Attach new partition with correct bounds, migrate rows, detach wrong one
-
-11. **[MEDIUM] Partition pruning in JOINs (PG 12+)**: PG 12+ enables partition-wise joins (`enable_partitionwise_join = on`). On PG 11, joins scan all partitions even when only one matches. Enable explicitly: `SET enable_partitionwise_join = on` (off by default due to planning cost)
-12. **[HIGH] Global uniqueness impossible**: Unique/PK constraints on partitioned tables must include the partition key. `UNIQUE(email)` needs `UNIQUE(email, partition_key)` or app-level enforcement
-13. **[HIGH] Partition count explosion / planning latency**: 1000+ partitions slow planning because every partition must be considered. Keep roughly 100-200 or use coarser ranges
-14. **[MEDIUM] Foreign keys referencing partitioned tables**: Support is version-specific: references to partitioned tables need PG 12+, and FK from partitioned to regular tables needs PG 11+
+9. **[MEDIUM] Planner and version assumptions**: Partition-wise joins require `enable_partitionwise_join = on`; foreign keys referencing partitioned tables are version-specific (PG 12+ for references to partitioned tables). Global uniqueness still requires including the partition key or enforcing it in the app.
 
 ## Anti-Hallucination Rules
 

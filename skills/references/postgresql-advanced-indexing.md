@@ -62,6 +62,13 @@ Agents frequently recommend indexes that the planner will ignore or that cause m
 | Highly correlated column already matches physical order | BRIN provides same benefit at 1000x less space | Use BRIN instead of B-tree |
 | Expression in WHERE doesn't match index expression exactly | Index silently ignored | Verify with `EXPLAIN` that index is actually used |
 
+## What LLMs Get Wrong
+
+- LLMs recommend GIN for equality lookups on scalar values. Wrong: B-tree is better. GIN is for containment and membership on arrays, JSONB, and full-text data.
+- LLMs suggest `CREATE INDEX CONCURRENTLY` inside transactions. Wrong: it cannot run in a transaction block.
+- LLMs claim covering indexes with `INCLUDE` speed up writes. Wrong: they add write overhead and only help reads by enabling index-only scans.
+- LLMs recommend dropping and recreating indexes instead of `REINDEX CONCURRENTLY`. Wrong: drop plus create leaves a window with no index serving queries.
+
 ## Common Mistakes
 
 1. **[HIGH] Missing expression match**: Expression index must exactly match the query expression (`lower(email)` index won't help `UPPER(email)` query)

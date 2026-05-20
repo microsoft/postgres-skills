@@ -23,56 +23,35 @@ Use references as supplemental context — combine them with your PostgreSQL kno
 
 ## Shell Execution Policy (az CLI)
 
-When guidance requires Azure CLI commands and you have shell/terminal access:
+When guidance needs Azure CLI and shell access exists:
 
-**Prerequisites (run once per session):**
-```bash
-az version          # Verify az CLI is installed
-az account show --query "{subscription:id, name:name, tenant:tenantId, user:user.name}" -o json
-```
-If `az account show` fails, ask the user to run `az login` (or `az login --use-device-code` for headless environments). Do NOT run `az login` automatically.
-
-**Execution rules:**
-
-- **Execute directly** — all az CLI commands EXCEPT destructive ones. This includes `create`, `update`, `set`, `parameter set`, `list`, `show`, firewall rules, replica create, etc.
-- **Confirm with user first** — only for destructive/irreversible operations: `delete`, `restart`, `upgrade`, `failover`, `stop-replication`, PITR restore. State what will happen and whether it causes downtime.
-
-Always pass `--subscription <id>` explicitly. Do not rely on ambient CLI defaults.
-
-**Discovery commands (when target is unknown):**
-```bash
-az postgres flexible-server list \
-  --query "[].{name:name, resourceGroup:resourceGroup, location:location, version:version}" -o table
-```
-If discovery returns multiple resources, ask the user to choose.
-
-**If shell access is unavailable:** Provide the commands formatted for manual execution with clear step numbering.
+- Run once per session:
+  ```bash
+  az version
+  az account show --query "{subscription:id, name:name, tenant:tenantId, user:user.name}" -o json
+  ```
+- If `az account show` fails, ask the user to run `az login` or `az login --use-device-code`. Do not run login automatically.
+- Execute non-destructive `az` commands directly.
+- Ask first for destructive actions: `delete`, `restart`, `upgrade`, `failover`, `stop-replication`, PITR restore.
+- Always pass `--subscription <id>`.
+- If target server is unknown:
+  ```bash
+  az postgres flexible-server list --query "[].{name:name, resourceGroup:resourceGroup, location:location, version:version}" -o table
+  ```
+- If shell access is unavailable, provide numbered manual commands.
 
 ---
 
 ## Connection Context Detection
 
-**On first activation**, determine the connection type:
+On first activation:
 
-1. Check if an MCP connection is already established (look for an active `connectionId`)
-2. If YES → call `pgsql_get_server_capabilities` once per session to get `isAzure` flag
-3. Cache the result for the session — do not re-check on every question
-
-```
-Connection state:
-├── Active connection + isAzure: true
-│   → All skills available. Prefer azure-postgresql-* for overlapping topics.
-├── Active connection + isAzure: false
-│   → Use ONLY postgresql-* skills. Do NOT reference azure-* skills.
-├── No active connection + user asks generic PostgreSQL question
-│   → Use postgresql-* skills only.
-├── No active connection + user explicitly asks about Azure
-│   → Provide conceptual answer from azure-* skills with disclaimer:
-│     "These steps require an active Azure PostgreSQL connection to execute."
-└── Unknown state (first interaction)
-    → If user's question is clearly Azure-specific, attempt capability check.
-    → Otherwise, default to postgresql-* skills.
-```
+1. If an MCP connection exists, call `pgsql_get_server_capabilities` once and cache `isAzure`.
+2. `isAzure: true` → all skills available; prefer `azure-postgresql-*` for overlapping topics.
+3. `isAzure: false` → use only `postgresql-*` skills.
+4. No connection + generic question → use `postgresql-*` skills.
+5. No connection + explicit Azure question → answer conceptually with: "These steps require an active Azure PostgreSQL connection to execute."
+6. Unknown state → attempt capability check only for clearly Azure-specific requests; otherwise default to generic PostgreSQL skills.
 
 ---
 
@@ -83,14 +62,14 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 | pgvector, vector column, HNSW index, embedding store, similarity search, cosine distance, vector index, nearest neighbor, pgvector extension | [postgresql-vector-search](references/postgresql-vector-search.md) | pgvector setup, HNSW indexes, distance operators, recall tuning |
 | RAG, embeddings postgresql, semantic search pgvector, hybrid search RRF, reciprocal rank fusion, vector + full text, retrieval augmented, RAG system | [postgresql-genai-rag](references/postgresql-genai-rag.md) | RAG pipelines, hybrid search with RRF, chunking strategy |
 | CREATE EXTENSION, pg_stat_statements, pg_trgm, shared_preload_libraries, manage extensions, extension install, install extension, install the | [postgresql-extensions](references/postgresql-extensions.md) | Extension install/upgrade, common extensions, troubleshooting |
-| btree index, gin index, gist index, brin index, partial index, covering index, CREATE INDEX, multicolumn index, index bloat, index on, index strategy, filters by, sorts by | [postgresql-advanced-indexing](references/postgresql-advanced-indexing.md) | B-tree, GIN, GiST, BRIN, partial/expression/covering indexes |
-| jsonb, json containment, GIN jsonb_ops, jsonb_path_query, document store postgresql, jsonb index, -> operator, ->> operator, JSONB column | [postgresql-jsonb-patterns](references/postgresql-jsonb-patterns.md) | JSONB operators, indexing strategies, query patterns |
+| btree index, gin index, gist index, brin index, partial index, covering index, CREATE INDEX, multicolumn index, index bloat, index strategy | [postgresql-advanced-indexing](references/postgresql-advanced-indexing.md) | B-tree, GIN, GiST, BRIN, partial/expression/covering indexes |
+| jsonb, json containment, GIN jsonb_ops, jsonb_path_query, document store postgresql, jsonb index, -> operator, ->> operator | [postgresql-jsonb-patterns](references/postgresql-jsonb-patterns.md) | JSONB operators, indexing strategies, query patterns |
 | table partition, range partition, list partition, hash partition, pg_partman, partition pruning, detach partition, 500M rows, large table time-series, detach a partition | [postgresql-table-partitioning](references/postgresql-table-partitioning.md) | Declarative partitioning, partition pruning, maintenance |
 | row level security, RLS policy, tenant isolation, CREATE POLICY, FORCE ROW LEVEL SECURITY, multi-tenant, enabled RLS | [postgresql-row-level-security](references/postgresql-row-level-security.md) | CREATE POLICY, per-tenant isolation, session variables |
 | tsvector, tsquery, full text search, ts_rank, websearch_to_tsquery, text search configuration, search functionality, autocomplete search, autocomplete, prefix search | [postgresql-full-text-search](references/postgresql-full-text-search.md) | tsvector/tsquery, GIN indexes, ranking, hybrid search |
 | connection pool, max_connections, too many clients, too many connections, idle connections, PgBouncer, connection exhaustion | [postgresql-connection-management](references/postgresql-connection-management.md) | Pool sizing, PgBouncer modes, connection lifetime |
 | logical replication, publication, subscription, CDC postgres, pg_logical, wal_level logical, replicate tables, replication slot, WAL filling, replicate specific tables | [postgresql-replication](references/postgresql-replication.md) | Logical replication setup, row filters (PG15+), conflict resolution |
-| slow query, EXPLAIN ANALYZE, query plan, work_mem tuning, vacuum analyze, autovacuum tuning, query takes, query performance | [postgresql-query-performance](references/postgresql-query-performance.md) | EXPLAIN reading, statistics tuning, vacuum, parallel query |
+| slow query, EXPLAIN ANALYZE, query plan, work_mem tuning, vacuum analyze, autovacuum tuning, query performance | [postgresql-query-performance](references/postgresql-query-performance.md) | EXPLAIN reading, statistics tuning, vacuum, parallel query |
 
 ---
 
@@ -113,42 +92,26 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 | major version upgrade, maintenance window, in-place upgrade, MVU, upgrade postgres azure, schedule maintenance, upgrade my Azure PostgreSQL, upgrade from version | [azure-postgresql-upgrades-maintenance](references/azure-postgresql-upgrades-maintenance.md) | Azure-specific. No generic equivalent. |
 
 **Azure quick-reference (when `isAzure: true`):**
-- Check tier: `SELECT current_setting('azure.server_tier', true);` — Burstable has limitations
-- Check allowlist: `SHOW azure.extensions;` — must allowlist before `CREATE EXTENSION`
-- `az ... parameter set --value` for list params **replaces entire list** — always GET current + append
+- Tier: `SELECT current_setting('azure.server_tier', true);`
+- Allowlist: `SHOW azure.extensions;`
+- `az ... parameter set --value` replaces the full list; fetch current values first.
 
 ---
 
 ## Quick Decision Tree
 
-```
-User asks about PostgreSQL...
-├── Vector/embedding/similarity question
-│   ├── isAzure: true → azure-postgresql-vector-diskann
-│   └── else → postgresql-vector-search
-├── RAG/GenAI question
-│   ├── Wants in-database embeddings (azure_ai) → azure-postgresql-genai-patterns
-│   └── App-driven or generic → postgresql-genai-rag
-├── Extension question
-│   ├── isAzure: true → azure-postgresql-extension-lifecycle
-│   └── else → postgresql-extensions
-├── Connection pooling question
-│   ├── isAzure: true → azure-postgresql-connection-pooling
-│   └── else → postgresql-connection-management
-├── Azure-only topic (Entra ID, provisioning, HA, networking, upgrades)
-│   ├── isAzure: true → appropriate azure-* reference
-│   └── else → "This feature is specific to Azure Database for PostgreSQL"
-└── Generic topic (indexing, JSONB, partitioning, RLS, FTS, replication)
-    └── → postgresql-* reference (regardless of connection type)
-```
+- Vector or similarity → `azure-postgresql-vector-diskann` on Azure, otherwise `postgresql-vector-search`
+- RAG or GenAI → `azure-postgresql-genai-patterns` only for in-database `azure_ai`; otherwise `postgresql-genai-rag`
+- Extensions → Azure uses `azure-postgresql-extension-lifecycle`; non-Azure uses `postgresql-extensions`
+- Connection pooling → Azure built-in pooler uses `azure-postgresql-connection-pooling`; otherwise `postgresql-connection-management`
+- Azure-only topics like Entra ID, provisioning, HA, networking, upgrades → route to matching `azure-*` skill only when `isAzure: true`
+- Generic topics like indexing, JSONB, partitioning, RLS, FTS, replication → use `postgresql-*`
 
 ---
 
 ## Global Anti-Hallucination Policy
 
-When using ANY skill reference:
-
-1. **Verify before asserting** — For Azure-specific capabilities (SKUs, extensions, limits, parameter names), prefer live database verification first (`pg_available_extensions`, `SHOW`, `pg_settings`). If unavailable, cite Azure documentation rather than guessing.
-2. **State uncertainty explicitly** — If a detail is not in the skill reference and you are not confident, say "verify in Azure documentation" or "check your PostgreSQL version" rather than inventing an answer.
-3. **Do not extrapolate** — Skill references cover specific versions and configurations. Do not assume behavior extends to other versions, tiers, or providers without evidence.
-4. **Generic skills are supplements, not scripts** — Generic PostgreSQL skill content highlights gotchas and anti-patterns. Use it to enrich your existing knowledge, not as the sole basis for answers. If a question only needs basic syntax you already know, answer directly without over-relying on skill text.
+1. Verify Azure-specific claims with live checks like `SHOW`, `pg_settings`, or `pg_available_extensions` when possible.
+2. State uncertainty explicitly instead of guessing.
+3. Do not extrapolate beyond documented versions, tiers, or providers.
+4. Treat generic skills as supplements, not scripts.

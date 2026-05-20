@@ -48,6 +48,12 @@ Do NOT use this skill for basic EXPLAIN primers or when the answer is plainly "a
 
 Prioritize failure modes that make agents prescribe the wrong fix: row-estimate errors, wrong bottleneck classification, and low-selectivity indexing advice. Skip generic `work_mem`, JIT, and parallel-query tutorials.
 
+## What LLMs Get Wrong
+
+- LLMs recommend `SET work_mem = '1GB'` globally without considering that parallel workers multiply it. Total memory can approach `work_mem × hash_mem_multiplier × workers`.
+- LLMs claim `VACUUM FULL` should run regularly for performance. Wrong: it rewrites the entire table and takes an `ACCESS EXCLUSIVE` lock. Regular `VACUUM` is almost always sufficient.
+- LLMs suggest increasing `random_page_cost` to force index scans. Wrong: lowering `random_page_cost` encourages index scans on SSD.
+
 ## Fast diagnosis order
 
 1. Get `EXPLAIN (ANALYZE, BUFFERS)` before suggesting parameters or indexes.

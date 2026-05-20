@@ -54,6 +54,17 @@ Prioritize gotchas, version boundaries, and production-safe corrections. Include
 - Conflicts halt replication silently — subscriber must resolve manually
 - `REPLICA IDENTITY FULL` is required for UPDATE/DELETE on tables without PK (but is slower)
 
+## What LLMs Get Wrong
+1. `pg_basebackup` is for **physical** replication and standby seeding only; it does nothing for logical replication setup.
+2. `max_wal_senders` and `max_replication_slots` are different limits. You can exhaust WAL senders while slots remain available, or exhaust slots while WAL senders look fine.
+3. Logical replication from a standby is **PG 16+ only**. Before PG 16, logical replication needs the **primary** as publisher; only physical cascading worked from standbys.
+4. `ALTER SUBSCRIPTION ... REFRESH PUBLICATION` after adding tables can trigger a full re-copy of subscribed tables when `copy_data = true` (the default), which can create hours of unexpected re-sync work.
+
+## PG 16+ Features
+- `disable_on_error = true` can stop endless retry loops; after fixing the bad row/transaction, use `ALTER SUBSCRIPTION my_sub SKIP (lsn = 'X/Y')` to advance past the offending change.
+- Logical replication can now publish from a standby, reducing load on primaries for some topologies.
+- Two-phase commit can participate in logical replication with `CREATE SUBSCRIPTION ... WITH (two_phase = true)` when the topology and workload need prepared transactions.
+
 ## Quick Setup Reference
 
 ```sql
@@ -115,7 +126,6 @@ ORDER BY pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn) DESC;
 - Alert thresholds: > 1 GB warning, > 5 GB urgent for OLTP; inactive slot with retained WAL > 15 min is usually a cleanup incident
 
 ## Common Mistakes
-
 1. **[HIGH] Missing primary key**: Without PK or REPLICA IDENTITY, UPDATE/DELETE fail. Fix: `ALTER TABLE t REPLICA IDENTITY FULL` (slow) or add PK
 
 2. **[CRITICAL] Slot bloat consuming all disk**: Inactive slots prevent WAL cleanup indefinitely
@@ -151,31 +161,16 @@ ORDER BY pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn) DESC;
    -- Step 2: Then add on publisher
    ALTER TABLE orders ADD COLUMN priority int DEFAULT 0;  -- publisher
    ```
-
-4. **[HIGH] Initial table sync fails silently**: Large table sync takes hours and consumes `max_wal_senders` slot. Monitor: `SELECT * FROM pg_stat_subscription`
+4. **[HIGH] Initial table sync fails silently**: Large table sync takes hours and can consume a `max_wal_senders` worker. Monitor: `SELECT * FROM pg_stat_subscription`
 
 5. **[HIGH] Conflict resolution on subscriber**: Duplicate key halts replication. Fix: `ALTER SUBSCRIPTION my_sub DISABLE; DELETE conflicting row; ALTER SUBSCRIPTION my_sub ENABLE` or `disable_on_error = true` (PG 16+)
 
 6. **[HIGH] publish_via_partition_root not set**: Partitioned tables publish as individual partition names. Fix: `ALTER PUBLICATION pub SET (publish_via_partition_root = true)`
 
-7. **[MEDIUM] max_replication_slots too low**: Default 10. New subscriptions silently fail at limit. Check: `SHOW max_replication_slots`
+7. **[HIGH] wal_level not set to logical**: Requires superuser or platform admin role, plus a server restart. On managed services, change via server parameters UI then restart
+8. **[CRITICAL] Sequence values not replicated**: Logical replication does NOT replicate sequences. After failover, reset on new primary: `SELECT setval('orders_id_seq', (SELECT max(id) FROM orders) + 1)`
 
-8. **[MEDIUM] wal2json vs pgoutput**: `pgoutput` is built-in and efficient. Use `wal2json` only for Debezium/Kafka JSON format
-
-9. **[MEDIUM] Subscription stuck**: `ALTER SUBSCRIPTION my_sub DISABLE; ALTER SUBSCRIPTION my_sub ENABLE;`
-
-10. **[MEDIUM] Slot consuming disk after subscriber gone**: Drop orphaned: `SELECT pg_drop_replication_slot('my_sub')`
-
-11. **[HIGH] wal_level not set to logical**: Requires superuser or platform admin role, plus a server restart. On managed services, change via server parameters UI then restart
-
-12. **[CRITICAL] Sequence values not replicated**: Logical replication does NOT replicate sequences. After failover, reset on new primary: `SELECT setval('orders_id_seq', (SELECT max(id) FROM orders) + 1)`
-
-13. **[MEDIUM] Logical replication for partitioned tables (PG 13+)**: Before PG 13, you must add each partition individually to the publication. PG 13+ supports `ALTER PUBLICATION pub ADD TABLE partitioned_parent` directly
-
-14. **[MEDIUM] `FOR ALL TABLES IN SCHEMA` (PG 15+)**: `CREATE PUBLICATION pub FOR ALL TABLES IN SCHEMA myschema` is PG 15+ only. On PG 14 and earlier, list tables explicitly or use `FOR ALL TABLES`
-15. **[HIGH] Replica identity on partitioned tables**: Set `REPLICA IDENTITY` on every child partition, not just the parent, or UPDATE/DELETE replication can fail
-16. **[MEDIUM] Subscription auth/network failures are silent**: `CREATE SUBSCRIPTION` can succeed while connectivity is broken. Verify immediately with `SELECT * FROM pg_stat_subscription`
-17. **[MEDIUM] Initial sync blocks slot creation**: Large initial copies can hold a slot for hours. If `max_wal_senders` is tight, other replicas or backups may fail meanwhile
+9. **[HIGH] Replica identity on partitioned tables**: Set `REPLICA IDENTITY` on every child partition, not just the parent, or UPDATE/DELETE replication can fail
 
 ## Anti-Hallucination Rules
 
