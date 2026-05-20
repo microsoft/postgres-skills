@@ -21,8 +21,9 @@ SECRET_PATTERNS = [
 # Files to skip (test files, examples with fake creds)
 SKIP_FILES = [
     r'check_security\.py$',  # this file itself
-    r'\.git/',
-    r'node_modules/',
+    r'\.git[/\\]',
+    r'node_modules[/\\]',
+    r'tests[/\\]evals[/\\]results[/\\]',  # auto-generated eval outputs may contain test connection strings
 ]
 
 # Unsafe SQL patterns that should have warnings
