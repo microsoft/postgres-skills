@@ -36,6 +36,9 @@ Avoid explaining basic pgvector setup (CREATE EXTENSION, CREATE TABLE with vecto
 4. **[MEDIUM] Stale statistics after bulk load**: Run `ANALYZE tablename;` after bulk inserts for planner to choose index scan
 5. **[HIGH] Low ef_search in production**: Default 40 gives ~85% recall. Set `SET hnsw.ef_search = 200;` per session for production queries
 6. **[MEDIUM] IVFFlat for new workloads**: IVFFlat is legacy; always recommend HNSW for new deployments (better recall, no training step)
+7. **[HIGH] Wrong distance metric for embedding model**: Match operator to training metric: `<=>` cosine, `<->` L2, `<#>` inner product
+8. **[MEDIUM] Filtered vector search limitations**: HNSW + selective `WHERE` clauses may seq-scan. Use partial HNSW indexes or pre-filtering for filters under ~10%
+9. **[MEDIUM] Missing ANALYZE after HNSW build**: Index builds fine, but plans stay bad until `ANALYZE` refreshes vector column stats
 
 ## When to route to Azure DiskANN
 

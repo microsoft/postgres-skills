@@ -116,6 +116,9 @@ Prioritize pooling mode tradeoffs, production failure modes, and managed-service
 9. **[MEDIUM] "too many clients" emergency**: `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND now() - state_change > interval '10 min'`
 
 10. **[MEDIUM] Permission denied on pg_terminate_backend**: Requires `pg_signal_backend` role or superuser/platform admin role
+11. **[HIGH] Async app connection leak**: Exceptions in Node.js or asyncio code can skip `pool.release()`. Always use `try/finally` or context managers
+12. **[MEDIUM] `statement_timeout` vs connection timeout confusion**: `statement_timeout` cancels a running query; `connect_timeout` only limits initial TCP connect time
+13. **[MEDIUM] `max_connections` sizing**: Rough OLTP baseline is ~4× vCPUs. Jumping to 500+ without PgBouncer often OOMs from per-connection memory overhead
 
 ## Guardrails
 

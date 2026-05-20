@@ -35,49 +35,77 @@ activation:
 ## When to use this skill
 
 Use for production PostgreSQL issues involving:
-- Stale statistics causing bad estimates
-- Row estimation errors (10x+ off)
-- work_mem / JIT / parallel query tuning
-- pg_stat_statements top-N analysis
-- CTE materialization traps (version-gated)
-- OFFSET pagination at scale
+- `EXPLAIN (ANALYZE, BUFFERS)` interpretation
+- Bad row estimates that choose the wrong join strategy
+- CPU-vs-I/O bottleneck diagnosis
+- `pg_stat_statements` prioritization
+- Version-gated planner behavior such as pre-PG12 CTE materialization
+- Pagination, blocking, and temp-file spill traps
 
-Do NOT use for basic EXPLAIN ANALYZE reading or when the fix is adding an index (route to `advanced-indexing`).
+Do NOT use this skill for basic EXPLAIN primers or when the answer is plainly "add the obvious missing index". Route clean indexing work to `advanced-indexing`.
 
 ## Response focus
 
-Prioritize estimation errors, parameter tuning, version-gated behavior, and production anti-patterns. Avoid explaining basic EXPLAIN output format unless directly asked.
+Prioritize failure modes that make agents prescribe the wrong fix: row-estimate errors, wrong bottleneck classification, and low-selectivity indexing advice. Skip generic `work_mem`, JIT, and parallel-query tutorials.
+
+## Fast diagnosis order
+
+1. Get `EXPLAIN (ANALYZE, BUFFERS)` before suggesting parameters or indexes.
+2. Compare estimated vs actual rows at scans and joins. A 10x+ mismatch means statistics first, tuning second.
+3. Check buffer usage before deciding CPU vs I/O:
+   - mostly `shared hit` = CPU-bound or poor SQL shape
+   - high `read` = I/O-bound, cache miss, or missing access path
+   - temp read/write = spill; consider session-level `work_mem`
+4. Rule out blocking and lock waits before rewriting SQL.
 
 ## High-value reminders
 
-- `actual_time` in EXPLAIN is per-loop — multiply by `loops` for true cost
-- `Sort Method: external merge` → increase `work_mem` for that session
-- `Rows Removed by Filter` → missing index (route to `advanced-indexing`)
-- On managed PostgreSQL, `ALTER SYSTEM SET` is unavailable. Use `ALTER DATABASE` for runtime params or portal for postmaster params.
+- `actual_time` is per loop; multiply by `loops` for real node cost.
+- On managed PostgreSQL, `ALTER SYSTEM` is usually unavailable; use platform parameter APIs or session/database settings.
+- `Rows Removed by Filter` is only actionable after you check selectivity. Large filtered counts on a low-cardinality column do not automatically justify an index.
 
-## Stale statistics detection
+## Useful checks
 
 ```sql
+-- Stale stats candidates
 SELECT schemaname, relname, n_live_tup, n_mod_since_analyze
 FROM pg_stat_user_tables
-WHERE n_mod_since_analyze > n_live_tup * 0.1;
+WHERE n_live_tup > 0
+  AND n_mod_since_analyze > n_live_tup * 0.1;
 
-ANALYZE <table_name>;
+-- Hot queries by total impact, not just per-call latency
+SELECT query, total_exec_time, calls, mean_exec_time
+FROM pg_stat_statements
+ORDER BY total_exec_time DESC
+LIMIT 20;
 ```
 
-## Row estimation fix
+## Common Mistakes / Gotchas
 
-Compare `rows=` (estimated) vs actual. If 10x+ off:
-```sql
-ALTER TABLE t ALTER COLUMN c SET STATISTICS 1000;  -- default 100
-ANALYZE t;
-```
+1. **[HIGH] Ignoring loops multiplier**: A node showing `actual time=0.1..0.1` with `loops=10000` cost ~1000 ms total. Agents routinely underweight inner-loop work if they read node time literally.
 
-## Common Mistakes
+2. **[HIGH] Join order / cardinality misestimation**: The agent recommends a new index, but the real failure is bad row estimates causing a nested-loop join on a large intermediate result.
 
-1. **[HIGH] Ignoring loops multiplier**: A node showing 0.1ms with loops=10000 is actually 1000ms total. Always compute `actual_time × loops`
+   Fix: compare estimated vs actual rows in `EXPLAIN ANALYZE`. If the mismatch is 10x+, refresh stats with `ANALYZE`; for correlated predicates, create extended statistics:
+   ```sql
+   CREATE STATISTICS s_orders_customer_status
+   ON customer_id, status
+   FROM orders;
 
-2. **[HIGH] OFFSET pagination at scale**: `OFFSET 100000` scans and discards 100K rows
+   ANALYZE orders;
+   ```
+
+3. **[HIGH] I/O vs CPU bottleneck confusion**: The agent increases `work_mem` for an I/O-bound query or adds an index to a CPU-bound aggregation/function-heavy query.
+
+   Fix: use `EXPLAIN (ANALYZE, BUFFERS)`.
+   - high `shared hit`, low `read` => data is already cached; reduce computation, row explosion, or repeated function work
+   - high `read` => query is I/O-bound; look for better access paths, more RAM/cache, or realistic `effective_cache_size`
+
+4. **[HIGH] Missing index vs bad selectivity**: The agent adds an index on a low-cardinality column such as `status` or a boolean flag. The planner ignores it because selectivity is too poor, often worse than ~10%.
+
+   Fix: prefer a partial index such as `WHERE status = 'active'` or a composite index that starts with a more selective predicate.
+
+5. **[HIGH] OFFSET pagination at scale**: `OFFSET 100000` still scans and discards 100K rows.
 
    ❌ Wrong:
    ```sql
@@ -86,30 +114,29 @@ ANALYZE t;
 
    ✅ Right:
    ```sql
-   SELECT * FROM orders WHERE id > :last_seen_id ORDER BY id LIMIT 20;
+   SELECT *
+   FROM orders
+   WHERE id > :last_seen_id
+   ORDER BY id
+   LIMIT 20;
    ```
 
-3. **[MEDIUM] JIT compilation overhead on short queries**: JIT adds 5-50ms startup. Disable for OLTP: `SET jit = off` per session if queries < 100ms
+6. **[HIGH] Plan instability after bulk load or skew change**: After large inserts, deletes, or repartitioning, agents jump to config tuning before fixing stale statistics.
 
-4. **[MEDIUM] Parallel query not activating**: Requires `max_parallel_workers_per_gather > 0`, table > 8MB, no `FOR UPDATE/SHARE`
+   Fix: run `ANALYZE` first. For skewed columns, raise per-column stats targets instead of globally changing defaults.
 
-5. **[HIGH] Plan instability from bad statistics**: After bulk loads, `ANALYZE` immediately. Skewed columns: `ALTER TABLE t ALTER COLUMN c SET STATISTICS 1000`
+7. **[MEDIUM] Treating every temp spill as a global `work_mem` problem**: `Sort Method: external merge` or hash batches means that operator spilled. That does **not** justify raising `work_mem` cluster-wide.
 
-6. **[HIGH] Missing pg_stat_statements top-N analysis**: Sort by `total_exec_time` not `mean_exec_time`
+   Fix: change `work_mem` for the session or statement first, then re-check the plan. Global increases multiply across concurrent workers and can cause memory pressure.
 
-   ❌ Wrong:
-   ```sql
-   SELECT query, mean_exec_time FROM pg_stat_statements ORDER BY mean_exec_time DESC LIMIT 10;
-   ```
+8. **[HIGH] Missing `pg_stat_statements` top-N analysis**: Sorting by `mean_exec_time` finds rare outliers, not the queries burning the most wall-clock time.
 
-   ✅ Right:
-   ```sql
-   SELECT query, total_exec_time, calls, mean_exec_time
-   FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 10;
-   ```
+   Fix: sort by `total_exec_time` first, then inspect `calls` and `mean_exec_time`.
 
-7. **[HIGH] CTE materialization trap (pre-PG 12)**: CTEs are optimization fences before PG 12. On PG 12+, add `MATERIALIZED`/`NOT MATERIALIZED` to control explicitly
+9. **[HIGH] CTE materialization trap (pre-PG 12)**: Before PG 12, CTEs are optimization fences. Agents that rewrite everything into CTEs can accidentally force large materializations.
 
-8. **[HIGH] MERGE statement (PG 15+ only)**: `MERGE INTO ... USING ... WHEN MATCHED/NOT MATCHED` is not available before PG 15. On PG 14 and earlier, use `INSERT ... ON CONFLICT` for upserts
+   Fix: inline the subquery on old versions, or on PG 12+ use `MATERIALIZED` / `NOT MATERIALIZED` deliberately.
 
-9. **[MEDIUM] Incremental sort (PG 13+)**: PG 13+ can use a pre-sorted prefix to avoid full re-sort. If EXPLAIN shows `Sort` instead of `Incremental Sort` on PG 13+, add a partial index on the leading sort column
+10. **[MEDIUM] Tuning SQL when the session is actually blocked**: A query with long runtime may be waiting on locks, not executing.
+
+    Fix: check `wait_event_type`, `wait_event`, and blockers in `pg_stat_activity` before changing indexes or planner settings.

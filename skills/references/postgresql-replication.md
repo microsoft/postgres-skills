@@ -133,6 +133,9 @@ SELECT slot_name, active, restart_lsn FROM pg_replication_slots;  -- on publishe
 13. **[MEDIUM] Logical replication for partitioned tables (PG 13+)**: Before PG 13, you must add each partition individually to the publication. PG 13+ supports `ALTER PUBLICATION pub ADD TABLE partitioned_parent` directly
 
 14. **[MEDIUM] `FOR ALL TABLES IN SCHEMA` (PG 15+)**: `CREATE PUBLICATION pub FOR ALL TABLES IN SCHEMA myschema` is PG 15+ only. On PG 14 and earlier, list tables explicitly or use `FOR ALL TABLES`
+15. **[HIGH] Replica identity on partitioned tables**: Set `REPLICA IDENTITY` on every child partition, not just the parent, or UPDATE/DELETE replication can fail
+16. **[MEDIUM] Subscription auth/network failures are silent**: `CREATE SUBSCRIPTION` can succeed while connectivity is broken. Verify immediately with `SELECT * FROM pg_stat_subscription`
+17. **[MEDIUM] Initial sync blocks slot creation**: Large initial copies can hold a slot for hours. If `max_wal_senders` is tight, other replicas or backups may fail meanwhile
 
 ## Anti-Hallucination Rules
 

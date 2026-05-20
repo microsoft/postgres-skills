@@ -130,6 +130,9 @@ GRANT ALL ON DATABASE mydb TO "my-managed-identity-name";
 7. **[MEDIUM] Hybrid migration path**: Enable both `password_auth` and `active_directory_auth`. Migrate apps one-by-one. Track remaining password connections: `SELECT * FROM pg_stat_activity` filtered by application_name
 8. **[HIGH] Token expired mid-session**: Refresh with `az account get-access-token --resource-type oss-rdbms`. For long-running applications, implement token refresh logic that acquires a new token before the current one expires
 9. **[HIGH] Principal not found after granting Contributor**: Run `pgaadauth_create_principal()` as Entra admin. Azure resource-level permissions do not automatically create database-level principals
+10. **[HIGH] Token refresh in pooled long-lived apps**: PgBouncer reuses backends, so an expired token can surface on the next checkout. Refresh at ~50% of token lifetime, not at expiry
+11. **[MEDIUM] Group membership propagation delay**: Entra group membership can take up to 60 minutes to reach PostgreSQL role grants. Warn users before troubleshooting grants too early
+12. **[MEDIUM] Driver-specific auth quirks**: Match token injection to the driver: psycopg2 uses `password=token`, Npgsql uses `Password`, JDBC uses `authenticationPluginClassName`
 
 ## References
 - [Microsoft Entra authentication with Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-azure-ad-authentication)

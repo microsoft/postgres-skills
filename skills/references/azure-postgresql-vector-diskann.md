@@ -109,6 +109,8 @@ LIMIT 10;
 5. **Index build monitoring**: Use `pg_stat_progress_create_index`; prefer `CREATE INDEX CONCURRENTLY` to avoid blocking
 6. **Seq scan fallback**: If index not used, run `ANALYZE` on table or increase `LIMIT` value
 7. **HNSW OOM**: Large tables may exhaust `maintenance_work_mem`; switch to DiskANN
+8. **[HIGH] HNSW-to-DiskANN migration**: Cannot convert in-place. Drop HNSW, then create DiskANN; queries may seq-scan during the transition. Plan a maintenance window or build DiskANN `CONCURRENTLY` first
+9. **[MEDIUM] Region/version availability**: DiskANN is not in every Azure region or PG version. Check `SELECT * FROM pg_available_extensions WHERE name = 'pg_diskann'`; empty result = unavailable on this server
 
 ## Anti-Hallucination Rules
 

@@ -97,3 +97,6 @@ Prioritize index type tradeoffs, version-gated features, and common misapplicati
 10. **[MEDIUM] Wrong index type error**: GIN/GiST require correct operator class; check `pg_opclass`
 
 11. **[MEDIUM] Parallel index build (PG 11+)**: `CREATE INDEX` uses parallel workers on PG 11+. Tune with `SET max_parallel_maintenance_workers = 4` for faster builds on large tables. Not available on PG 10 and earlier
+12. **[HIGH] Collation/opclass mismatch for text indexes**: If queries use `COLLATE "C"` or ICU collation, build the index with that same collation or it is ignored
+13. **[HIGH] Planner ignores index due to low selectivity**: Indexes on low-cardinality columns like `status` often lose to seq scans. Prefer partial or composite indexes
+14. **[MEDIUM] Bitmap scan vs index scan confusion**: Bitmap heap scans are normal for ~1-20% selectivity. Do not treat them as planner failure when EXPLAIN shows moderate row counts

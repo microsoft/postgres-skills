@@ -64,6 +64,9 @@ Avoid explaining basic vector search, HNSW indexes, or generic RAG patterns. The
 3. **Silent truncation**: Models truncate beyond token limit without error. Pre-chunk to 500-1000 tokens
 4. **No batch input**: `azure_openai.create_embeddings` takes single text, not array. Loop required
 5. **Operator mismatch**: Index with `vector_cosine_ops` but query with `<->` (L2) = sequential scan silently
+6. **[HIGH] Chunking at token boundaries**: Character counts are not token counts. A 512-char chunk can still exceed model limits; validate with `tiktoken` or the model tokenizer
+7. **[MEDIUM] Hybrid search RRF weight tuning**: Default RRF `k=60` is balanced. For strong keyword domains like product codes or IDs, lower `k` (for example `20`) to boost lexical matches
+8. **[MEDIUM] App-side vs in-DB embedding migration**: `azure_ai.create_embeddings()` may produce different vectors from app-side generation. Re-embed the corpus or keep separate columns during migration
 
 ## Anti-Hallucination Rules
 

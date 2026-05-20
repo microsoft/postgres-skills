@@ -136,6 +136,10 @@ activation:
    # Then migrate data from old server
    ```
 
+8. **[HIGH] Client CA bundle location varies by OS/container**: Alpine uses `/etc/ssl/certs/ca-certificates.crt`, Debian uses `/etc/ssl/certs/`, and Windows uses the cert store. Give the `sslrootcert` path for the actual runtime
+9. **[MEDIUM] Hostname mismatch with private endpoints**: Keep `sslmode=verify-full` but connect with the original server FQDN, not the `privatelink` hostname. The cert is issued for `*.postgres.database.azure.com`
+10. **[MEDIUM] Corporate proxy/firewall blocks port 5432**: Many enterprise networks only allow 443 outbound. Test with `openssl s_client -connect server:5432` and recommend Private Link or VPN if blocked
+
 ## Anti-Hallucination Rules
 
 - Cannot switch public/private access after creation

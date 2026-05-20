@@ -46,6 +46,9 @@ Avoid explaining basic `CREATE EXTENSION` syntax. The base model knows this well
 3. **[HIGH] Privilege requirement for CREATE EXTENSION**: Requires superuser or platform admin role. Non-privileged users get "permission denied to create extension"
 4. **[MEDIUM] Schema pollution**: Many extensions in `public` schema. Isolate with `CREATE EXTENSION ... SCHEMA extensions;`
 5. **[MEDIUM] Upgrade without checking path**: `ALTER EXTENSION ... UPDATE TO '0.8.0'` only works if update path exists. Check `pg_extension_update_paths()`
+6. **[HIGH] Version incompatibility across replicas**: Upgrade extension binaries on replicas first, then primary, or extension DDL can break replication
+7. **[MEDIUM] CASCADE drop removes dependent objects silently**: `DROP EXTENSION ... CASCADE` can remove views, functions, and indexes that depend on extension types
+8. **[MEDIUM] Extension not in search_path**: `CREATE EXTENSION ... SCHEMA ext` works, but calls fail unless `ext` is in `search_path` or functions are schema-qualified
 
 ## Azure differences
 

@@ -45,6 +45,9 @@ Avoid explaining basic pgvector setup, basic vector search queries, or generic R
 4. **[MEDIUM] Not chunking large documents**: Embedding a 10K-word doc loses detail. Chunk to 500-1000 tokens with overlap
 5. **[MEDIUM] Stale embeddings after content update**: If content changes, embeddings must be regenerated. Use triggers or batch jobs
 6. **[MEDIUM] Wrong RRF constant**: k=60 is standard. k too low over-weights top results; k too high flattens rankings
+7. **[HIGH] No reranking step**: Top-K vector hits are only a rough proxy. Add a cross-encoder or LLM judge for precision-critical RAG
+8. **[MEDIUM] Dedup/overlap retrieval bias**: Overlapping chunks from one document can crowd out others. Dedup by `document_id` or use MMR diversification
+9. **[MEDIUM] Metadata filtering vs vector interaction**: Filtering after vector search throws away relevant hits. Filter before retrieval or use a pre-filtered/hybrid index
 
 ## When to route to Azure-specific features
 

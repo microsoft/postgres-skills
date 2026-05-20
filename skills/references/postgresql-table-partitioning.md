@@ -141,6 +141,9 @@ EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at = '2024-01-15';
 10. **[MEDIUM] Wrong partition boundaries**: Attach new partition with correct bounds, migrate rows, detach wrong one
 
 11. **[MEDIUM] Partition pruning in JOINs (PG 12+)**: PG 12+ enables partition-wise joins (`enable_partitionwise_join = on`). On PG 11, joins scan all partitions even when only one matches. Enable explicitly: `SET enable_partitionwise_join = on` (off by default due to planning cost)
+12. **[HIGH] Global uniqueness impossible**: Unique/PK constraints on partitioned tables must include the partition key. `UNIQUE(email)` needs `UNIQUE(email, partition_key)` or app-level enforcement
+13. **[HIGH] Partition count explosion / planning latency**: 1000+ partitions slow planning because every partition must be considered. Keep roughly 100-200 or use coarser ranges
+14. **[MEDIUM] Foreign keys referencing partitioned tables**: Support is version-specific: references to partitioned tables need PG 12+, and FK from partitioned to regular tables needs PG 11+
 
 ## Anti-Hallucination Rules
 

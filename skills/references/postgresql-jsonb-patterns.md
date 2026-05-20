@@ -124,3 +124,6 @@ Prioritize indexing mismatches, type casting traps, and version-gated syntax. Th
 9. **[MEDIUM] Large JSONB documents slow**: Use partial indexes on frequently-queried paths
 
 10. **[MEDIUM] `json_table()` (PG 17+ only)**: `SELECT * FROM json_table(data, '$.items[*]' COLUMNS (...))` is PG 17+ only. On PG 16 and earlier, use `jsonb_to_recordset()` or `jsonb_array_elements()` for similar functionality
+11. **[HIGH] NULL vs missing key semantics**: `doc->>'key'` is NULL for both missing keys and explicit JSON null. Use `doc ? 'key'` to test existence
+12. **[MEDIUM] Array containment order independence**: `@>` on arrays ignores order, so `'[1,2]'::jsonb @> '[2,1]'::jsonb` is TRUE. Do not encode ordering logic with containment
+13. **[MEDIUM] Functional index vs generated column**: Expression indexes only help exact matches like `(doc->>'email')`. Generated columns are safer when queries mix `->` and `->>`

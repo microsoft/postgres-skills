@@ -28,139 +28,94 @@ activation:
 
 # Intelligent Tuning
 
-> **Response focus:** Prioritize Query Store view joins (qs_view + query_texts_view), wait event analysis, and auto-index lifecycle. Avoid explaining basic EXPLAIN or generic query optimization that the base model knows.
+## Response focus
+
+Prioritize where agents over-trust Azure's tuning surface: incomplete Query Store coverage, misleading one-off index recommendations, and unsafe apply steps. Skip basic "use Query Store" or generic EXPLAIN framing.
 
 ## Prerequisites
 
-- `azure_pg_admin` role (required for intelligent performance views; never superuser on Flexible Server)
-- Query Store enabled (on by default for new servers)
+- `azure_pg_admin` role is required for most intelligent performance views.
+- Verify Query Store capture mode before drawing conclusions:
+  ```sql
+  SHOW pg_qs.query_capture_mode;
+  ```
+- Treat Query Store as workload sampling, not a full-fidelity transaction log. Advice should stay probabilistic unless corroborated by repeated observations.
 
-## Instructions
-
-> **Query Store is the foundation of all intelligent tuning on Azure PostgreSQL.**
-> Always verify Query Store is active before recommending any tuning action.
-> Reference Query Store views (`query_store.qs_view`, `query_store.query_texts_view`) in every tuning response.
-
-**Step 1: Verify Query Store is enabled**
+## High-value queries
 
 ```sql
-SHOW pg_qs.query_capture_mode;  -- Should be 'top' or 'all'
+-- Top queries with SQL text
+SELECT qt.query_sql_text, qs.calls, qs.total_time, qs.mean_time
+FROM query_store.qs_view qs
+JOIN query_store.query_texts_view qt
+  ON qs.query_text_id = qt.query_text_id
+ORDER BY qs.total_time DESC
+LIMIT 20;
+
+-- Wait sampling summary
+SELECT event_type, event, sum(count) AS samples
+FROM query_store.pgms_wait_sampling_view
+GROUP BY 1, 2
+ORDER BY samples DESC;
+
+-- Current index recommendations
+SELECT *
+FROM intelligent_performance.index_recommendations
+ORDER BY created_time DESC;
 ```
 
-```bash
-# Enable if disabled
-az postgres flexible-server parameter set \
-    --resource-group myRG --server-name myserver \
-    --name pg_qs.query_capture_mode --value top
-```
+## Before you trust a recommendation
 
-**Step 2: Find top queries by execution time**
+1. Check that the query or wait pattern repeats across multiple windows, not just one incident.
+2. Capture a representative `EXPLAIN` for the slow path before changing anything.
+3. If an index is warranted, apply it with low-risk operational mechanics, then compare plan shape and measured latency after the change.
+4. Keep the recommendation ID, generated DDL, and rollback notes in the ticket or runbook.
 
-```sql
-SELECT queryid, calls, mean_time, total_time, query
-FROM query_store.qs_view
-ORDER BY total_time DESC
-LIMIT 10;
-```
+## Common Mistakes / Gotchas
 
-**Step 3: Find queries that regressed**
+1. **[HIGH] Reading `query_store.qs_view` without joining SQL text**: Metrics without `query_store.query_texts_view` are not actionable. Agents often produce a "top queries" list that contains IDs but no usable SQL.
 
-```sql
--- Compare two time windows
-SELECT q.queryid, q.query,
-    s1.mean_time AS before_ms, s2.mean_time AS after_ms,
-    (s2.mean_time - s1.mean_time) / s1.mean_time * 100 AS pct_change
-FROM query_store.qs_view s1
-JOIN query_store.qs_view s2 ON s1.queryid = s2.queryid
-JOIN query_store.query_texts_view q ON q.queryid = s1.queryid
-WHERE s1.start_time >= '2025-01-01' AND s1.start_time < '2025-01-08'
-  AND s2.start_time >= '2025-01-08' AND s2.start_time < '2025-01-15'
-  AND s2.mean_time > s1.mean_time * 1.5  -- 50%+ regression
-ORDER BY pct_change DESC;
-```
+   Fix: join on `query_text_id` before reporting findings.
 
-**Step 4: Check automatic index recommendations**
+2. **[HIGH] Query Store sampling gaps**: Not all queries are captured. Very fast queries (especially sub-millisecond calls) and some background-worker activity may be absent. On microservice workloads with many tiny queries, the "top queries" list can be incomplete.
 
-```sql
-SELECT * FROM intelligent_performance.index_recommendations
-WHERE state = 'Active'
-ORDER BY estimated_improvement DESC;
-```
+   Fix: explicitly warn about coverage gaps and combine Query Store with app telemetry or `pg_stat_statements` when fast-query coverage matters.
 
-**Step 5: Apply or dismiss recommendations**
+3. **[HIGH] False positive index recommendations**: Intelligent tuning may recommend an index because of a brief spike, stats drift, or a parameter-specific bad plan. Agents should not assume every recommendation represents a persistent workload problem.
 
-```sql
--- Apply a recommendation
-SELECT intelligent_performance.apply_recommendation('<recommendation_id>');
+   Fix: compare multiple time windows and parameter shapes before treating the recommendation as durable.
 
--- Dismiss
-SELECT intelligent_performance.dismiss_recommendation('<recommendation_id>');
-```
+4. **[MEDIUM] Safe interpretation before applying recommendations**: The agent blindly suggests `CREATE INDEX` or direct auto-apply.
 
-### Verify
+   Fix: prefer `CREATE INDEX CONCURRENTLY`, validate with `EXPLAIN` before/after, and keep the rollback path ready.
 
-```sql
--- Verify Query Store is collecting data
-SELECT count(*) FROM query_store.qs_view WHERE start_time > now() - interval '1 hour';
+5. **[HIGH] Ignoring wait event analysis**: An index recommendation may be irrelevant when the real issue is lock contention, storage waits, or LWLock pressure.
 
--- Check last recommendation update
-SELECT * FROM intelligent_performance.index_recommendations
-ORDER BY created_time DESC LIMIT 5;
-```
+   Fix: inspect `query_store.pgms_wait_sampling_view` before deciding whether the bottleneck is SQL shape, contention, or infrastructure.
 
-## Common Mistakes
+6. **[HIGH] Query Store retention quietly consuming storage**: On high-QPS systems, retained Query Store data and stored plans can grow quickly.
 
-1. **[HIGH] Reading `query_store.qs_view` without join**: The `qs_view` contains only metrics (calls, total_time, rows). Join with `query_store.query_texts_view` on `query_text_id` to get actual SQL text: `SELECT qt.query_sql_text, qs.calls, qs.mean_time FROM query_store.qs_view qs JOIN query_store.query_texts_view qt ON qs.query_text_id = qt.query_text_id ORDER BY qs.total_time DESC LIMIT 20`
+   Fix: shorten `pg_qs.retention_period_in_days` and consider `pg_qs.store_query_plans = off` when lower overhead matters more than long plan history.
 
-   Wrong:
-   ```sql
-   SELECT * FROM query_store.qs_view ORDER BY total_time DESC LIMIT 10;
-   -- Returns queryid and metrics but NO SQL text useless for debugging
-   ```
+7. **[MEDIUM] Missing utility-command coverage**: Slow `COPY`, `VACUUM`, and DDL activity may not appear unless `pg_qs.track_utility` is enabled.
 
-   Right:
-   ```sql
-   SELECT qt.query_sql_text, qs.calls, qs.mean_time
-   FROM query_store.qs_view qs
-   JOIN query_store.query_texts_view qt ON qs.query_text_id = qt.query_text_id
-   ORDER BY qs.total_time DESC LIMIT 10;
-   ```
+   Fix: enable utility tracking when bulk load or maintenance behavior is part of the investigation.
 
-2. **[HIGH] Ignoring wait event analysis**: `query_store.pgms_wait_sampling_view` shows WHERE time is spent. Column `event_type` values: `LWLock` = contention, `IO` = storage bottleneck (upgrade SKU), `Lock` = blocking queries. Query: `SELECT event_type, event, sum(count) FROM query_store.pgms_wait_sampling_view GROUP BY 1,2 ORDER BY 3 DESC`
-3. **[MEDIUM] Auto-index recommendation lifecycle**: Recommendations go through states: `Recommended` > `Verified` > `Applied`. Check `SELECT * FROM intelligent_performance.index_recommendations`. Reverted indexes show `Reverted` state. Manually apply with the provided DDL if auto-apply is off
-4. **[HIGH] Query Store retention eating storage**: Default retention is 7 days. On high-QPS servers, QS storage grows to GBs. Set `pg_qs.retention_period_in_days = 3` on busy systems and `pg_qs.store_query_plans = off` to reduce overhead
+8. **[HIGH] Query Store looks empty so the agent assumes there is no issue**: `pg_qs.query_capture_mode = none`, recent enablement, or capture thresholds can make Query Store sparse.
 
-   Wrong:
-   ```bash
-   # Default 7-day retention on high-QPS server GBs of storage consumed
-   # No action taken until disk alert fires
-   ```
+   Fix: verify capture mode and allow time for collection before concluding the workload is quiet.
 
-   Right:
-   ```bash
-   az postgres flexible-server parameter set --name pg_qs.retention_period_in_days --value 3
-   az postgres flexible-server parameter set --name pg_qs.store_query_plans --value off
-   ```
+9. **[MEDIUM] Recommending changes without a rollback plan**: Some index recommendations help only one parameter shape or hurt write throughput.
 
-5. **[MEDIUM] Not enabling `pg_qs.track_utility`**: By default, utility commands (COPY, CREATE, VACUUM) are not tracked. Enable to catch slow bulk loads: `az postgres flexible-server parameter set --name pg_qs.track_utility --value on`
-6. **[MEDIUM] Burstable tier overhead**: Query Store adds ~5% CPU on B-series. Disable on dev/test with `pg_qs.query_capture_mode = none`. Re-enable for production profiling sessions only
-7. **[HIGH] Query Store empty**: Check `pg_qs.query_capture_mode` is not 'none'. Allow 1+ hours after enabling for data collection to begin
-8. **[HIGH] Performance regression after auto-index**: Revert with `DROP INDEX` on the recommended index. Check `intelligent_performance.index_recommendations` for the index name and DDL
-12. **[CRITICAL] 403 / permission denied on intelligent_performance views**: Verify role membership: `SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');` If false, grant via Azure Portal > Server > Roles
+   Fix: save the recommendation ID, generated DDL, validation query, and revert steps before applying anything.
 
-   Wrong:
-   ```sql
-   -- As a non-admin user
-   SELECT * FROM intelligent_performance.index_recommendations;
-   -- ERROR: permission denied for relation index_recommendations
-   ```
+10. **[CRITICAL] Permission denied on intelligent performance views**: Flexible Server does not provide superuser access. Advice that assumes superuser semantics is unusable.
 
-   Right:
-   ```sql
-   -- Verify and fix role membership
-   SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');
-   -- If false: GRANT azure_pg_admin TO myuser; (as server admin)
-   ```
+    Fix:
+    ```sql
+    SELECT pg_has_role(current_user, 'azure_pg_admin', 'member');
+    ```
+    If false, use a server admin path to grant the role or switch accounts.
 
 ## References
 - [Intelligent tuning in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-intelligent-tuning)

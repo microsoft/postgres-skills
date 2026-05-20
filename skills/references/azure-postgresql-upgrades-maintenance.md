@@ -69,6 +69,9 @@ activation:
 3. **ANALYZE after upgrade**: Planner has no stats for new version. Queries regress until you run `ANALYZE;`
 4. **ALTER EXTENSION UPDATE**: Run for each extension post-MVU to get PG-version-compatible builds
 5. **No ALTER SYSTEM**: Use `az postgres flexible-server parameter set` or Portal. OS-level tools unavailable
+6. **[HIGH] Extension-specific upgrade blockers**: `pg_partman`, `postgis`, and `timescaledb` commonly block MVU. Run `az postgres flexible-server upgrade --validate-only` first, then update blockers before the real upgrade
+7. **[MEDIUM] App SQL behavior changes between major versions**: PG 15 changed default `public` schema permissions and PG 14 tightened some `GROUP BY` behavior. Test app queries, not just the upgrade command
+8. **[MEDIUM] Blue-green upgrade with read replicas**: Replica -> upgrade replica -> promote -> switch DNS is a valid low-downtime path. Offer it when MVU downtime is unacceptable
 
 ## Anti-Hallucination Rules
 

@@ -57,6 +57,8 @@ activation:
 6. **Temperature for classification**: Always set `temperature => 0.0` for deterministic tasks
 7. **NULL results**: Usually means deployment name is wrong, endpoint is wrong, or model is not deployed
 8. **403 Forbidden**: RBAC not assigned or `azure_pg_admin` role missing
+9. **[HIGH] Transient 401/403 retry**: Managed identity tokens can expire mid-batch. Retry auth failures with backoff too; token refresh is automatic but may lag by 1-2 seconds
+10. **[MEDIUM] Quota/cost debugging beyond 429**: `azure_ai.create_embeddings()` can fail from quota exhaustion, not just rate limits. Check Azure OpenAI Portal metrics; quota is monthly/deployment-scoped
 
 ## Anti-Hallucination Rules
 

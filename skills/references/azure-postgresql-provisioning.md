@@ -27,60 +27,68 @@ activation:
     - "`azure-postgresql/ha-disaster-recovery/`"
 ---
 
-## Key Facts (what models get wrong)
+# Provisioning Azure Database for PostgreSQL Flexible Server
 
-> **Response focus:** Prioritize storage-can't-shrink, VNet-is-permanent, SKU-format-varies-by-tool, and tier change restrictions. Avoid explaining basic Azure resource creation or generic cloud provisioning.
+## Response focus
 
-> **Shell execution:** All commands in this reference are az CLI. Execute directly via shell if available. No confirmation needed (server creation is not destructive).
+Prioritize the constraints that are hard to reverse after creation: network mode, HA mode, zone placement, storage growth, backup economics, and SKU-format mismatches across tooling. Skip generic Azure provisioning walkthroughs.
 
-| Fact | Detail |
-|------|--------|
-| Storage cannot shrink | Once provisioned or auto-grown, storage only scales UP; never decreases |
-| IOPS scale with storage | Base = 3 IOPS/GB (min 100, max 20K premium); additional provisioned IOPS on GP/MO only |
-| VNet chosen at creation | Network connectivity (public vs VNet) is set at creation; cannot change later |
-| Auto-grow behavior | Grows by greater of 5 GB or 10% when free space < 10%; growth is permanent |
-| Tier change restrictions | Cannot switch between Burstable and GP/MO in-place; requires new server + migration |
-| SKU format differs per tool | CLI: `Standard_D4ds_v5`, Terraform: `GP_Standard_D4ds_v5` (tier prefix), ARM: different again |
-| Terraform resource | `azurerm_postgresql_flexible_server`; `storage_mb` is in MB (131072 = 128 GB) |
-| Burstable limitations | Fixed IOPS cap, no DiskANN, no HA pairing with GP/MO |
-| Zone lock-in | Server pinned to its AZ; moving zones requires new server + migration |
+## Non-obvious facts agents often miss
 
-## Decision Matrix
+- **Storage never shrinks**: manual increases and auto-grow are permanent.
+- **Network mode is effectively a create-time decision**: public vs private/VNet cannot be flipped casually later.
+- **SKU names differ by tool**: CLI uses names like `Standard_D4ds_v5`; Terraform uses tier-prefixed names like `GP_Standard_D4ds_v5`.
+- **Burstable is not a stepping stone to GP/MO**: moving from Burstable to General Purpose or Memory Optimized means new server + migration.
+- **Zone placement is sticky**: changing AZ usually means reprovision + migration.
+- **Terraform storage uses MB**: `storage_mb`, not `storage_gb`.
 
-| Factor | Burstable (B) | General Purpose (D) | Memory Optimized (E) |
-|--------|---------------|--------------------|-----------------------|
-| vCores | 1-20 | 2-96 | 2-96 |
-| Use case | Dev/test, low traffic | Production OLTP | Analytics, caching, large working sets |
-| Max storage | 32 TB | 32 TB | 32 TB |
-| HA support | Same-zone only | Zone-redundant | Zone-redundant |
-| DiskANN | No | Yes | Yes |
-| IOPS | Fixed cap | Scalable + provisioned | Scalable + provisioned |
-| Tier switching | Cannot switch to GP/MO | Can switch to MO | Can switch to GP |
+## Provisioning decisions that deserve extra scrutiny
+
+1. **Network first**: decide public access vs delegated subnet/VNet before you script server creation.
+2. **HA + zone together**: treat HA mode and AZ placement as one decision, not two independent toggles.
+3. **Storage + backup economics together**: auto-grow protects uptime but can also increase backup cost later.
+4. **Post-create baseline immediately**: provisioning is not done after the `create` call; set sane parameters and observability right away.
+
+## Immediate post-create baseline
+
+Provisioning is not complete after `az postgres flexible-server create` or Terraform apply. Recommend an immediate baseline pass for:
+- parameter review (`shared_buffers`, connection limits, Query Store capture mode)
+- storage and backup alerts
+- maintenance window / patching expectations
+- HA validation and failover expectations
+- network reachability from the real application subnet
 
 ## Critical Gotchas
 
-1. **Storage is permanent**: Start conservative with auto-grow enabled; you can never reduce storage size
-2. **SKU format varies by tool**: CLI omits tier prefix; Terraform requires `GP_`/`B_`/`MO_` prefix; always check provider docs
-3. **Burstable to GP requires migration**: Cannot update in-place; must create new server and pg_dump/pg_restore
-4. **Auto-grow is irreversible per increment**: Each growth event is permanent; monitor `storage_percent` metric
-5. **HA adds 2x compute cost**: Budget from day one if HA is required; zone-redundant HA can be enabled post-creation with downtime
-6. **Region + AZ are fixed**: Changing availability zone means creating a new server
-7. **Backup storage free tier**: Up to 1x provisioned storage is free; beyond that billed per-GB/month
-8. **IOPS on Burstable**: Fixed cap with no option to provision additional IOPS
+1. **[HIGH] HA + zone + network constraints compound**: Choosing zone-redundant HA at creation limits later zone changes and requires networking/subnet planning that works across both zones. Treating HA, AZ, and VNet as separate decisions leads to irrecoverable conflicts.
+
+2. **[HIGH] Storage is permanent**: Start conservative but realistic, with auto-grow enabled if downtime from full disks is worse than cost overrun. Neither provisioned storage nor auto-grown storage can be reduced later.
+
+3. **[HIGH] Burstable to GP/MO requires migration**: Agents often pitch Burstable as a temporary cheap start. In practice, if you outgrow it, you provision a new server and migrate data.
+
+4. **[HIGH] SKU format varies by tool**: CLI omits the tier prefix; Terraform requires it. Copy-pasting the same SKU string between tools is a common failure.
+
+5. **[MEDIUM] Parameter defaults after create**: New servers start with conservative defaults. `shared_buffers` is roughly 25% of RAM, and `max_connections` varies by SKU. The agent should recommend an immediate baseline review after provisioning instead of stopping at the create command.
+
+6. **[MEDIUM] Backup cost surprise**: Backup storage beyond 1x provisioned size is billed. Write-heavy or churn-heavy workloads accumulate WAL and snapshot history faster than teams expect, and backup usage can exceed provisioned storage within weeks.
+
+7. **[MEDIUM] Auto-grow hides future cost and IOPS changes**: Auto-grow prevents outages, but every growth step is permanent and changes your storage footprint. Monitor `storage_percent` and forecast growth instead of waiting for emergency expansion.
+
+8. **[MEDIUM] IOPS advice must be tier-aware**: Burstable has a fixed cap. Extra IOPS provisioning is for GP/MO scenarios; suggesting it on Burstable is wrong.
+
+9. **[MEDIUM] HA doubles more than the architecture diagram suggests**: Budgeting only for the primary node misses the extra compute cost and operational constraints that come with HA.
 
 ## Anti-Hallucination Rules
 
-- Do NOT claim storage can be reduced after provisioning
-- Do NOT use CLI SKU format (`Standard_D4ds_v5`) in Terraform; must use tier-prefixed format
-- Do NOT claim Burstable tier supports DiskANN or provisioned IOPS
-- Do NOT claim tier changes between Burstable and GP/MO can be done in-place
-- Do NOT claim VNet configuration can be changed after server creation
-- Do NOT claim Terraform uses `storage_gb`; the attribute is `storage_mb`
-- Do NOT invent exact max_connections values without referencing SKU-specific documentation. Values vary by compute tier and vCore count.
-- Do NOT invent SKU names. Valid prefixes: `Standard_B` (Burstable), `Standard_D` (GP), `Standard_E` (MO). Always verify against Azure documentation.
-- Do NOT assume Single Server (deprecated) and Flexible Server share the same behavior — they are different products with different APIs, limits, and features.
-- Do NOT claim exact IOPS limits without verification — they vary by storage size and tier.
-- When uncertain about SKU-specific limits, say "check Azure documentation for your specific SKU" rather than guessing values.
+- Do NOT claim storage can be reduced after provisioning.
+- Do NOT claim VNet/public connectivity can be freely changed later.
+- Do NOT use CLI SKU format (`Standard_D4ds_v5`) in Terraform; use the tier-prefixed format.
+- Do NOT claim Burstable supports provisioned IOPS or DiskANN.
+- Do NOT claim Burstable ↔ GP/MO is an in-place tier switch.
+- Do NOT invent exact `max_connections` values without checking the chosen SKU.
+- Do NOT claim Terraform uses `storage_gb`; the field is `storage_mb`.
+- Do NOT assume Single Server behavior matches Flexible Server; they are different products.
+- When exact limits vary by SKU or region, say so explicitly instead of guessing.
 
 ## References
 - [Quickstart: Create an Azure Database for PostgreSQL Flexible Server](https://learn.microsoft.com/azure/postgresql/flexible-server/quickstart-create-server-portal)

@@ -104,6 +104,10 @@ activation:
    az postgres flexible-server restart --resource-group myRG --name myserver --failover Forced
    ```
 
+9. **[HIGH] Application cutover after PITR/failover**: PITR creates a new server with a new hostname. Update connection strings, DNS CNAMEs, Key Vault references, and app config manually
+10. **[MEDIUM] Post-failover validation checklist**: After failover, verify replication slots, extension state, custom parameters, and that `pg_stat_activity` shows expected client traffic
+11. **[MEDIUM] DR rehearsal cadence**: Run a monthly PITR drill to a throwaway server. It validates the backup chain without touching production
+
 ## Anti-Hallucination Rules
 
 - Do NOT claim PITR is an in-place rollback

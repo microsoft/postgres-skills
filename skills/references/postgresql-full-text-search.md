@@ -34,58 +34,81 @@ activation:
 ## When to use this skill
 
 Use for production PostgreSQL issues involving:
-- tsquery function selection (websearch vs phrase vs plain)
-- Multilingual configuration pitfalls
-- Phrase proximity operators and version requirements
-- GIN index not being used for FTS queries
-- Hybrid search combining FTS with trigram/similarity
+- user-input query parsing and sanitization
+- ranking that matches user expectations
+- stale or incorrectly maintained search vectors
+- multilingual text, product codes, SKUs, and proper nouns
+- GIN usage problems and hybrid FTS + trigram search
 
-Include runnable examples for tsvector/tsquery patterns. Focus on ranking, weighting, and language-specific configurations that models often get wrong.
+Do not spend tokens re-explaining basic `tsvector`, `tsquery`, or GIN setup. Focus on production failure modes.
 
 ## Response focus
 
-Prioritize function selection, version-gated features (websearch PG11+), and common production mistakes. The base model knows basic FTS well.
+Prioritize ranking correctness, vector maintenance, language configuration, and cases where PostgreSQL FTS is the wrong tool for exact-token identifiers.
 
-## Common Mistakes
+## Design choices that prevent bad advice
 
-1. **[HIGH] `websearch_to_tsquery` not used for user input**: `to_tsquery` throws syntax errors on special chars
+- Keep **prose** and **exact-token identifiers** separate. Product names, SKUs, issue IDs, and email-like strings often need `simple`, trigram, or exact matching rather than pure stemming.
+- Prefer a **stored/generated vector** over recomputing `to_tsvector(...)` in every query. It prevents stale logic drift and keeps the index path obvious.
+- Decide ranking semantics up front: raw frequency, length-normalized relevance, or proximity-aware relevance. Otherwise agents default to whatever ranking function they remember first.
+- Treat typo tolerance as a separate requirement. PostgreSQL FTS does not magically become fuzzy search without `pg_trgm` or an external search engine.
+- When results look surprising, inspect tokenization directly with `ts_debug` or `to_tsvector(...)` before blaming the index. Many "bad search" incidents are actually parser/config mismatches.
 
-   ❌ Wrong:
+## Useful checks
+
+```sql
+-- Verify the config is tokenizing the way you expect
+SELECT to_tsvector('english', 'ACME-123 running shoes');
+
+-- Check whether the query is using the stored/indexed vector
+EXPLAIN ANALYZE
+SELECT id
+FROM articles
+WHERE search_vector @@ websearch_to_tsquery('english', 'running shoes');
+```
+
+## Common Mistakes / Gotchas
+
+1. **[HIGH] `websearch_to_tsquery` not used for raw user input**: Agents feed arbitrary user text into `to_tsquery`, which breaks on punctuation, quotes, operators, and inputs like `c++`.
+
+   Fix: use `websearch_to_tsquery` for search-box input on PG 11+, and reserve `to_tsquery` for already-sanitized expert syntax.
+
+2. **[HIGH] Ranking normalization confusion**: The agent uses `ts_rank()` without normalization. Raw rank is biased toward longer documents, so large documents often float to the top even when they are a worse semantic match.
+
+   Fix: use `ts_rank(vector, query, 32)` for length normalization, or `ts_rank_cd` when proximity should matter.
+
+3. **[HIGH] `tsvector` not maintained on `UPDATE`**: The agent adds a `tsvector` column, backfills it once, and forgets that future updates silently make search results stale.
+
+   Fix: use a generated stored column on PG 12+:
    ```sql
-   -- User types "c++ programming" → syntax error
-   SELECT * FROM articles WHERE search_vector @@ to_tsquery('c++ programming');
+   search_vector tsvector
+     GENERATED ALWAYS AS (to_tsvector('english', coalesce(title, '') || ' ' || coalesce(body, '')))
+     STORED
    ```
+   On older versions, use a trigger.
 
-   ✅ Right:
-   ```sql
-   -- Handles special chars, Google-like syntax (PG 11+)
-   SELECT * FROM articles WHERE search_vector @@ websearch_to_tsquery('english', 'c++ programming');
-   ```
+4. **[MEDIUM] Stemming / stop-word surprises**: The agent uses the `english` config for product codes, SKUs, names, or proper nouns. Those tokens may be stemmed, split, or dropped, leading to "search is broken" reports.
 
-2. **[HIGH] Phrase search proximity**: `phraseto_tsquery` requires adjacent words only
+   Fix: use `simple` for exact-token fields, or maintain separate vectors/configs for prose vs identifier fields and combine them at query time.
 
-   ❌ Wrong:
-   ```sql
-   -- Misses "big enterprise data" — requires exactly adjacent
-   WHERE search_vector @@ phraseto_tsquery('big data')
-   ```
+5. **[HIGH] Phrase search assumptions are too strict**: `phraseto_tsquery('big data')` requires adjacent terms. Users expect near matches like `big enterprise data`.
 
-   ✅ Right:
-   ```sql
-   -- Allow 1 word between
-   WHERE search_vector @@ to_tsquery('big <2> data')
-   ```
+   Fix: for proximity search, use explicit distance operators such as `to_tsquery('big <2> data')` instead of assuming phrase search is fuzzy.
 
-3. **[MEDIUM] No hybrid FTS + trigram for typo tolerance**: FTS needs exact stems. Combine with `pg_trgm`: `WHERE search_vector @@ q OR similarity(title, input) > 0.3`
+6. **[MEDIUM] Index not used because the query recomputes vectors**: Agents write `to_tsvector(...) @@ ...` in the predicate even though a stored `search_vector` column exists. That bypasses the indexed expression or stored column.
 
-4. **[HIGH] Multilingual content in single config**: 'english' config on French content strips wrong stop words. Use `'simple'` for mixed-language
+   Fix: query the indexed vector column directly and confirm `EXPLAIN` shows a Bitmap Index Scan / Bitmap Heap Scan or similar index-assisted path.
 
-5. **[MEDIUM] ts_headline performance**: Rescans full document. For large docs, highlight a stored summary column instead
+7. **[MEDIUM] No hybrid FTS + trigram fallback for typos**: Native FTS is good at stemming, not misspellings. A search experience that must tolerate typos usually needs `pg_trgm` for fallback matching.
 
-6. **[MEDIUM] Zero results from wrong language config**: `SELECT to_tsvector('english', 'running')` should stem to `run` — verify config matches content
+   Fix: combine them intentionally, for example: `search_vector @@ q OR similarity(title, :input) > 0.3`.
 
-7. **[MEDIUM] Index not used**: Ensure query uses `@@` against the indexed tsvector column, not a function call
+8. **[MEDIUM] `ts_headline` used on large documents in the hot path**: Highlighting rescans document text and can dominate response time.
 
-8. **[MEDIUM] Slow on write-heavy tables**: GIN updates are batched. Tune `gin_pending_list_limit`
+   Fix: highlight a short summary/snippet field, or only apply `ts_headline` after ranking and limiting candidate rows.
 
-9. **[MEDIUM] Unsupported PG version for websearch_to_tsquery**: Requires PG 11+. Older versions: use `plainto_tsquery()`
+9. **[MEDIUM] Slow write-heavy tables blamed on GIN alone**: GIN maintenance is often acceptable, but pending-list growth can hurt bursty write workloads.
+
+   Fix: inspect write patterns and consider tuning `gin_pending_list_limit` rather than dropping FTS entirely.
+
+10. **[MEDIUM] Unsupported version assumptions**: `websearch_to_tsquery` requires PG 11+. Agents should gate recommendations by version instead of assuming newer syntax is always available.

@@ -111,3 +111,6 @@ CREATE POLICY tenant_isolation ON orders
 9. **[MEDIUM] Performance degradation from RLS**: Add index on policy column. Check EXPLAIN for seq scan with filter
 
 10. **[MEDIUM] Policy blocks migrations**: Temporarily `ALTER TABLE t DISABLE ROW LEVEL SECURITY` during migrations
+11. **[HIGH] Missing WITH CHECK on INSERT/UPDATE policies**: `USING` controls visibility, but writes still fail without matching `WITH CHECK` for tenant/ownership rules
+12. **[MEDIUM] Default-deny breaks existing application**: Enabling RLS before creating a permissive policy blocks all non-owner access immediately
+13. **[MEDIUM] Function information leak via error messages**: `SECURITY DEFINER` code can reveal hidden rows through unique/FK errors even when SELECT is blocked

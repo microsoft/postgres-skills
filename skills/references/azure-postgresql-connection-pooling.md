@@ -102,6 +102,9 @@ Avoid explaining generic PgBouncer concepts or basic `az parameter set` commands
 
 7. **[HIGH] Connection storm recovery**: When PgBouncer queue fills (`pgbouncer.max_client_conn` reached), new connections get `ERROR: no more connections allowed`. Add exponential backoff with jitter in application retry logic. Monitor `pgbouncer_waiting_connections` metric for early warning
 8. **[HIGH] Session-level state leakage**: `SET statement_timeout` in one transaction leaks to the next client in transaction mode. Azure's built-in PgBouncer runs `DISCARD ALL` as `server_reset_query` automatically, but custom GUCs set with `SET LOCAL` only are safe
+9. **[HIGH] Pool sizing for bursty workloads**: `max_client_conn=5000` does not mean 5000 backend slots. With `default_pool_size=50`, a burst of 200 clients queues 150 requests unless you raise the pool size or accept queue latency
+10. **[MEDIUM] Client driver defaults disable pooling benefits**: Many ORMs still reconnect per request, for example Django with `CONN_MAX_AGE=0`. Keep client connections warm too with `CONN_MAX_AGE=None` or client-side pooling
+11. **[MEDIUM] Failover behavior with pooled connections**: After HA failover, clients must re-resolve DNS. Built-in PgBouncer moves with the server FQDN, but cached DNS can delay reconnects by the TTL
 
 ## References
 - [PgBouncer in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-pgbouncer)
