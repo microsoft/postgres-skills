@@ -42,9 +42,10 @@ Avoid explaining basic `CREATE EXTENSION` syntax. The base model knows this well
 ## Common Mistakes
 
 1. **[CRITICAL] Extension files not installed**: `apt install postgresql-16-pgvector` or equivalent before `CREATE EXTENSION`
-2. **[HIGH] Forgetting shared_preload_libraries**: pg_stat_statements collects no data without preload. Requires server restart
-3. **[MEDIUM] Schema pollution**: Many extensions in `public` schema. Isolate with `CREATE EXTENSION ... SCHEMA extensions;`
-4. **[MEDIUM] Upgrade without checking path**: `ALTER EXTENSION ... UPDATE TO '0.8.0'` only works if update path exists. Check `pg_extension_update_paths()`
+2. **[HIGH] Forgetting shared_preload_libraries**: pg_stat_statements collects no data without preload. Requires server restart. Modifying `shared_preload_libraries` requires superuser or platform admin role
+3. **[HIGH] Privilege requirement for CREATE EXTENSION**: Requires superuser or platform admin role. Non-privileged users get "permission denied to create extension"
+4. **[MEDIUM] Schema pollution**: Many extensions in `public` schema. Isolate with `CREATE EXTENSION ... SCHEMA extensions;`
+5. **[MEDIUM] Upgrade without checking path**: `ALTER EXTENSION ... UPDATE TO '0.8.0'` only works if update path exists. Check `pg_extension_update_paths()`
 
 ## Azure differences
 

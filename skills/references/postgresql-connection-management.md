@@ -46,7 +46,7 @@ Prioritize pooling mode tradeoffs, production failure modes, and managed-service
 
 ## High-value reminders
 
-- `max_connections` is postmaster-level — requires restart; cannot use `SET` or `ALTER SYSTEM` on managed services
+- `max_connections` is postmaster-level — requires restart and superuser or platform admin role; cannot use `SET` or `ALTER SYSTEM` on managed services
 - `idle_in_transaction_session_timeout` prevents crashed clients from holding locks indefinitely
 - PgBouncer transaction mode breaks `PREPARE`/`EXECUTE` across backends
 - Total connections = `pool_size_per_instance × num_instances` — easy to exceed limits
@@ -115,7 +115,7 @@ Prioritize pooling mode tradeoffs, production failure modes, and managed-service
 
 9. **[MEDIUM] "too many clients" emergency**: `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND now() - state_change > interval '10 min'`
 
-10. **[MEDIUM] Permission denied on pg_terminate_backend**: Requires `pg_signal_backend` role. On Azure, `azure_pg_admin` has this
+10. **[MEDIUM] Permission denied on pg_terminate_backend**: Requires `pg_signal_backend` role or superuser/platform admin role
 
 ## Guardrails
 

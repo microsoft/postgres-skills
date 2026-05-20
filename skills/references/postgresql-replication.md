@@ -57,7 +57,7 @@ Prioritize gotchas, version boundaries, and production-safe corrections. Include
 ## Quick Setup Reference
 
 ```sql
--- PUBLISHER: Enable logical replication (requires restart)
+-- PUBLISHER: Enable logical replication (requires superuser or platform admin role)
 ALTER SYSTEM SET wal_level = logical;
 -- Then restart PostgreSQL
 
@@ -126,7 +126,7 @@ SELECT slot_name, active, restart_lsn FROM pg_replication_slots;  -- on publishe
 
 10. **[MEDIUM] Slot consuming disk after subscriber gone**: Drop orphaned: `SELECT pg_drop_replication_slot('my_sub')`
 
-11. **[HIGH] wal_level not set to logical**: Requires restart. On Azure, change via Server Parameters then restart
+11. **[HIGH] wal_level not set to logical**: Requires superuser or platform admin role, plus a server restart. On managed services, change via server parameters UI then restart
 
 12. **[CRITICAL] Sequence values not replicated**: Logical replication does NOT replicate sequences. After failover, reset on new primary: `SELECT setval('orders_id_seq', (SELECT max(id) FROM orders) + 1)`
 
