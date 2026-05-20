@@ -11,7 +11,7 @@ TERMINOLOGY_RULES = [
     # Azure branding
     (r'\bazure\s+ad\b(?!\s*B2C)', "Entra ID", "Azure AD renamed to Entra ID (except Azure AD B2C)"),
     (r'\bflexible\s+server\b(?![\s\.])', "Flexible Server", "Capitalize: Flexible Server"),
-    (r'\bsingle\s+server\b(?!\s*\(deprecated\))', "Single Server (deprecated)", "Single Server is deprecated; mention this"),
+    (r'\bsingle\s+server\b', "Single Server", "Single Server is retired; remove references entirely"),
     (r'\bAzure\s+Database\s+for\s+Postgresql\b', "Azure Database for PostgreSQL", "Capital SQL in PostgreSQL"),
     (r'\bpostgresql\b(?=[^_\-/])', None, None),  # skip — too many valid lowercase uses
 

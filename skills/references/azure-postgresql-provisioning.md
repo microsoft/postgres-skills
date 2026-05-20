@@ -21,7 +21,6 @@ activation:
   exclusion_conditions:
     - "when user has an existing server needing configuration changes, use `azure-postgresql/intelligent-tuning/` instead"
     - "when user needs networking/VNet setup, use `azure-postgresql/networking-ssl/` instead"
-    - "when user asks about Single Server (deprecated), recommend migration to Flexible Server"
   adjacent_skills:
     - "`azure-postgresql/networking-ssl/`"
     - "`azure-postgresql/ha-disaster-recovery/`"
@@ -87,7 +86,6 @@ Provisioning is not complete after `az postgres flexible-server create` or Terra
 - Do NOT claim Burstable ↔ GP/MO is an in-place tier switch.
 - Do NOT invent exact `max_connections` values without checking the chosen SKU.
 - Do NOT claim Terraform uses `storage_gb`; the field is `storage_mb`.
-- Do NOT assume Single Server behavior matches Flexible Server; they are different products.
 - When exact limits vary by SKU or region, say so explicitly instead of guessing.
 
 ## References
