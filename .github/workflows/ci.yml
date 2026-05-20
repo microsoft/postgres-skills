@@ -292,12 +292,21 @@ jobs:
           fi
           cd tests/evals
           python pipeline.py --provider azure --output results/
-      - name: Upload eval results
+      - name: Upload eval summary
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: eval-results
-          path: tests/evals/results/
+          path: tests/evals/results/latest.json
+          retention-days: 30
+      - name: Upload detailed eval results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-detailed-results
+          path: |
+            tests/evals/results/report_*.json
+            tests/evals/results/results_*.json
           retention-days: 30
       - name: Commit eval results to repo
         if: success() && github.ref == 'refs/heads/main'
