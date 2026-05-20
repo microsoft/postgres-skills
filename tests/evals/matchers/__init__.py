@@ -4,7 +4,10 @@ Validates skill output against expected patterns and anti-patterns.
 """
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
+
+import yaml
 
 
 @dataclass
@@ -54,15 +57,101 @@ class PatternMatcher:
 class HallucinationDetector:
     """Detects hallucinations in agent output with context-aware scoping."""
 
-    # Universal patterns: wrong in ANY PostgreSQL context (self-hosted or managed)
-    UNIVERSAL_PATTERNS = [
-        (r"CREATE\s+EXTENSION\s+(?!IF\s+NOT\s+EXISTS)(?!pgcrypto|uuid-ossp|pg_stat_statements|vector|age|postgis|pg_trgm|btree_gin|btree_gist|hstore|citext|ltree|intarray|fuzzystrmatch|unaccent|tablefunc|earthdistance|cube|pg_prewarm|pg_buffercache|postgres_fdw|dblink|amcheck|pageinspect|pg_visibility|bloom|rum|timescaledb|citus|pgrouting|plpgsql|plpython3u|pltcl|plperl|xml2|pgaudit|pg_cron|pg_partman|pg_repack|pg_hint_plan|hypopg|decoderbufs|wal2json|pglogical|orafce|mysql_fdw|tds_fdw|file_fdw|log_fdw|azure_ai|azure_storage|pgvector|pg_diskann|auto_explain|sslinfo|pg_freespacemap|pg_stat_kcache|pg_wait_sampling|plv8|lo|seg|isn|dict_int|dict_xsyn|tsm_system_rows|tsm_system_time|address_standardizer|postgis_topology|postgis_raster)\w*\b",
-         "References non-existent PostgreSQL extension"),
-        (r"pg_catalog\.(?!pg_class|pg_attribute|pg_namespace|pg_type|pg_index|pg_stat_user_tables|pg_stat_user_indexes|pg_stat_activity|pg_locks|pg_settings|pg_roles|pg_database|pg_tablespace|pg_constraint|pg_trigger|pg_proc|pg_depend|pg_description|pg_am|pg_operator|pg_opclass|pg_statistic|pg_replication_slots|pg_stat_replication|pg_stat_wal_receiver|pg_publication|pg_subscription|pg_stat_progress_vacuum|pg_stat_bgwriter|pg_stat_archiver)\w+",
-         "References non-existent pg_catalog object"),
-        (r"SET\s+(?:shared_preload_libraries|shared_buffers|max_connections|wal_level|max_wal_senders|max_replication_slots|hot_standby|archive_mode)\s*=",
-         "SET cannot change postmaster-level GUC at runtime (requires restart)"),
+    DEFAULT_KNOWN_EXTENSIONS = [
+        "pgcrypto",
+        "uuid-ossp",
+        "pg_stat_statements",
+        "vector",
+        "age",
+        "postgis",
+        "pg_trgm",
+        "btree_gin",
+        "btree_gist",
+        "hstore",
+        "citext",
+        "ltree",
+        "intarray",
+        "fuzzystrmatch",
+        "unaccent",
+        "tablefunc",
+        "earthdistance",
+        "cube",
+        "pg_prewarm",
+        "pg_buffercache",
+        "postgres_fdw",
+        "dblink",
+        "amcheck",
+        "pageinspect",
+        "pg_visibility",
+        "bloom",
+        "rum",
+        "timescaledb",
+        "citus",
+        "pgrouting",
+        "plpgsql",
+        "plpython3u",
+        "pltcl",
+        "plperl",
+        "xml2",
+        "pgaudit",
+        "pg_cron",
+        "pg_partman",
+        "pg_repack",
+        "pg_hint_plan",
+        "hypopg",
+        "decoderbufs",
+        "wal2json",
+        "pglogical",
+        "orafce",
+        "mysql_fdw",
+        "tds_fdw",
+        "file_fdw",
+        "log_fdw",
+        "azure_ai",
+        "azure_storage",
+        "pgvector",
+        "pg_diskann",
+        "auto_explain",
+        "sslinfo",
+        "pg_freespacemap",
+        "pg_stat_kcache",
+        "pg_wait_sampling",
+        "plv8",
+        "lo",
+        "seg",
+        "isn",
+        "dict_int",
+        "dict_xsyn",
+        "tsm_system_rows",
+        "tsm_system_time",
+        "address_standardizer",
+        "postgis_topology",
+        "postgis_raster",
     ]
+
+    def __init__(self, known_extensions_path: Optional[Path] = None):
+        if known_extensions_path is None:
+            known_extensions_path = Path(__file__).parent.parent / "dossier" / "known_extensions.yaml"
+
+        self.known_extensions = list(self.DEFAULT_KNOWN_EXTENSIONS)
+        try:
+            with open(known_extensions_path, encoding="utf-8") as f:
+                data = yaml.safe_load(f) or {}
+            loaded_extensions = data.get("extensions", [])
+            if isinstance(loaded_extensions, list) and loaded_extensions:
+                self.known_extensions = [str(ext) for ext in loaded_extensions]
+        except Exception:
+            pass
+
+        ext_pattern = "|".join(re.escape(ext) for ext in self.known_extensions)
+        self.UNIVERSAL_PATTERNS = [
+            (rf"CREATE\s+EXTENSION\s+(?!IF\s+NOT\s+EXISTS)(?!(?:{ext_pattern})\b)\w+\b",
+             "References non-existent PostgreSQL extension"),
+            (r"pg_catalog\.(?!pg_class|pg_attribute|pg_namespace|pg_type|pg_index|pg_stat_user_tables|pg_stat_user_indexes|pg_stat_activity|pg_locks|pg_settings|pg_roles|pg_database|pg_tablespace|pg_constraint|pg_trigger|pg_proc|pg_depend|pg_description|pg_am|pg_operator|pg_opclass|pg_statistic|pg_replication_slots|pg_stat_replication|pg_stat_wal_receiver|pg_publication|pg_subscription|pg_stat_progress_vacuum|pg_stat_bgwriter|pg_stat_archiver)\w+",
+             "References non-existent pg_catalog object"),
+            (r"SET\s+(?:shared_preload_libraries|shared_buffers|max_connections|wal_level|max_wal_senders|max_replication_slots|hot_standby|archive_mode)\s*=",
+             "SET cannot change postmaster-level GUC at runtime (requires restart)"),
+        ]
 
     # Azure-managed patterns: only wrong when platform_scope is "azure"
     # These are perfectly valid for generic/self-hosted PostgreSQL

@@ -264,6 +264,7 @@ class EvalPipeline:
         self._judge_agent_fn = None  # Set during run() for judge LLM calls
         self._calibration_mode = False  # When True, trims skill to task-relevant sections
         self._model = "gpt-4o-mini"  # Set during run()
+        self._judge_model: Optional[str] = None  # Set during run(); falls back to agent model
         self._lock = threading.Lock()  # Guards shared state during parallel execution
 
     def _get_provenance(self) -> dict:
@@ -295,7 +296,7 @@ class EvalPipeline:
             "pipeline_commit": commit,
             "challenges_sha256": challenges_sha,
             "model_id": self._model,
-            "judge_model_id": self._model,
+            "judge_model_id": self._judge_model or self._model,
             "calibration_mode": self._calibration_mode,
             "total_challenges": len(self.challenges),
         }
@@ -456,7 +457,7 @@ class EvalPipeline:
         judge_verdict = None
         if challenge.expected_activation and self._judge_agent_fn and output and not output.startswith("[MOCK]"):
             def _call_judge_llm(prompt: str) -> str:
-                return self._judge_agent_fn(prompt, "", model)
+                return self._judge_agent_fn(prompt, "", self._judge_model or self._model)
             verdict = self.judge.judge_quality(
                 task=challenge.task,
                 output=output,
@@ -745,7 +746,7 @@ class EvalPipeline:
                 and control_result.output and test_result.output
                 and not control_result.output.startswith("[MOCK]")):
             def _call_winrate_llm(prompt: str) -> str:
-                return self._judge_agent_fn(prompt, "", model)
+                return self._judge_agent_fn(prompt, "", self._judge_model or self._model)
             verdict = self.judge.judge_paired_winrate(
                 task=challenge.task,
                 control_output=control_result.output,
@@ -759,13 +760,14 @@ class EvalPipeline:
 
         print(f"  {label} done")
 
-    def run(self, agent_fn, model: str = "gpt-4o-mini", use_judge: bool = True, concurrency: int = 5, calibration_mode: bool = False):
+    def run(self, agent_fn, model: str = "gpt-4o-mini", judge_model: Optional[str] = None, use_judge: bool = True, concurrency: int = 5, calibration_mode: bool = False):
         """Execute full pipeline: control + test for all challenges."""
         self.load_challenges()
         self._calibration_mode = calibration_mode
         self._model = model
+        self._judge_model = judge_model
 
-        # Wire up judge agent function (same LLM as the eval agent)
+        # Wire up judge agent function (reuses the agent provider with the judge model when configured)
         if use_judge and agent_fn != mock_agent:
             self._judge_agent_fn = agent_fn
         else:
@@ -776,6 +778,7 @@ class EvalPipeline:
         print(f"\n{'='*60}")
         print(f"Running eval pipeline: {len(self.challenges)} challenges x 2 groups")
         print(f"Model: {model}")
+        print(f"Judge model: {self._judge_model or self._model}")
         print(f"Judge: {judge_status}")
         print(f"Execution: {mode}")
         print(f"{'='*60}\n")
@@ -909,19 +912,14 @@ def azure_openai_agent(task: str, skill_context: str, model: str) -> str:
         api_version=api_version,
     )
 
-    system_prompt = "You are a PostgreSQL expert assistant helping developers with database tasks."
+    system_prompt = (
+        "You are a PostgreSQL expert assistant helping developers with database tasks. "
+        "Answer the user's question with a direct, actionable response. "
+        "Include specific settings, version-aware caveats, and production-grade details when relevant. "
+        "Be concise and focused on the user's actual scenario."
+    )
     if skill_context:
-        system_prompt += (
-            "\n\nYou have access to the following reference material. "
-            "Answer the user's question FIRST with a direct, actionable response. "
-            "Then cite specific Azure constraints or gotchas from the reference ONLY "
-            "when they directly apply to the user's scenario. "
-            "Do NOT: dump the entire reference content, add caveats for scenarios the user "
-            "didn't ask about, or restructure your answer around the reference's format. "
-            "If the reference doesn't add value beyond your existing knowledge for this "
-            "particular question, ignore it and answer directly."
-            f"\n\n---\n{skill_context}\n---"
-        )
+        system_prompt += f"\n\n## Reference Material\n{skill_context}"
 
     response = client.chat.completions.create(
         model=deployment,
@@ -951,19 +949,14 @@ def openai_agent(task: str, skill_context: str, model: str) -> str:
 
     client = OpenAI(api_key=api_key)
 
-    system_prompt = "You are a PostgreSQL expert assistant helping developers with database tasks."
+    system_prompt = (
+        "You are a PostgreSQL expert assistant helping developers with database tasks. "
+        "Answer the user's question with a direct, actionable response. "
+        "Include specific settings, version-aware caveats, and production-grade details when relevant. "
+        "Be concise and focused on the user's actual scenario."
+    )
     if skill_context:
-        system_prompt += (
-            "\n\nYou have access to the following reference material. "
-            "Answer the user's question FIRST with a direct, actionable response. "
-            "Then cite specific Azure constraints or gotchas from the reference ONLY "
-            "when they directly apply to the user's scenario. "
-            "Do NOT: dump the entire reference content, add caveats for scenarios the user "
-            "didn't ask about, or restructure your answer around the reference's format. "
-            "If the reference doesn't add value beyond your existing knowledge for this "
-            "particular question, ignore it and answer directly."
-            f"\n\n---\n{skill_context}\n---"
-        )
+        system_prompt += f"\n\n## Reference Material\n{skill_context}"
 
     response = client.chat.completions.create(
         model=model,
@@ -986,6 +979,8 @@ if __name__ == "__main__":
     parser.add_argument("--skills-root", default=str(DEFAULT_SKILLS_ROOT))
     parser.add_argument("--output", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--model", default="gpt-4o-mini")
+    parser.add_argument("--judge-model", default=None,
+                        help="Optional model for judge calls; defaults to --model")
     parser.add_argument("--dry-run", action="store_true", help="Use mock agent")
     parser.add_argument("--provider", default="auto", choices=["auto", "azure", "openai"],
                         help="LLM provider: azure, openai, or auto (detect from env vars)")
@@ -1004,7 +999,7 @@ if __name__ == "__main__":
     )
 
     if args.dry_run:
-        pipeline.run(mock_agent, model=args.model, use_judge=False, concurrency=1, calibration_mode=args.calibration_mode)
+        pipeline.run(mock_agent, model=args.model, judge_model=args.judge_model, use_judge=False, concurrency=1, calibration_mode=args.calibration_mode)
     else:
         # Auto-detect provider
         provider = args.provider
@@ -1030,7 +1025,7 @@ if __name__ == "__main__":
         use_judge = not args.no_judge
         if provider == "azure":
             print(f"Using Azure OpenAI (deployment: {os.environ.get('AZURE_OPENAI_DEPLOYMENT', args.model)})")
-            pipeline.run(azure_openai_agent, model=args.model, use_judge=use_judge, concurrency=args.concurrency, calibration_mode=args.calibration_mode)
+            pipeline.run(azure_openai_agent, model=args.model, judge_model=args.judge_model, use_judge=use_judge, concurrency=args.concurrency, calibration_mode=args.calibration_mode)
         else:
             print(f"Using OpenAI ({args.model})")
-            pipeline.run(openai_agent, model=args.model, use_judge=use_judge, concurrency=args.concurrency, calibration_mode=args.calibration_mode)
+            pipeline.run(openai_agent, model=args.model, judge_model=args.judge_model, use_judge=use_judge, concurrency=args.concurrency, calibration_mode=args.calibration_mode)
