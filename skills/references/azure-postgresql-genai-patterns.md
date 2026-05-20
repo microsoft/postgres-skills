@@ -8,7 +8,7 @@ activation:
  - build a RAG pipeline using azure_ai
  - in-database embeddings without app roundtrip
  - store embeddings from azure_openai
- - hybrid search with reciprocal rank fusion on Azure
+ - hybrid search with Reciprocal Rank Fusion (RRF) on Azure
  - embed user query in SQL and search similar documents
  technical_keywords:
  - create_embeddings
