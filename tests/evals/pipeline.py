@@ -1029,7 +1029,13 @@ def azure_openai_agent(task: str, skill_context: str, model: str) -> str:
         "Be concise and focused on the user's actual scenario."
     )
     if skill_context:
-        system_prompt += f"\n\n## Reference Material\n{skill_context}"
+        system_prompt += (
+            "\n\n## Reference Material\n"
+            "Use the following reference for common pitfalls and best practices. "
+            "Cross-check any specific syntax, flags, or version claims against your own knowledge. "
+            "Always state minimum PostgreSQL version requirements when recommending newer features.\n\n"
+            f"{skill_context}"
+        )
 
     response = client.chat.completions.create(
         model=deployment,
@@ -1066,7 +1072,13 @@ def openai_agent(task: str, skill_context: str, model: str) -> str:
         "Be concise and focused on the user's actual scenario."
     )
     if skill_context:
-        system_prompt += f"\n\n## Reference Material\n{skill_context}"
+        system_prompt += (
+            "\n\n## Reference Material\n"
+            "Use the following reference for common pitfalls and best practices. "
+            "Cross-check any specific syntax, flags, or version claims against your own knowledge. "
+            "Always state minimum PostgreSQL version requirements when recommending newer features.\n\n"
+            f"{skill_context}"
+        )
 
     response = client.chat.completions.create(
         model=model,

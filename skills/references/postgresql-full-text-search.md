@@ -88,7 +88,7 @@ Pair the GIN index with `setweight` for title(A) vs body(B) ranking when you nee
 
 2. **[HIGH] Ranking normalization confusion**: The agent uses `ts_rank()` without normalization. Raw rank is biased toward longer documents, so large documents often float to the top even when they are a worse semantic match.
 
-   Fix: use `ts_rank(vector, query, 32)` for length normalization, or `ts_rank_cd` when proximity should matter.
+   Fix: use `ts_rank(vector, query, 2)` for length normalization (flag 2 = divides rank by document length). Use `ts_rank_cd` when proximity should matter. Note: flag 32 is `rank/(rank+1)` scaling, NOT length normalization. Common flags: 0=default, 1=log(1+doclen), 2=divide by doclen, 4=divide by harmonic distance, 8=divide by unique-word count, 16=divide by 1+log(unique-words), 32=rank/(rank+1).
 
 3. **[HIGH] `tsvector` not maintained on `UPDATE`**: The agent adds a `tsvector` column, backfills it once, and forgets that future updates silently make search results stale.
 
@@ -125,3 +125,11 @@ Pair the GIN index with `setweight` for title(A) vs body(B) ranking when you nee
    Fix: inspect write patterns and consider tuning `gin_pending_list_limit` rather than dropping FTS entirely.
 
 10. **[MEDIUM] Unsupported version assumptions**: `websearch_to_tsquery` requires PG 11+. Agents should gate recommendations by version instead of assuming newer syntax is always available.
+
+## Anti-Hallucination Rules
+
+- Do NOT confuse `ts_rank` normalization flags. Flag 2 = divide by document length. Flag 32 = rank/(rank+1). These are NOT interchangeable.
+- Do NOT claim `ts_rank_cd` is always superior to `ts_rank`. `ts_rank_cd` measures cover density (proximity) which is different from term frequency.
+- Do NOT use `websearch_to_tsquery` syntax without noting it requires PostgreSQL 11+.
+- Do NOT claim GIN indexes support `ORDER BY rank` natively. GIN provides filtering only; ranking requires a re-check step.
+- Do NOT omit the text search configuration parameter (e.g., 'english') from examples. Relying on `default_text_search_config` is fragile across environments.

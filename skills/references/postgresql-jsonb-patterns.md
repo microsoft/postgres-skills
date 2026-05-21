@@ -127,3 +127,10 @@ Prioritize indexing mismatches, type casting traps, and version-gated syntax. Th
 11. **[HIGH] NULL vs missing key semantics**: `doc->>'key'` is NULL for both missing keys and explicit JSON null. Use `doc ? 'key'` to test existence
 12. **[MEDIUM] Array containment order independence**: `@>` on arrays ignores order, so `'[1,2]'::jsonb @> '[2,1]'::jsonb` is TRUE. Do not encode ordering logic with containment
 13. **[MEDIUM] Functional index vs generated column**: Expression indexes only help exact matches like `(doc->>'email')`. Generated columns are safer when queries mix `->` and `->>`
+
+## Anti-Hallucination Rules
+
+- Do NOT use `jsonb_set` with array paths like `'{items,1}'` without noting that array indexes are 0-based in PostgreSQL.
+- Do NOT claim `jsonb_set` creates missing intermediate keys by default. The `create_if_missing` parameter (4th arg, default true) creates the final key, but intermediate path elements must exist.
+- Do NOT confuse `json_table()` (PG 17+) with `jsonb_to_recordset()` (PG 9.4+). Always state version requirements.
+- Do NOT recommend `jsonb_path_query` SQL/JSON path syntax without noting it requires PostgreSQL 12+.

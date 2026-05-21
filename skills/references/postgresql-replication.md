@@ -170,7 +170,9 @@ ORDER BY pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn) DESC;
 7. **[HIGH] wal_level not set to logical**: Requires superuser or platform admin role, plus a server restart. On managed services, change via server parameters UI then restart
 8. **[CRITICAL] Sequence values not replicated**: Logical replication does NOT replicate sequences. After failover, reset on new primary: `SELECT setval('orders_id_seq', (SELECT max(id) FROM orders) + 1)`
 
-9. **[HIGH] Replica identity on partitioned tables**: Set `REPLICA IDENTITY` on every child partition, not just the parent, or UPDATE/DELETE replication can fail
+9. **[HIGH] Replica identity on partitioned tables**: In PostgreSQL 15+, declarative-partitioned tables inherit `REPLICA IDENTITY` from the parent for logical replication. In PG 10-14, set `REPLICA IDENTITY` on each child partition individually. Always verify with: `SELECT relname, relreplident FROM pg_class WHERE relname LIKE 'orders%';`
+
+10. **[HIGH] Column-list publications (PG 15+ only)**: `CREATE PUBLICATION pub FOR TABLE t (col1, col2)` works ONLY in PostgreSQL 15+. Earlier versions must replicate all columns. Always state "requires PostgreSQL 15+" when recommending column lists.
 
 ## Anti-Hallucination Rules
 
@@ -178,3 +180,5 @@ ORDER BY pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn) DESC;
 - Do NOT claim DDL changes replicate automatically — they never do in any PostgreSQL version.
 - Do NOT assume `wal_level` can be changed without restart.
 - Do NOT claim bidirectional replication is natively supported — it requires third-party extensions (e.g., BDR) or application-level conflict handling.
+- Do NOT use column-list publication syntax (`FOR TABLE t (col1, col2)`) without explicitly stating it requires PostgreSQL 15+.
+- Do NOT claim REPLICA IDENTITY settings always/never inherit to partitions — behavior changed between PG versions. Always verify the target version.
