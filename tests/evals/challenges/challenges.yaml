@@ -1,6 +1,6 @@
 # Agent Challenges
 #
-# 127 challenges across 22 skills (generic + Azure + root)
+# 300 challenges across 20 target skills (generic + Azure + root)
 # Each challenge tests whether the agent activates the correct skill
 # and produces syntactically valid, non-hallucinated output.
 
@@ -1494,3 +1494,2486 @@ challenges:
       - "transaction.*mode|session.*mode"
     notes: "Tests token refresh + pooler interaction knowledge"
 
+  # ─── DENSITY EXPANSION CHALLENGES (added for 15+ per skill) ───────────────
+
+  # full-text-search expansion
+
+  - id: gen-fts-03
+    task: Our docs search for 'running' misses rows containing 'run' and 'runs'. The posts table has 800k rows. How do I make stemming work correctly?
+    difficulty: easy
+    target_skill: skills/references/postgresql-full-text-search
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - english|simple
+    - to_tsvector|plainto_tsquery
+    anti_patterns:
+    - elasticsearch|opensearch
+    correctness_checks:
+    - Does the response choose an appropriate text search configuration such as english instead of treating every term literally?
+    - Does the response explain that stemming lets run, runs, and running match the same lexeme?
+    - Is at least one PostgreSQL full-text query example syntactically plausible?
+
+  - id: gen-fts-04
+    task: I need exact phrase search for an issue tracker. Searching for "disk full" should match that phrase, not rows where disk and full are far apart.
+    difficulty: easy
+    target_skill: skills/references/postgresql-full-text-search
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - phraseto_tsquery|<->
+    - tsquery|phrase
+    correctness_checks:
+    - Does the response use phraseto_tsquery or the phrase operator rather than only plainto_tsquery?
+    - Does the response explain that phrase search is different from unordered term matching?
+    - Is the suggested SQL compatible with PostgreSQL FTS?
+
+  - id: gen-fts-05
+    task: Users want Google-style snippets with the matched words highlighted in the result page. Can PostgreSQL do that from the article body column?
+    difficulty: easy
+    target_skill: skills/references/postgresql-full-text-search
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - ts_headline
+    - StartSel|StopSel|headline
+    correctness_checks:
+    - Does the response mention ts_headline for snippet generation or highlighting?
+    - Does the response show how the query text and source document feed the headline function?
+    - Does it stay inside PostgreSQL FTS rather than switching immediately to an external search engine?
+
+  - id: gen-fts-06
+    task: My knowledge base search should rank title matches above tags, and tags above the long body text. What's the usual pattern?
+    difficulty: medium
+    target_skill: skills/references/postgresql-full-text-search
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - setweight
+    - ts_rank|A|B|C|D
+    correctness_checks:
+    - Does the response combine multiple text fields with setweight so title can outrank body text?
+    - Does the response include a ranking function such as ts_rank or ts_rank_cd?
+    - Does it explain why weighted vectors are preferable to a single unweighted concatenation?
+
+  - id: gen-fts-07
+    task: My search index on a generated tsvector column works, but inserts got slower after I added a trigger that rebuilds it. Is there a cleaner approach on PostgreSQL 15?
+    difficulty: medium
+    target_skill: skills/references/postgresql-full-text-search
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - GENERATED ALWAYS|stored generated
+    - tsvector
+    correctness_checks:
+    - Does the response mention using a stored generated tsvector column as an alternative to a manual trigger?
+    - Does the response note that PostgreSQL can index the generated column with GIN?
+    - Does the answer stay focused on FTS maintenance tradeoffs rather than generic indexing only?
+
+  - id: gen-fts-08
+    task: Searching for café should also find cafe in my product catalog. How do I make accent-insensitive search work with PostgreSQL full-text search?
+    difficulty: medium
+    target_skill: skills/references/postgresql-full-text-search
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - unaccent
+    - to_tsvector|text search configuration
+    correctness_checks:
+    - Does the response mention unaccent or an equivalent accent-folding step?
+    - Does the response explain where unaccent is applied, for example in the indexed document and/or query expression?
+    - Is the solution consistent with PostgreSQL text search rather than plain ILIKE only?
+
+  - id: gen-fts-09
+    task: My search for 'the office' returns noisy matches because common words disappear. How do I debug stop-word behavior and decide when to use the simple config instead?
+    difficulty: medium
+    target_skill: skills/references/postgresql-full-text-search
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - ts_debug|stop word
+    - simple|english
+    correctness_checks:
+    - Does the response mention ts_debug or another way to inspect tokenization and stop-word handling?
+    - Does the response explain why common words may be dropped by the english configuration?
+    - Does it compare using english versus simple for this kind of search input?
+
+  - id: gen-fts-10
+    task: Product managers paste searches like quick brown -fox or "memory leak" into our app. Which tsquery function is closest to web search syntax?
+    difficulty: medium
+    target_skill: skills/references/postgresql-full-text-search
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - websearch_to_tsquery
+    - quoted|minus|negation
+    correctness_checks:
+    - Does the response choose websearch_to_tsquery for user-friendly search syntax?
+    - Does the response mention support for quoted phrases and minus-style negation?
+    - Does it avoid describing raw tsquery syntax as the easiest user input format?
+
+  - id: gen-fts-11
+    task: Our legal search should prioritize shorter documents that match many terms, not giant PDFs that happen to contain the words once. How do I tune ranking normalization?
+    difficulty: hard
+    target_skill: skills/references/postgresql-full-text-search
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - ts_rank|ts_rank_cd
+    - normalization|rank
+    correctness_checks:
+    - Does the response mention ranking normalization options or cover density ranking?
+    - Does it explain that document length can otherwise dominate ranking unfairly?
+    - Is the ranking guidance grounded in PostgreSQL FTS functions instead of generic search advice?
+
+  - id: gen-fts-12
+    task: We changed dictionaries for our FTS config and now old rows search badly until they are updated. How do I refresh the indexed lexemes without rewriting application logic?
+    difficulty: hard
+    target_skill: skills/references/postgresql-full-text-search
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - UPDATE|recompute|to_tsvector
+    - REINDEX|GIN
+    correctness_checks:
+    - Does the response explain that stored tsvector values or indexed expressions may need to be recomputed after dictionary/config changes?
+    - Does the response suggest a controlled refresh path such as UPDATE or rebuilding the index where appropriate?
+    - Does it avoid pretending PostgreSQL automatically re-tokenizes all existing rows after a config change?
+
+  - id: gen-fts-13
+    task: My orders table has 2 million rows and I need LIKE '%SKU123%' to be fast. Should I use PostgreSQL full-text search for that?
+    difficulty: hard
+    target_skill: skills/references/postgresql-full-text-search
+    platform_scope: generic
+    expected_activation: false
+    expected_patterns: []
+    anti_patterns:
+    - to_tsvector|tsquery|websearch_to_tsquery
+    correctness_checks:
+    - Does the response say this is a substring search problem rather than a full-text-search activation?
+    - Does the response redirect toward pg_trgm or an indexing approach for wildcard matching?
+    - Does it avoid presenting to_tsvector plus tsquery as the primary fix for arbitrary substring matching?
+    notes: 'Negative case: substring matching belongs with advanced indexing and pg_trgm, not full-text search.'
+
+  # intelligent-tuning expansion
+
+  - id: az-tune-02
+    task: I inherited an Azure PostgreSQL server and need a quick list of the top 20 slowest queries by total time, including the SQL text. What's the Query Store query?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - query_store\.qs_view
+    - query_store\.query_texts_view
+    correctness_checks:
+    - Does the response join qs_view with query_texts_view instead of returning only query IDs?
+    - Does the answer rank queries by a performance metric such as total_time?
+    - Does it stay inside Azure Query Store guidance rather than only saying 'run EXPLAIN on everything'?
+
+  - id: az-tune-03
+    task: CPU looks normal but the app still times out. How do I use Azure PostgreSQL wait sampling to see whether queries are blocked on locks or storage waits?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - pgms_wait_sampling_view
+    - event_type|event
+    correctness_checks:
+    - Does the response use the wait sampling view or Azure wait-event surface?
+    - Does it explain that lock or storage waits can dominate even when CPU is fine?
+    - Is the troubleshooting framed as Azure intelligent tuning rather than generic OS metrics?
+
+  - id: az-tune-04
+    task: Azure recommended a new index yesterday, but today the recommendation is gone. Should I still create it?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - recommendation|multiple windows|Query Store
+    - CREATE INDEX CONCURRENTLY|validate
+    correctness_checks:
+    - Does the response warn that one-off recommendations can disappear and should be validated across repeated workload windows?
+    - Does it tell the user to validate with plan or latency evidence before blindly creating the index?
+    - Does it avoid treating every transient recommendation as mandatory?
+
+  - id: az-tune-05
+    task: Where do I check Query Store capture mode on Flexible Server? We suspect it's set too narrowly and missing our fastest queries.
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - pg_qs\.query_capture_mode|SHOW
+    - Query Store|capture mode
+    correctness_checks:
+    - Does the response show how to inspect pg_qs.query_capture_mode?
+    - Does it explain that Query Store coverage can be incomplete when capture mode is restrictive?
+    - Does it remain Azure-specific instead of assuming community PostgreSQL defaults?
+
+  - id: az-tune-06
+    task: I can see index recommendations in Azure, but this workload is write-heavy. How do I decide whether the read gain is worth the insert/update overhead?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - write-heavy|write overhead
+    - EXPLAIN|validate|rollback
+    correctness_checks:
+    - Does the response mention balancing read gains against extra write cost for the new index?
+    - Does it recommend validation and a rollback path instead of auto-applying?
+    - Does it treat Azure recommendations as hints rather than guaranteed wins?
+
+  - id: az-tune-07
+    task: I need to shorten how long Query Store data is kept because this server is very busy. Which setting controls retention and what tradeoff should I expect?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - pg_qs\.retention_period_in_days
+    - retention|storage
+    correctness_checks:
+    - Does the response identify the retention setting correctly?
+    - Does it explain the tradeoff between longer history and extra storage/overhead?
+    - Does the answer stay within Azure Query Store tuning guidance?
+
+  - id: az-tune-08
+    task: How do I tell whether Azure intelligent tuning is pointing at a lock problem versus a missing-index problem for the same slow screen in my app?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - wait_sampling|event_type
+    - index_recommendations|Query Store
+    correctness_checks:
+    - Does the response separate wait-event analysis from index recommendation analysis?
+    - Does it explain that lock contention can make an index recommendation irrelevant?
+    - Does it guide the user toward corroborating evidence before acting?
+
+  - id: az-tune-09
+    task: I want to keep Query Store but reduce overhead from storing every plan. Is there a server parameter for that?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - pg_qs\.store_query_plans
+    - Query Store|plan history
+    anti_patterns:
+    - ALTER SYSTEM
+    correctness_checks:
+    - Does the response mention the plan-storage setting or an equivalent Azure control?
+    - Does it explain the tradeoff between lower overhead and reduced plan-history visibility?
+    - Is the guidance framed around Azure Query Store knobs rather than unsupported ALTER SYSTEM advice?
+
+  - id: az-tune-10
+    task: Azure says a single query family is expensive, but our parameter values vary a lot. How do I check whether this is just one bad parameter shape instead of a stable indexing issue?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - multiple windows|parameter shape|plan
+    - EXPLAIN|validate
+    correctness_checks:
+    - Does the response warn that parameter-sensitive regressions can masquerade as durable tuning recommendations?
+    - Does it suggest validating across more than one time window or parameter shape?
+    - Does it avoid assuming a single recommendation fits every execution pattern?
+
+  - id: az-tune-11
+    task: My Query Store looks empty right after we enabled it on Flexible Server. Does that mean the workload is healthy?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - query_capture_mode|recent enablement|sparse
+    - Query Store
+    correctness_checks:
+    - Does the response explain that sparse data can come from recent enablement or restrictive capture settings?
+    - Does it avoid concluding that an empty Query Store automatically means no issue exists?
+    - Does it suggest waiting for collection or checking capture settings first?
+
+  - id: az-tune-12
+    task: How should I tune autovacuum_naptime in postgresql.conf on my self-managed Ubuntu VM? I don't need Azure-specific features.
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    platform_scope: azure-postgresql
+    expected_activation: false
+    expected_patterns: []
+    anti_patterns:
+    - query_store|index_recommendations|intelligent_performance
+    correctness_checks:
+    - Does the response identify this as generic PostgreSQL parameter tuning rather than Azure intelligent tuning?
+    - Does it avoid making Query Store or Azure recommendation surfaces the main answer?
+    - Does it refrain from pretending postgresql.conf editing is an Azure Flexible Server workflow?
+    notes: 'Negative case: self-managed PostgreSQL parameter tuning should not activate Azure intelligent tuning.'
+
+  # query-performance expansion
+
+  - id: gen-perf-03
+    task: 'EXPLAIN ANALYZE shows ''Sort Method: external merge  Disk: 8192kB'' on a reporting query. What does that mean and what knob should I inspect?'
+    difficulty: easy
+    target_skill: skills/references/postgresql-query-performance
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - work_mem
+    - external merge|disk
+    correctness_checks:
+    - Does the response explain that the sort spilled to disk because available memory was insufficient?
+    - Does it identify work_mem as the relevant setting to inspect or tune?
+    - Does it remain grounded in PostgreSQL plan interpretation?
+
+  - id: gen-perf-04
+    task: My query filters on DATE(created_at) = current_date and ignores the index on created_at. Why is that happening?
+    difficulty: easy
+    target_skill: skills/references/postgresql-query-performance
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - expression index|rewrite
+    - created_at >=|created_at <
+    correctness_checks:
+    - Does the response explain that wrapping the column in a function can prevent a plain index from being used?
+    - Does it suggest rewriting to a range predicate or using an expression index?
+    - Is the tuning guidance specific to PostgreSQL planning behavior?
+
+  - id: gen-perf-05
+    task: After a huge CSV load, the same dashboard query got slow even though the indexes are still there. What maintenance step did I probably skip?
+    difficulty: easy
+    target_skill: skills/references/postgresql-query-performance
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - ANALYZE
+    - statistics|planner
+    correctness_checks:
+    - Does the response mention refreshing planner statistics with ANALYZE after bulk load?
+    - Does it explain that stale statistics can lead to poor plan choices?
+    - Does it avoid assuming the indexes are broken without checking stats first?
+
+  - id: gen-perf-06
+    task: How do I find the highest-total-time queries across the whole server without logging every statement text?
+    difficulty: medium
+    target_skill: skills/references/postgresql-query-performance
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - pg_stat_statements
+    - total_exec_time|mean_exec_time
+    correctness_checks:
+    - Does the response use pg_stat_statements or an equivalent PostgreSQL query-performance surface?
+    - Does it distinguish aggregated query fingerprints from raw statement logging?
+    - Does it keep the answer focused on performance investigation rather than only indexing advice?
+
+  - id: gen-perf-07
+    task: My prepared statement is fast for one customer and terrible for another because row counts differ wildly. Is PostgreSQL reusing a generic plan?
+    difficulty: medium
+    target_skill: skills/references/postgresql-query-performance
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - generic plan|custom plan
+    - plan_cache_mode|prepared
+    correctness_checks:
+    - Does the response mention generic versus custom plans for prepared statements?
+    - Does it explain why parameter skew can make one reused plan perform badly?
+    - Does it stay within PostgreSQL planner behavior rather than blame the ORM only?
+
+  - id: gen-perf-08
+    task: Parallel query never kicks in on my 12-core analytics server even for a 40M-row aggregate. Which plan settings or query properties usually block it?
+    difficulty: medium
+    target_skill: skills/references/postgresql-query-performance
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - parallel
+    - max_parallel_workers_per_gather|parallel setup
+    correctness_checks:
+    - Does the response mention PostgreSQL parallel query eligibility or worker settings?
+    - Does it explain that some functions, plan shapes, or row estimates can prevent parallelism?
+    - Does it avoid promising parallel execution for every large query?
+
+  - id: gen-perf-09
+    task: I expected an index-only scan, but EXPLAIN still shows heap fetches on a table that barely changes. What extra condition does PostgreSQL need?
+    difficulty: medium
+    target_skill: skills/references/postgresql-query-performance
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - index-only scan
+    - visibility map|heap fetch
+    correctness_checks:
+    - Does the response explain the role of the visibility map in index-only scans?
+    - Does it mention VACUUM or table visibility as the reason heap fetches can remain?
+    - Does it keep the answer focused on query-performance internals?
+
+  - id: gen-perf-10
+    task: Our API paginates with OFFSET 500000 LIMIT 50 and page 10000 is painfully slow. What's the usual PostgreSQL fix?
+    difficulty: medium
+    target_skill: skills/references/postgresql-query-performance
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - keyset|seek
+    - ORDER BY|cursor
+    correctness_checks:
+    - Does the response explain why large OFFSET values still force PostgreSQL to skip many rows?
+    - Does it recommend keyset or seek pagination for deep page access?
+    - Does it preserve deterministic ordering in the suggested pattern?
+
+  - id: gen-perf-11
+    task: A NOT IN subquery suddenly got slow and sometimes behaves oddly when NULLs are present. Should I rewrite it?
+    difficulty: hard
+    target_skill: skills/references/postgresql-query-performance
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - NOT EXISTS
+    - NULL|anti join
+    correctness_checks:
+    - Does the response note the semantic trap of NULLs with NOT IN?
+    - Does it suggest a safer rewrite such as NOT EXISTS when appropriate?
+    - Does it frame the rewrite as both a correctness and performance improvement?
+
+  - id: gen-perf-12
+    task: My hash join spills to many batches on a 60M-row join and runtime exploded. How do I interpret that and what memory setting is involved?
+    difficulty: hard
+    target_skill: skills/references/postgresql-query-performance
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - Hash Join|batches
+    - work_mem|hash_mem_multiplier
+    correctness_checks:
+    - Does the response explain that many hash batches usually indicate memory pressure or misestimation?
+    - Does it mention work_mem or related hash-memory behavior as the knob to inspect?
+    - Does it avoid claiming a new index alone fixes every hash-join spill?
+
+  # table-partitioning expansion
+
+  - id: gen-part-03
+    task: I already have a 200GB historical table for January. How do I attach it as a partition under a new monthly-partitioned parent without rewriting all the rows?
+    difficulty: easy
+    target_skill: skills/references/postgresql-table-partitioning
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - ATTACH PARTITION
+    - CHECK constraint|validate
+    correctness_checks:
+    - Does the response mention ATTACH PARTITION for reusing an existing table?
+    - Does it explain that the child table needs matching bounds or a validating CHECK constraint?
+    - Does the advice stay within PostgreSQL partition maintenance?
+
+  - id: gen-part-04
+    task: Can I put a UNIQUE(email) constraint on a partitioned users table when the partitions are by signup_month?
+    difficulty: easy
+    target_skill: skills/references/postgresql-table-partitioning
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - partition key
+    - UNIQUE|PRIMARY KEY
+    correctness_checks:
+    - Does the response explain that a global uniqueness constraint must include the partition key columns?
+    - Does it avoid implying PostgreSQL enforces cross-partition uniqueness on arbitrary columns automatically?
+    - Does it frame this as a limitation of partitioned tables rather than a simple syntax issue?
+
+  - id: gen-part-05
+    task: Deleting data older than 18 months takes hours on my partitioned audit table. Is there a faster retention pattern?
+    difficulty: easy
+    target_skill: skills/references/postgresql-table-partitioning
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - DROP TABLE|DETACH PARTITION
+    - retention|partition
+    correctness_checks:
+    - Does the response recommend dropping or detaching old partitions instead of mass DELETE when retention aligns to partition boundaries?
+    - Does it explain why partition-level removal is faster and creates less bloat?
+    - Does it keep the answer focused on partition lifecycle?
+
+  - id: gen-part-06
+    task: I partitioned by tenant_id but now I need to decide between LIST and HASH partitioning for 600 tenants with uneven traffic. What's the tradeoff?
+    difficulty: medium
+    target_skill: skills/references/postgresql-table-partitioning
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - LIST|HASH
+    - tenant_id|skew
+    correctness_checks:
+    - Does the response compare LIST versus HASH partitioning for many tenants?
+    - Does it mention skew and partition-count management as decision factors?
+    - Does it avoid pretending one strategy is always correct?
+
+  - id: gen-part-07
+    task: Do I have to create indexes on every partition, or is one index on the parent enough for a PostgreSQL partitioned table?
+    difficulty: medium
+    target_skill: skills/references/postgresql-table-partitioning
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - partitioned index|local index
+    - CREATE INDEX ON
+    correctness_checks:
+    - Does the response explain that PostgreSQL uses per-partition indexes rather than a single global index structure?
+    - Does it mention creating the index on the parent to propagate partition indexes where appropriate?
+    - Does it keep the explanation accurate for PostgreSQL partitioned tables?
+
+  - id: gen-part-08
+    task: I see 'Partitionwise Join' mentioned in plans on PostgreSQL 15. When does that optimization actually help?
+    difficulty: medium
+    target_skill: skills/references/postgresql-table-partitioning
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - partitionwise join|partitionwise aggregate
+    - matching partition keys|planner
+    correctness_checks:
+    - Does the response explain that partitionwise join helps when joined tables are partitioned compatibly?
+    - Does it mention that matching partition keys or partition bounds matter?
+    - Does it stay focused on planner behavior for partitioned tables?
+
+  - id: gen-part-09
+    task: Rows landed in my default partition last weekend because the next monthly partition wasn't created in time. What's the cleanup pattern after I add the missing partition?
+    difficulty: medium
+    target_skill: skills/references/postgresql-table-partitioning
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - DEFAULT
+    - INSERT INTO|ATTACH|move rows
+    correctness_checks:
+    - Does the response explain that rows in the default partition usually need to be moved after the proper partition exists?
+    - Does it mention creating the missing partition first before cleanup?
+    - Does it remain about partition maintenance rather than generic UPDATE tuning?
+
+  - id: gen-part-10
+    task: The planner got slower after we crossed 1200 daily partitions on an events table. Should we coarsen the partition granularity?
+    difficulty: hard
+    target_skill: skills/references/postgresql-table-partitioning
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - planning time|planner
+    - monthly|coarser|reduce
+    correctness_checks:
+    - Does the response acknowledge planner overhead from very high partition counts?
+    - Does it suggest coarser ranges or fewer partitions when the count becomes operationally expensive?
+    - Does it avoid claiming more partitions always improve performance?
+
+  - id: gen-part-11
+    task: A foreign key from invoices to a partitioned orders table behaves differently than I expected. Are there caveats I should know before using FKs with partitions?
+    difficulty: hard
+    target_skill: skills/references/postgresql-table-partitioning
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - foreign key
+    - partitioned table|partition
+    correctness_checks:
+    - Does the response mention that foreign keys work but come with operational or version-specific caveats on partitioned tables?
+    - Does it connect the answer to partitioned parent and child behavior rather than only generic FK syntax?
+    - Does it avoid oversimplifying partitioned-table constraints as identical to a plain table?
+
+  - id: gen-part-12
+    task: We want to distribute one logical table across four PostgreSQL servers by region. Is table partitioning the right feature for that?
+    difficulty: hard
+    target_skill: skills/references/postgresql-table-partitioning
+    platform_scope: generic
+    expected_activation: false
+    expected_patterns: []
+    anti_patterns:
+    - PARTITION BY RANGE|LIST|HASH
+    correctness_checks:
+    - Does the response say built-in table partitioning is for one PostgreSQL cluster, not multi-server sharding?
+    - Does it redirect toward sharding or distributed solutions instead of pure partition DDL?
+    - Does it avoid claiming CREATE TABLE ... PARTITION BY can span separate servers?
+    notes: 'Negative case: cross-server sharding should not activate the table-partitioning skill as the primary answer.'
+
+  # row-level-security expansion
+
+  - id: gen-rls-03
+    task: My RLS policy lets tenants SELECT their rows, but INSERT fails even when tenant_id is correct. Do I need something besides USING?
+    difficulty: easy
+    target_skill: skills/references/postgresql-row-level-security
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - WITH CHECK
+    - CREATE POLICY|USING
+    correctness_checks:
+    - Does the response explain that INSERT and UPDATE visibility may require WITH CHECK, not only USING?
+    - Does it keep the answer centered on RLS policy semantics rather than GRANT statements alone?
+    - Is the suggested policy pattern plausible PostgreSQL syntax?
+
+  - id: gen-rls-04
+    task: I want support engineers to view every tenant's data read-only, while normal app users stay tenant-isolated. How do I model that with RLS?
+    difficulty: easy
+    target_skill: skills/references/postgresql-row-level-security
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - CREATE POLICY
+    - TO support|role
+    correctness_checks:
+    - Does the response mention role-specific policies or different policies per role?
+    - Does it preserve tenant isolation for ordinary users while allowing a separate read-only support path?
+    - Does it avoid framing this purely as an application-layer permission problem?
+
+  - id: gen-rls-05
+    task: The table owner still bypasses my policies in tests. What's the PostgreSQL switch that forces even the owner through RLS?
+    difficulty: easy
+    target_skill: skills/references/postgresql-row-level-security
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - FORCE ROW LEVEL SECURITY
+    - table owner|BYPASSRLS
+    correctness_checks:
+    - Does the response mention FORCE ROW LEVEL SECURITY?
+    - Does it explain that owners or BYPASSRLS roles can otherwise bypass policies?
+    - Does it keep the answer focused on RLS behavior?
+
+  - id: gen-rls-06
+    task: I use SECURITY DEFINER helper functions in my app. Can those accidentally bypass RLS, and how should I review that risk?
+    difficulty: medium
+    target_skill: skills/references/postgresql-row-level-security
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - SECURITY DEFINER
+    - BYPASSRLS|owner
+    correctness_checks:
+    - Does the response warn that SECURITY DEFINER code can run with elevated privileges or a role that bypasses policies?
+    - Does it suggest careful ownership and privilege review for helper functions?
+    - Does it stay within PostgreSQL security semantics rather than generic app advice only?
+
+  - id: gen-rls-07
+    task: We're using RLS on a huge multi-tenant table. Should tenant_id also be indexed, or does the policy itself make PostgreSQL prune rows efficiently?
+    difficulty: medium
+    target_skill: skills/references/postgresql-row-level-security
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - tenant_id
+    - index|policy
+    correctness_checks:
+    - Does the response explain that RLS adds a predicate but does not remove the need for useful indexes?
+    - Does it mention indexing columns used in the policy, such as tenant_id?
+    - Does it avoid suggesting RLS itself is a performance feature?
+
+  - id: gen-rls-08
+    task: My RLS filter relies on current_setting('app.tenant_id'), but we're moving to PgBouncer transaction mode. How do I keep the tenant context safe?
+    difficulty: medium
+    target_skill: skills/references/postgresql-row-level-security
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - SET LOCAL|set_config
+    - current_setting|transaction mode
+    correctness_checks:
+    - Does the response mention transaction-scoped context such as SET LOCAL when pooling breaks session affinity?
+    - Does it explain why per-session settings can fail with transaction pooling?
+    - Does it remain focused on safe RLS context propagation?
+
+  - id: gen-rls-09
+    task: If I put RLS on a partitioned table, do the policies live on the parent only or do I need to duplicate them everywhere?
+    difficulty: medium
+    target_skill: skills/references/postgresql-row-level-security
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - partitioned table|partition
+    - policy|parent
+    correctness_checks:
+    - Does the response address RLS behavior with partitioned tables explicitly?
+    - Does it explain whether policy management is done at the parent and how partitions are affected?
+    - Does it avoid treating partitions and inheritance as unrelated to RLS?
+
+  - id: gen-rls-10
+    task: PostgreSQL 15 added security_invoker views. Can I use that to keep a reporting view from bypassing the caller's RLS policies?
+    difficulty: hard
+    target_skill: skills/references/postgresql-row-level-security
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - security_invoker
+    - view|RLS
+    correctness_checks:
+    - Does the response mention security_invoker views or the equivalent caller-rights behavior?
+    - Does it connect that feature to preserving the caller's RLS semantics through a view layer?
+    - Does it avoid saying that ordinary views always respect RLS in the same way regardless of ownership?
+
+  - id: gen-rls-11
+    task: Users belong to two tenant groups and now they can see more rows than expected through inherited role grants. How do I debug RLS with role membership in mind?
+    difficulty: hard
+    target_skill: skills/references/postgresql-row-level-security
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - role membership|SET ROLE
+    - RLS|policy
+    correctness_checks:
+    - Does the response mention testing with the effective role context or role inheritance in mind?
+    - Does it explain that role membership can change which policies apply?
+    - Does it keep the investigation grounded in PostgreSQL authorization behavior?
+
+  - id: gen-rls-12
+    task: I need to hide the salary column from some analysts but they can still see all rows. Is row-level security the right feature?
+    difficulty: hard
+    target_skill: skills/references/postgresql-row-level-security
+    platform_scope: generic
+    expected_activation: false
+    expected_patterns: []
+    anti_patterns:
+    - CREATE POLICY|ROW LEVEL SECURITY|WITH CHECK
+    correctness_checks:
+    - Does the response explain that this is primarily a column-privilege or view-masking problem rather than row-level security?
+    - Does it avoid pretending RLS alone hides individual columns?
+    - Does it redirect toward column GRANTs, views, or masking patterns instead of only CREATE POLICY?
+    notes: 'Negative case: column masking should not activate row-level security as the primary skill.'
+
+  # replication expansion
+
+  - id: gen-repl-03
+    task: Can logical replication publish only rows where tenant_id = 42 from a hot orders table, or do I need a trigger-based workaround?
+    difficulty: easy
+    target_skill: skills/references/postgresql-replication
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - row filter|WHERE
+    - CREATE PUBLICATION
+    correctness_checks:
+    - Does the response mention logical-replication row filters in CREATE PUBLICATION when supported?
+    - Does it explain that selective row replication is possible only in certain PostgreSQL versions or modes?
+    - Does it keep the answer on logical replication rather than batch ETL only?
+
+  - id: gen-repl-04
+    task: I only need id, status, and updated_at on the subscriber, not the entire 40-column table. Can PostgreSQL replicate a subset of columns?
+    difficulty: easy
+    target_skill: skills/references/postgresql-replication
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - column list|publication
+    - CREATE PUBLICATION
+    correctness_checks:
+    - Does the response mention column-list publishing for logical replication when available?
+    - Does it explain any version caveat instead of assuming all releases support it?
+    - Does it stay grounded in publication/subscription features?
+
+  - id: gen-repl-05
+    task: I need to replicate from PostgreSQL 14 to PostgreSQL 16. Are cross-version logical replication setups supported, or do versions have to match exactly?
+    difficulty: easy
+    target_skill: skills/references/postgresql-replication
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - publisher|subscriber
+    - version|logical replication
+    correctness_checks:
+    - Does the response explain cross-version expectations for logical replication?
+    - Does it mention that schema compatibility still matters even when versions differ?
+    - Does it avoid saying versions must always be identical?
+
+  - id: gen-repl-06
+    task: My logical subscriber has the tables, but schema changes on the publisher are not showing up automatically. Did I misconfigure something?
+    difficulty: medium
+    target_skill: skills/references/postgresql-replication
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - DDL
+    - schema|manual
+    correctness_checks:
+    - Does the response explain that PostgreSQL logical replication does not automatically replicate arbitrary DDL?
+    - Does it tell the user to manage schema changes separately on subscriber and publisher?
+    - Does it keep the answer focused on replication semantics?
+
+  - id: gen-repl-07
+    task: Sequence-backed IDs drift after failover to a logical subscriber. Why didn't the nextval values stay in sync?
+    difficulty: medium
+    target_skill: skills/references/postgresql-replication
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - sequence
+    - logical replication|not replicated
+    correctness_checks:
+    - Does the response explain that sequence state is a special case and not fully mirrored like ordinary row changes?
+    - Does it suggest a separate sequence sync or identity strategy when this matters?
+    - Does it avoid claiming logical replication keeps nextval perfectly aligned automatically?
+
+  - id: gen-repl-08
+    task: We want zero-downtime cutover, but one replicated table has no primary key and updates fail. What's the setting I need?
+    difficulty: medium
+    target_skill: skills/references/postgresql-replication
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - REPLICA IDENTITY FULL
+    - UPDATE|DELETE
+    correctness_checks:
+    - Does the response mention REPLICA IDENTITY when UPDATE or DELETE replication lacks a key?
+    - Does it explain the overhead tradeoff of REPLICA IDENTITY FULL?
+    - Does it stay within PostgreSQL replication behavior?
+
+  - id: gen-repl-09
+    task: How do I see whether my subscription is behind and whether the apply worker is actually running?
+    difficulty: medium
+    target_skill: skills/references/postgresql-replication
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - pg_stat_subscription
+    - apply|lag
+    correctness_checks:
+    - Does the response point the user to pg_stat_subscription or equivalent replication monitoring views?
+    - Does it discuss subscriber lag or worker state rather than only replication-slot storage?
+    - Does the answer stay practical for diagnosing subscription health?
+
+  - id: gen-repl-10
+    task: The initial copy for a 500GB table is taking forever. Can I seed the subscriber manually first and then let logical replication catch up?
+    difficulty: hard
+    target_skill: skills/references/postgresql-replication
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - copy_data|copy_data = false|initial copy
+    - subscription
+    correctness_checks:
+    - Does the response mention controlling or bypassing the initial copy for logical replication when seeding data separately?
+    - Does it explain that schema and key consistency still matter before catch-up begins?
+    - Does it avoid pretending the initial copy is mandatory in every migration design?
+
+  - id: gen-repl-11
+    task: We failed over a primary, and now the logical replication slot story is messy. Are failover-safe logical slots automatic?
+    difficulty: hard
+    target_skill: skills/references/postgresql-replication
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - replication slot|logical
+    - failover|slot
+    correctness_checks:
+    - Does the response treat logical slot failover as a nuanced, version-specific topic rather than guaranteed automation?
+    - Does it warn the user to verify slot behavior during HA or failover design?
+    - Does it avoid oversimplifying logical slots as magically portable in all setups?
+
+  - id: gen-repl-12
+    task: How do I restore a PostgreSQL backup from S3 into a new server? I don't need replication, just one-time recovery.
+    difficulty: hard
+    target_skill: skills/references/postgresql-replication
+    platform_scope: generic
+    expected_activation: false
+    expected_patterns: []
+    anti_patterns:
+    - CREATE PUBLICATION|CREATE SUBSCRIPTION|pg_replication_slots
+    correctness_checks:
+    - Does the response identify this as backup/restore rather than a replication activation?
+    - Does it avoid making publications, subscriptions, or replication slots the main answer?
+    - Does it redirect toward restore tooling instead of logical replication setup?
+    notes: 'Negative case: one-time restore should not activate replication as the primary skill.'
+
+  # ha-disaster-recovery expansion
+
+  - id: az-ha-03
+    task: If I trigger a planned failover on an HA Flexible Server, what should the app team expect at the connection layer?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - failover
+    - reconnect|DNS|30-60
+    correctness_checks:
+    - Does the response explain that clients should expect a short reconnect event during failover?
+    - Does it mention retry logic or DNS re-resolution rather than promising zero impact?
+    - Does it keep the answer Azure HA-specific?
+
+  - id: az-ha-04
+    task: I'm deciding between a read replica and HA for a production Azure PostgreSQL server. I need higher availability, not read scaling. Which one actually solves that?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - read replica
+    - HA|availability|failover
+    correctness_checks:
+    - Does the response distinguish read replicas from HA standby behavior?
+    - Does it explain that HA addresses availability while replicas mainly address read scale or regional copy scenarios?
+    - Does it avoid presenting the two as interchangeable?
+
+  - id: az-ha-05
+    task: Does geo-redundant backup let me restore to another region after a regional outage, or do I need a separate replica strategy?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - geo-redundant backup|geo restore
+    - region|restore
+    correctness_checks:
+    - Does the response explain the role of geo-redundant backup or geo-restore in disaster recovery?
+    - Does it distinguish restore-based recovery from an always-on replica or HA design?
+    - Does it stay in Azure Flexible Server DR terminology?
+
+  - id: az-ha-06
+    task: After PITR to a new server, do private DNS links and firewall rules come over automatically or do I have to recreate them?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - new server
+    - firewall|private endpoint|DNS
+    correctness_checks:
+    - Does the response explain that PITR creates a new server with a new endpoint and that networking artifacts may need rework?
+    - Does it mention connection-string or DNS updates after restore?
+    - Does it avoid implying in-place restoration of the same endpoint?
+
+  - id: az-ha-07
+    task: What backup retention setting should I pick if the business wants the option to recover from accidental deletes up to 28 days later?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - backup retention
+    - point-in-time|days
+    correctness_checks:
+    - Does the response tie retention choice to PITR window and accidental-delete recovery objectives?
+    - Does it keep the discussion in Azure backup retention terms rather than generic WAL archiving only?
+    - Does it avoid guessing impossible restore points outside the configured window?
+
+  - id: az-ha-08
+    task: Zone-redundant HA isn't offered in my region for this SKU. What's the practical fallback and what risk remains?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - same-zone|zone-redundant
+    - risk|zone failure
+    correctness_checks:
+    - Does the response mention same-zone HA or another fallback when zone-redundant HA is unavailable?
+    - Does it explain the remaining zone-level risk clearly?
+    - Does it stay aligned with Azure HA modes instead of community PostgreSQL streaming-replication setup?
+
+  - id: az-ha-09
+    task: Our app uses a single connection string and no retry logic. Is that good enough for Azure PostgreSQL failover, or do we need client changes?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - retry
+    - failover|reconnect
+    correctness_checks:
+    - Does the response recommend retry logic or resilient reconnect behavior at the client layer?
+    - Does it explain that a stable server name does not eliminate transient connection failures during failover?
+    - Does it remain Azure failover focused?
+
+  - id: az-ha-10
+    task: How is downtime different for same-zone HA versus zone-redundant HA during a major failover event?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - same-zone|zone-redundant
+    - failover|availability
+    correctness_checks:
+    - Does the response compare failure-domain protection between same-zone and zone-redundant HA?
+    - Does it explain that same-zone HA cannot protect against zone-wide outage even if failover is available for local faults?
+    - Does it avoid overstating exact SLA numbers unless explicitly known?
+
+  - id: az-ha-11
+    task: A teammate said we can delete the old production server right after a PITR test because the restore is basically in-place. That sounds wrong. Why?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - new server
+    - cutover|validation|connection string
+    correctness_checks:
+    - Does the response clearly state that PITR results in a separate server that should be validated before cutover?
+    - Does it explain why deleting the original immediately is unsafe?
+    - Does it keep the answer grounded in Azure restore semantics?
+
+  - id: az-ha-12
+    task: What's the right pg_basebackup command to seed a standby for my self-hosted PostgreSQL cluster across two VMs?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    platform_scope: azure-postgresql
+    expected_activation: false
+    expected_patterns: []
+    anti_patterns:
+    - PITR|zone-redundant|same-zone|Flexible Server
+    correctness_checks:
+    - Does the response identify this as self-managed PostgreSQL replication or backup work rather than Azure Flexible Server HA?
+    - Does it avoid making Azure PITR or zone-redundant HA the primary answer?
+    - Does it refrain from pretending pg_basebackup is the Azure Flexible Server recovery workflow?
+    notes: 'Negative case: self-hosted pg_basebackup setup should not activate Azure HA/DR as the primary skill.'
+
+  # entra-id-auth expansion
+
+  - id: az-auth-03
+    task: How do I use a service principal from a GitHub Actions pipeline to connect to Azure PostgreSQL without storing a long-lived DB password?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-entra-id-auth
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - service principal
+    - pgaadauth_create_principal|token
+    correctness_checks:
+    - Does the response mention service-principal or application identity mapping plus database principal creation?
+    - Does it explain that the access token is used as the PostgreSQL password value?
+    - Does it stay inside Entra auth instead of suggesting a static database password?
+
+  - id: az-auth-04
+    task: I'm using managed identity, but PostgreSQL still says 'password authentication failed for user'. What are the first Azure-specific things to check?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-entra-id-auth
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - pgaadauth_create_principal
+    - scope|Entra admin|client ID
+    correctness_checks:
+    - Does the response mention the common Entra-specific causes such as missing Entra admin, wrong token scope, or missing database principal?
+    - Does it explain that the username format for managed identity is not just the display name?
+    - Does it avoid generic password-reset advice as the first fix?
+
+  - id: az-auth-05
+    task: I want one Entra group to map to a shared PostgreSQL role so I don't have to create every engineer one by one. Is that supported?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-entra-id-auth
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - group
+    - pgaadauth_create_principal|isGroup
+    correctness_checks:
+    - Does the response mention Entra group-based principal creation?
+    - Does it explain that group membership can flow into PostgreSQL role access after propagation?
+    - Does it keep the answer Azure Entra specific?
+
+  - id: az-auth-06
+    task: What's the exact psql pattern to connect with my Entra token from Azure CLI on a jump box?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-entra-id-auth
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - az account get-access-token
+    - PGPASSWORD|psql
+    correctness_checks:
+    - Does the response show a psql pattern that uses a short-lived Entra access token?
+    - Does it use the correct PostgreSQL token audience rather than a generic Azure management token?
+    - Does it stay focused on Azure PostgreSQL token auth?
+
+  - id: az-auth-07
+    task: We're on JDBC. How should a long-running Java service refresh Entra tokens before pooled connections start failing?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-entra-id-auth
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - refresh
+    - 1 hour|expires|JDBC
+    correctness_checks:
+    - Does the response explain that tokens expire in about an hour and must be refreshed before expiry?
+    - Does it connect refresh strategy to long-lived or pooled connections rather than one-off scripts only?
+    - Does it keep the answer in Entra token-auth terms?
+
+  - id: az-auth-08
+    task: My Azure Container App can get a token, but login still fails. Does the PostgreSQL username need to be the managed identity display name or something else?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-entra-id-auth
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - client ID|object ID
+    - managed identity|username
+    correctness_checks:
+    - Does the response explain the username format caveat for managed identities?
+    - Does it mention that using the display name often causes generic auth failures?
+    - Does it stay within Azure PostgreSQL Entra auth troubleshooting?
+
+  - id: az-auth-09
+    task: Can I keep both password auth and Entra auth enabled while I migrate apps gradually, or is it all-or-nothing?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-entra-id-auth
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - password_auth|active_directory_auth
+    - hybrid|migrate
+    correctness_checks:
+    - Does the response describe a gradual migration path with both auth mechanisms where supported?
+    - Does it explain that application cutover can be incremental rather than all at once?
+    - Does it avoid implying Entra enablement forces an instant password-auth shutdown?
+
+  - id: az-auth-10
+    task: An Entra group grant worked for one teammate but not another. Could propagation delay really be that long?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-entra-id-auth
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - propagation
+    - group membership|minutes
+    correctness_checks:
+    - Does the response mention propagation delay for Entra RBAC or group membership?
+    - Does it set expectations that the database may lag behind an identity change?
+    - Does it avoid assuming the grant is broken immediately?
+
+  - id: az-auth-11
+    task: We're using token auth and PgBouncer in transaction mode. After an hour, checkouts start failing. Is that an auth bug or a pooling design issue?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-entra-id-auth
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - session mode
+    - transaction mode|token
+    correctness_checks:
+    - Does the response explain the interaction between token-based auth and transaction pooling?
+    - Does it recommend session mode or direct connections for token-auth clients?
+    - Does it avoid treating this only as a random password error?
+
+  - id: az-auth-12
+    task: I forgot the postgres admin password on my local Docker PostgreSQL container. How do I reset it?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-entra-id-auth
+    platform_scope: azure-postgresql
+    expected_activation: false
+    expected_patterns: []
+    anti_patterns:
+    - pgaadauth_create_principal|ossrdbms-aad|managed identity|Entra
+    correctness_checks:
+    - Does the response identify this as a local or generic PostgreSQL password-reset problem rather than Azure Entra auth?
+    - Does it avoid making Entra tokens or pgaadauth_create_principal the main answer?
+    - Does it refrain from pretending Azure identity setup is required for local Docker auth recovery?
+    notes: 'Negative case: local password reset should not activate Azure Entra authentication.'
+
+  # connection-pooling expansion
+
+  - id: az-pool-02
+    task: What's the practical difference between session mode and transaction mode on Azure's built-in PgBouncer? I'm deciding for a web API.
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-connection-pooling
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - session mode|transaction mode
+    - PgBouncer|6432
+    correctness_checks:
+    - Does the response compare session and transaction pooling instead of just naming them?
+    - Does it connect the choice to Azure built-in PgBouncer behavior?
+    - Does it avoid implying port 5432 goes through the pooler?
+
+  - id: az-pool-03
+    task: I enabled built-in PgBouncer but my connection string still uses port 5432. Did I actually turn pooling on for the app?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-connection-pooling
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - '6432'
+    - 5432|bypass
+    correctness_checks:
+    - Does the response explain that 5432 bypasses Azure's built-in PgBouncer and 6432 is required?
+    - Does it keep the answer specific to Azure Flexible Server's pooler?
+    - Does it avoid vague generic pooling advice only?
+
+  - id: az-pool-04
+    task: Prepared statements started failing with 'prepared statement does not exist' after we switched the built-in PgBouncer to transaction mode. Why?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-connection-pooling
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - prepared statement
+    - transaction mode|session mode
+    correctness_checks:
+    - Does the response explain that transaction mode breaks server-side prepared statements across backend reuse?
+    - Does it suggest session mode or client-side alternatives as the fix?
+    - Does it remain focused on Azure's built-in PgBouncer behavior?
+
+  - id: az-pool-05
+    task: Our chat service uses LISTEN/NOTIFY and advisory locks. Will transaction pooling on Azure PgBouncer cause surprises?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-connection-pooling
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - LISTEN|NOTIFY|advisory
+    - session mode|transaction
+    correctness_checks:
+    - Does the response warn that session-affine features like LISTEN/NOTIFY are poor fits for transaction pooling?
+    - Does it recommend session mode or direct connections for those clients?
+    - Does it avoid pretending all PostgreSQL session state survives transaction pooling?
+
+  - id: az-pool-06
+    task: How do I size pgbouncer.default_pool_size versus pgbouncer.max_client_conn for 12 app instances and two databases on the same server?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-connection-pooling
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - default_pool_size
+    - max_client_conn|pool math
+    correctness_checks:
+    - Does the response mention Azure PgBouncer pool math instead of treating the pool as one global number?
+    - Does it warn that per-user or per-database combinations can inflate backend demand?
+    - Does it stay Azure PgBouncer specific?
+
+  - id: az-pool-07
+    task: Can I run SHOW POOLS on Azure's built-in PgBouncer to see queue depth, or is there another way to monitor it?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-connection-pooling
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - SHOW POOLS|SHOW STATS
+    - Azure Monitor|metrics|not expose
+    correctness_checks:
+    - Does the response explain that the built-in Azure pooler does not expose the usual PgBouncer admin console?
+    - Does it redirect toward Azure Monitor metrics or backend views instead?
+    - Does it avoid inventing unsupported SHOW commands for this service?
+
+  - id: az-pool-08
+    task: We still hit queueing spikes after enabling the pooler because each request opens and closes ORM connections immediately. Is that expected?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-connection-pooling
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - warm|keepalive|client pool
+    - queue|connection storm
+    correctness_checks:
+    - Does the response explain that the pooler helps most when clients also reuse connections sensibly?
+    - Does it mention bursty open-close behavior or connection storms as a separate issue from backend pooling?
+    - Does it keep the answer aligned with Azure connection-pooling behavior?
+
+  - id: az-pool-09
+    task: After HA failover, pooled clients recover slowly even though the server name didn't change. What should I check?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-connection-pooling
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - DNS
+    - retry|TTL|failover
+    correctness_checks:
+    - Does the response mention reconnect behavior, retries, or DNS caching after failover?
+    - Does it explain that pooled clients can still hold stale connection assumptions after an HA event?
+    - Does it stay centered on Azure PgBouncer/HA interaction?
+
+  - id: az-pool-10
+    task: My app sets statement_timeout per session, but random requests inherit the wrong value after we enabled transaction pooling. How do we make that safe?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-connection-pooling
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - SET LOCAL
+    - transaction mode|DISCARD ALL
+    correctness_checks:
+    - Does the response explain session-state leakage risks in transaction mode?
+    - Does it recommend SET LOCAL or session mode for safety?
+    - Does it avoid implying arbitrary session GUCs are safe in transaction pooling?
+
+  - id: az-pool-11
+    task: We use Entra token auth through the built-in pooler and auth starts failing when tokens age out. Is there a pool-mode recommendation for that?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-connection-pooling
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - session mode
+    - token|Entra|transaction mode
+    correctness_checks:
+    - Does the response explain the special interaction between token auth and pool mode?
+    - Does it recommend session mode or bypassing the pooler for token-auth clients?
+    - Does it keep the answer on Azure pooler behavior rather than generic password rotation only?
+
+  # advanced-indexing expansion
+
+  - id: gen-idx-07
+    task: My LIKE '%searchterm%' query on a 2M-row customers table still does a seq scan. Is there an index type for this pattern?
+    difficulty: easy
+    target_skill: skills/references/postgresql-advanced-indexing
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - pg_trgm|trigram
+    - GIN|GiST
+    correctness_checks:
+    - Does the response recommend pg_trgm-based indexing for leading-wildcard LIKE patterns?
+    - Does it explain why a normal B-tree index cannot help with %term% searches?
+    - Is the indexing advice specific to PostgreSQL?
+
+  - id: gen-idx-08
+    task: I already have an index on email, but WHERE lower(email) = lower($1) still scans. Do I need a different index?
+    difficulty: easy
+    target_skill: skills/references/postgresql-advanced-indexing
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - expression index
+    - lower\(email\)
+    correctness_checks:
+    - Does the response mention an expression index on lower(email) or an equivalent case-insensitive strategy?
+    - Does it explain why the plain email index is not enough for lower(email) predicates?
+    - Does it avoid generic query-performance advice without index design specifics?
+
+  - id: gen-idx-09
+    task: Should I use INCLUDE columns so my order-history query can avoid heap lookups for status and total?
+    difficulty: easy
+    target_skill: skills/references/postgresql-advanced-indexing
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - INCLUDE
+    - covering|index-only
+    correctness_checks:
+    - Does the response explain INCLUDE columns or covering-index behavior?
+    - Does it connect INCLUDE to reducing heap fetches for the selected columns?
+    - Does it stay within PostgreSQL indexing features?
+
+  - id: gen-idx-10
+    task: I built a partial index on active = true, but EXPLAIN only uses it sometimes even though the query filters active = true. What subtle thing should I verify?
+    difficulty: medium
+    target_skill: skills/references/postgresql-advanced-indexing
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - partial index
+    - predicate|planner
+    correctness_checks:
+    - Does the response explain that the query predicate must match the partial-index predicate closely enough for the planner to prove it?
+    - Does it mention parameterization or expression mismatch as a reason the index might not be chosen?
+    - Does it avoid pretending all partial indexes are used automatically?
+
+  - id: gen-idx-11
+    task: I have a multicolumn index on (status, created_at), but my query filters created_at >= now()-interval '7 days' and status = 'open'. Is that column order right?
+    difficulty: medium
+    target_skill: skills/references/postgresql-advanced-indexing
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - column order
+    - equality|range
+    correctness_checks:
+    - Does the response discuss equality-versus-range selectivity when choosing multicolumn index order?
+    - Does it explain why column order influences how much of the index can be searched efficiently?
+    - Does it stay focused on index design, not only EXPLAIN usage?
+
+  - id: gen-idx-12
+    task: Would two single-column indexes on customer_id and created_at ever beat one composite index for a reporting query?
+    difficulty: medium
+    target_skill: skills/references/postgresql-advanced-indexing
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - bitmap
+    - composite|BitmapAnd
+    correctness_checks:
+    - Does the response mention PostgreSQL bitmap index combination as a possibility?
+    - Does it compare that with the benefits of a purpose-built composite index?
+    - Does it avoid claiming one design always wins without workload context?
+
+  - id: gen-idx-13
+    task: My append-only metrics table has 900M rows on disk in timestamp order. Should I consider BRIN instead of another huge B-tree?
+    difficulty: medium
+    target_skill: skills/references/postgresql-advanced-indexing
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - BRIN
+    - correlation|pages_per_range
+    correctness_checks:
+    - Does the response recommend BRIN when physical order correlates strongly with the filter column?
+    - Does it explain the space-versus-precision tradeoff relative to B-tree?
+    - Does it keep the answer in PostgreSQL advanced indexing terms?
+
+  - id: gen-idx-14
+    task: I need a uniqueness rule where two NULLs in sku should count as duplicates on PostgreSQL 15. Is there an index feature for that?
+    difficulty: hard
+    target_skill: skills/references/postgresql-advanced-indexing
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - NULLS NOT DISTINCT
+    - UNIQUE
+    correctness_checks:
+    - Does the response mention PostgreSQL 15's NULLS NOT DISTINCT support for unique indexes or constraints?
+    - Does it explain the difference from traditional UNIQUE behavior with NULLs?
+    - Does it avoid suggesting a trigger as the only option when the built-in feature exists?
+
+  - id: gen-idx-15
+    task: Our GIN index on a high-write tags column keeps getting slower to query until autovacuum catches up. What internal GIN behavior should I check?
+    difficulty: hard
+    target_skill: skills/references/postgresql-advanced-indexing
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - GIN
+    - pending list|fastupdate
+    correctness_checks:
+    - Does the response mention the GIN pending list or fastupdate behavior on write-heavy tables?
+    - Does it explain why write bursts can affect subsequent query performance?
+    - Does it keep the answer on advanced indexing internals rather than generic vacuum advice only?
+
+  # jsonb-patterns expansion
+
+  - id: gen-json-03
+    task: How do I tell the difference between metadata->'deleted_at' being JSON null versus the key not existing at all?
+    difficulty: easy
+    target_skill: skills/references/postgresql-jsonb-patterns
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - \?
+    - IS NULL|jsonb_typeof
+    correctness_checks:
+    - Does the response distinguish missing-key checks from explicit null-value checks?
+    - Does it avoid using only ->> 'deleted_at' IS NULL, which conflates the two cases?
+    - Is the guidance expressed in valid PostgreSQL JSONB terms?
+
+  - id: gen-json-04
+    task: I need one row per item inside a JSONB array column named line_items so I can sum quantities. What's the usual PostgreSQL pattern?
+    difficulty: easy
+    target_skill: skills/references/postgresql-jsonb-patterns
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - jsonb_array_elements
+    - LATERAL|FROM
+    correctness_checks:
+    - Does the response mention jsonb_array_elements or a related set-returning function?
+    - Does it explain the need to expand the array before aggregating child fields?
+    - Does it stay focused on PostgreSQL JSONB querying?
+
+  - id: gen-json-05
+    task: For a filter like metadata @> '{"status":"paid"}', is containment usually better than extracting metadata->>'status'?
+    difficulty: easy
+    target_skill: skills/references/postgresql-jsonb-patterns
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - '@>'
+    - containment|jsonb
+    correctness_checks:
+    - Does the response explain JSONB containment with @>?
+    - Does it compare containment versus extracting text from a specific key?
+    - Does it keep the answer on JSONB operator choice and indexing implications?
+
+  - id: gen-json-06
+    task: I need to update the second element inside a nested JSONB array. Is jsonb_set still the normal approach?
+    difficulty: medium
+    target_skill: skills/references/postgresql-jsonb-patterns
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - jsonb_set
+    - path|array index
+    correctness_checks:
+    - Does the response use jsonb_set or an equivalent JSONB update approach with an explicit path?
+    - Does it explain how array indexing works in the update path?
+    - Does it avoid pretending PostgreSQL mutates JSONB in place without rebuilding the value?
+
+  - id: gen-json-07
+    task: I have a 5M-row JSONB column and mostly query with @> containment, not key existence. Which GIN operator class should I evaluate?
+    difficulty: medium
+    target_skill: skills/references/postgresql-jsonb-patterns
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - jsonb_path_ops|jsonb_ops
+    - GIN
+    correctness_checks:
+    - Does the response compare jsonb_path_ops and jsonb_ops in the context of the user's operators?
+    - Does it mention that operator support and index size tradeoffs differ between the two?
+    - Does it stay centered on JSONB indexing strategy?
+
+  - id: gen-json-08
+    task: On PostgreSQL 14, can I write metadata['customer']['tier'] = 'gold' style JSONB updates, or do I still need jsonb_set everywhere?
+    difficulty: medium
+    target_skill: skills/references/postgresql-jsonb-patterns
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - subscript|\['customer'\]
+    - jsonb_set|update
+    correctness_checks:
+    - Does the response mention JSONB subscripting support in modern PostgreSQL?
+    - Does it clarify when subscripting syntax is available versus when jsonb_set is still needed?
+    - Does it remain PostgreSQL-version aware?
+
+  - id: gen-json-09
+    task: Should I materialize metadata->>'country' into a generated column if we filter on it all the time, or is JSONB indexing enough?
+    difficulty: medium
+    target_skill: skills/references/postgresql-jsonb-patterns
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - generated column|stored
+    - index|jsonb
+    correctness_checks:
+    - Does the response compare indexing the JSONB expression directly versus projecting it into a generated column?
+    - Does it connect the choice to frequent filtering and typed access?
+    - Does it keep the discussion in JSONB-pattern terms?
+
+  - id: gen-json-10
+    task: I need a SQL/JSON path filter that finds documents where any item has price > 100 and category = 'electronics'. Which operator should I use?
+    difficulty: hard
+    target_skill: skills/references/postgresql-jsonb-patterns
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - '@\?|jsonpath|jsonb_path_exists'
+    - price|category
+    correctness_checks:
+    - Does the response mention jsonpath support such as @? or jsonb_path_exists?
+    - Does it show that the predicate can be pushed into a JSON path expression rather than only array unnesting?
+    - Does it keep the answer PostgreSQL JSONB specific?
+
+  - id: gen-json-11
+    task: Our payload stores numeric IDs inside JSONB arrays, and we need to test whether an array contains all requested IDs. What's the cleanest operator pattern?
+    difficulty: hard
+    target_skill: skills/references/postgresql-jsonb-patterns
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - '@>|\?|\?\|'
+    - jsonb array|containment
+    correctness_checks:
+    - Does the response choose a containment or existence operator pattern appropriate for array membership checks?
+    - Does it stay within PostgreSQL JSONB operators rather than string matching the JSON text?
+    - Does it avoid suggesting a relational redesign as the only immediate answer when the user asked about JSONB querying?
+
+  # connection-management expansion
+
+  - id: gen-conn-03
+    task: I see lots of sessions in 'idle in transaction' for 45 minutes. Why is that worse than plain idle connections?
+    difficulty: easy
+    target_skill: skills/references/postgresql-connection-management
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - idle in transaction
+    - VACUUM|locks|bloat
+    correctness_checks:
+    - Does the response explain why idle-in-transaction sessions hold resources longer than ordinary idle sessions?
+    - Does it mention lock retention, vacuum interference, or bloat risk?
+    - Does it stay centered on connection management rather than only query tuning?
+
+  - id: gen-conn-04
+    task: What's the server-side timeout that automatically closes sessions left idle in transaction too long?
+    difficulty: easy
+    target_skill: skills/references/postgresql-connection-management
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - idle_in_transaction_session_timeout
+    - timeout
+    correctness_checks:
+    - Does the response identify idle_in_transaction_session_timeout correctly?
+    - Does it explain that this is different from statement_timeout?
+    - Does it keep the answer on PostgreSQL connection/session management?
+
+  - id: gen-conn-05
+    task: How much memory does max_connections really cost? Our team wants to raise it from 300 to 1500 instead of using a pooler.
+    difficulty: easy
+    target_skill: skills/references/postgresql-connection-management
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - max_connections
+    - memory|backend process|pool
+    correctness_checks:
+    - Does the response explain that each PostgreSQL backend consumes memory and scheduling overhead?
+    - Does it recommend considering pooling instead of unbounded connection-count growth?
+    - Does it avoid presenting max_connections increases as free?
+
+  - id: gen-conn-06
+    task: After a restart, every app instance reconnects at once and the database thrashes for a minute. How do people usually dampen that?
+    difficulty: medium
+    target_skill: skills/references/postgresql-connection-management
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - backoff|jitter|stagger
+    - reconnect|storm
+    correctness_checks:
+    - Does the response recommend exponential backoff, jitter, or staggered reconnects?
+    - Does it explain the connection-storm risk after restart or failover?
+    - Does it stay within operational connection-management advice?
+
+  - id: gen-conn-07
+    task: When should I use pg_cancel_backend versus pg_terminate_backend while cleaning up bad sessions?
+    difficulty: medium
+    target_skill: skills/references/postgresql-connection-management
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - pg_cancel_backend
+    - pg_terminate_backend
+    correctness_checks:
+    - Does the response distinguish query cancellation from full session termination?
+    - Does it explain the safer first step when the goal is to stop work but preserve the connection if possible?
+    - Does it keep the answer in PostgreSQL administrative semantics?
+
+  - id: gen-conn-08
+    task: We have 40 app pods and each pod's ORM pool is set to 20. How should I think about total server demand before touching max_connections?
+    difficulty: medium
+    target_skill: skills/references/postgresql-connection-management
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - pool size
+    - 40|pods|max_connections
+    correctness_checks:
+    - Does the response multiply out total possible connections across pods or app instances?
+    - Does it recommend budgeting pool sizes against server capacity?
+    - Does it keep the discussion on connection management rather than only SQL tuning?
+
+  - id: gen-conn-09
+    task: How do I spot blocked sessions and the blocker from pg_stat_activity when the app says the database is hung?
+    difficulty: medium
+    target_skill: skills/references/postgresql-connection-management
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - pg_stat_activity
+    - wait_event|blocking|pg_blocking_pids
+    correctness_checks:
+    - Does the response point to pg_stat_activity and/or pg_blocking_pids for blocker analysis?
+    - Does it explain that the issue may be session blocking rather than too many total connections?
+    - Does it remain grounded in PostgreSQL operational views?
+
+  - id: gen-conn-10
+    task: My app uses PgBouncer transaction mode and sometimes gets prepared statement errors. Is that a database connection-management issue or just an ORM bug?
+    difficulty: hard
+    target_skill: skills/references/postgresql-connection-management
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - prepared statement
+    - PgBouncer|transaction mode
+    correctness_checks:
+    - Does the response connect prepared-statement errors to transaction pooling and backend reuse?
+    - Does it suggest connection-management remedies such as session mode or client-side prep?
+    - Does it avoid dismissing the issue as only an ORM bug?
+
+  - id: gen-conn-11
+    task: What timeout closes totally idle sessions that sit around forever but are not in a transaction?
+    difficulty: hard
+    target_skill: skills/references/postgresql-connection-management
+    platform_scope: generic
+    expected_activation: true
+    expected_patterns:
+    - idle_session_timeout
+    - timeout|idle
+    correctness_checks:
+    - Does the response identify idle_session_timeout or explain the relevant server-side mechanism?
+    - Does it distinguish that from idle_in_transaction_session_timeout?
+    - Does it keep the answer on connection lifecycle management?
+
+  # extension-lifecycle expansion
+
+  - id: az-ext-03
+    task: I enabled pg_cron in azure.extensions, but CREATE EXTENSION pg_cron still errors until after a restart. Is that expected?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - shared_preload_libraries|restart
+    - pg_cron|azure.extensions
+    anti_patterns:
+    - ALTER SYSTEM|superuser
+    correctness_checks:
+    - Does the response mention that some extensions require shared_preload_libraries and a restart after parameter change?
+    - Does it keep the explanation Azure-specific rather than assuming superuser file edits?
+    - Does it avoid using ALTER SYSTEM as the fix?
+
+  - id: az-ext-04
+    task: How do I check whether an extension is actually supported on Azure Flexible Server before I script CREATE EXTENSION for it?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - pg_available_extensions|supported
+    - azure.extensions|allowlist
+    correctness_checks:
+    - Does the response mention checking supported or available extensions before trying to create one?
+    - Does it connect support status with Azure allowlisting rather than generic package installation?
+    - Does it avoid implying every community extension can be compiled on demand?
+
+  - id: az-ext-05
+    task: Do I need to CREATE EXTENSION postgis separately in every database on the same Azure server, or is it a server-wide install?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - per-database|CREATE EXTENSION
+    - database
+    correctness_checks:
+    - Does the response explain that extension objects are usually created per database, not magically in every DB on the server?
+    - Does it stay within Azure extension lifecycle guidance?
+    - Does it avoid treating allowlisting as equivalent to creation in every database?
+
+  - id: az-ext-06
+    task: What's the safe pattern to update azure.extensions when I already have postgis and vector enabled and now need pg_cron too?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - append|current value
+    - azure.extensions|parameter
+    correctness_checks:
+    - Does the response explain that the existing azure.extensions value should be preserved and appended to, not overwritten blindly?
+    - Does it keep the answer Azure-parameter specific?
+    - Does it avoid dropping existing allowed extensions accidentally?
+
+  - id: az-ext-07
+    task: After a major version upgrade, how do I check whether installed extensions need ALTER EXTENSION UPDATE?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - ALTER EXTENSION UPDATE
+    - extension version|upgrade
+    correctness_checks:
+    - Does the response mention validating or updating extension versions after major PostgreSQL upgrade?
+    - Does it separate server upgrade from extension upgrade steps?
+    - Does it stay focused on extension lifecycle management?
+
+  - id: az-ext-08
+    task: Can I install pg_stat_statements on Azure and start using it immediately, or are there extra server-parameter steps?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - pg_stat_statements
+    - shared_preload_libraries|restart
+    correctness_checks:
+    - Does the response mention any preload parameter and restart requirements for pg_stat_statements?
+    - Does it keep the answer Azure-specific instead of telling the user to edit postgresql.conf directly?
+    - Does it avoid unsupported superuser-only instructions?
+
+  - id: az-ext-09
+    task: If I DROP EXTENSION postgis on Azure, what happens to dependent spatial columns and functions in that database?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - DROP EXTENSION
+    - CASCADE|dependent objects
+    correctness_checks:
+    - Does the response warn about dependent objects when dropping an extension?
+    - Does it explain that the drop can affect objects in that database rather than being a harmless toggle?
+    - Does it stay within extension lifecycle concerns?
+
+  - id: az-ext-10
+    task: We want extensions in a dedicated schema instead of public. Is CREATE EXTENSION ... WITH SCHEMA valid on Azure PostgreSQL?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - WITH SCHEMA
+    - extension
+    correctness_checks:
+    - Does the response mention extension schema placement where PostgreSQL supports it?
+    - Does it keep the answer about extension object location rather than Azure server provisioning?
+    - Does it avoid claiming every extension ignores schema placement entirely?
+
+  - id: az-ext-11
+    task: I'm trying to CREATE EXTENSION for a niche community package that's not on the Azure support list. Can I apt-get it onto Flexible Server myself?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - supported|allowlist
+    - not supported|Azure
+    anti_patterns:
+    - apt-get|yum|compile from source|superuser
+    correctness_checks:
+    - Does the response explain that Azure Flexible Server does not let customers install arbitrary OS packages or unsupported extensions?
+    - Does it avoid suggesting apt-get, source compilation, or superuser shell access?
+    - Does it stay clearly within Azure extension constraints?
+
+  # upgrades-maintenance expansion
+
+  - id: az-upg-03
+    task: What should I check before a major version upgrade if my server uses postgis and pg_partman?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - extension
+    - validate-only|compatibility
+    correctness_checks:
+    - Does the response mention extension compatibility as a common MVU blocker?
+    - Does it recommend a validate-only pass before the actual upgrade?
+    - Does it keep the answer Azure upgrade specific?
+
+  - id: az-upg-04
+    task: Can I jump from PostgreSQL 14 straight to 17 on Azure Flexible Server, or do I have to stop at each major release?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - sequential|one version at a time
+    - cannot skip
+    correctness_checks:
+    - Does the response explain that Azure MVU requires sequential major-version upgrades?
+    - Does it avoid suggesting a direct skip-version command?
+    - Does it stay within Azure Flexible Server MVU behavior?
+
+  - id: az-upg-05
+    task: Does the maintenance window control when a major version upgrade runs, or only routine patches?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - maintenance window
+    - minor|patch|MVU
+    correctness_checks:
+    - Does the response explain that the maintenance window controls routine maintenance rather than scheduling a user-initiated MVU?
+    - Does it avoid implying MVU happens automatically inside the maintenance window?
+    - Does it keep the answer on Azure maintenance semantics?
+
+  - id: az-upg-06
+    task: What's the Azure CLI dry-run command to validate a production upgrade before the real cutover?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - az postgres flexible-server upgrade
+    - --validate-only|--validate
+    correctness_checks:
+    - Does the response mention the validate-only Azure CLI flow?
+    - Does it keep the answer specific to Azure Flexible Server tooling?
+    - Does it avoid framing the validation as a destructive step?
+
+  - id: az-upg-07
+    task: What is the single most important database task immediately after a successful major version upgrade on Azure PostgreSQL?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - ANALYZE|vacuumdb
+    - statistics
+    correctness_checks:
+    - Does the response prioritize ANALYZE or equivalent statistics refresh right after the upgrade?
+    - Does it explain that planner stats can be stale post-upgrade?
+    - Does it remain focused on post-upgrade maintenance rather than app feature changes only?
+
+  - id: az-upg-08
+    task: If my primary has read replicas, do they upgrade automatically when I upgrade the primary server?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - read replica
+    - upgrade separately|version mismatch
+    correctness_checks:
+    - Does the response explain the read-replica upgrade behavior accurately for Azure Flexible Server?
+    - Does it avoid claiming replicas silently auto-upgrade with the primary?
+    - Does it keep the answer on Azure MVU operations?
+
+  - id: az-upg-09
+    task: How much free disk space should I leave before kicking off a major version upgrade?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - 25% free space|disk
+    - upgrade
+    correctness_checks:
+    - Does the response mention the free-space prerequisite or the need for meaningful headroom before upgrade?
+    - Does it avoid treating disk space as irrelevant to the MVU process?
+    - Does it stay Azure MVU specific?
+
+  - id: az-upg-10
+    task: Downtime for in-place MVU is too risky for us. Is a replica-based blue-green cutover a valid Azure pattern?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - blue-green|replica|promote
+    - cutover|downtime
+    correctness_checks:
+    - Does the response mention a lower-downtime alternative such as replica-based cutover when applicable?
+    - Does it compare that with in-place MVU tradeoffs?
+    - Does it stay within Azure PostgreSQL upgrade strategy guidance?
+
+  - id: az-upg-11
+    task: How do I raise work_mem on my existing Azure PostgreSQL server to speed up a big sort?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    platform_scope: azure-postgresql
+    expected_activation: false
+    expected_patterns: []
+    anti_patterns:
+    - major version upgrade|validate-only|maintenance window|ANALYZE after upgrade
+    correctness_checks:
+    - Does the response identify this as parameter tuning rather than upgrades-and-maintenance activation?
+    - Does it avoid making MVU, validate-only, or maintenance windows the main answer?
+    - Does it refrain from reframing simple parameter tuning as a version-upgrade task?
+    notes: 'Negative case: routine parameter tuning should not activate upgrades-maintenance as the primary skill.'
+
+  # provisioning expansion
+
+  - id: az-prov-02
+    task: I'm starting greenfield. Should I decide public versus private networking before I write Terraform, or can I flip that later if security requirements change?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-provisioning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - create-time|network mode
+    - public|private|VNet
+    correctness_checks:
+    - Does the response explain that network mode is effectively a create-time decision?
+    - Does it avoid implying public and private access can be flipped casually later?
+    - Does it keep the answer on provisioning decisions?
+
+  - id: az-prov-03
+    task: Show me the Bicep skeleton for a Flexible Server in General Purpose with zone-redundant HA and 256GB storage.
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-provisioning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - Bicep|resource
+    - highAvailability|zoneRedundant|storage
+    correctness_checks:
+    - Does the response provide Azure provisioning-oriented structure rather than generic SQL steps?
+    - Does it include HA and storage choices as part of the server resource definition?
+    - Does it stay on Azure Flexible Server provisioning?
+
+  - id: az-prov-04
+    task: We picked 128GB storage, but the workload grows unpredictably. Should I enable auto-grow at creation time?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-provisioning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - auto-grow|storage
+    - cannot shrink|permanent
+    correctness_checks:
+    - Does the response connect auto-grow to protection from full-disk incidents?
+    - Does it explain that storage increases are effectively permanent?
+    - Does it keep the tradeoff framed as a provisioning decision?
+
+  - id: az-prov-05
+    task: How do SKU names differ between az CLI and Terraform for the same General Purpose machine size?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-provisioning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - Standard_D|GP_Standard
+    - sku|Terraform|CLI
+    correctness_checks:
+    - Does the response explain the CLI-versus-Terraform SKU naming difference?
+    - Does it avoid copy-pasting the same SKU format into both tools as if they are identical?
+    - Does it stay within Azure provisioning specifics?
+
+  - id: az-prov-06
+    task: I need a read replica in another region for analytics. Is that a provisioning workflow or something I bolt on much later?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-provisioning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - read replica
+    - region|create
+    correctness_checks:
+    - Does the response frame replica creation as an Azure server-management workflow connected to initial architecture planning?
+    - Does it distinguish replica goals from HA?
+    - Does it keep the answer on Azure server provisioning or topology decisions?
+
+  - id: az-prov-07
+    task: We're cost-sensitive. Is Burstable a safe starting point if we expect to move to General Purpose once traffic grows?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-provisioning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - Burstable
+    - new server|migration|GP|MO
+    correctness_checks:
+    - Does the response explain that moving from Burstable to GP/MO requires new-server migration rather than an in-place tier flip?
+    - Does it help the user weigh starting cheap against future migration cost?
+    - Does it stay within Azure provisioning facts?
+
+  - id: az-prov-08
+    task: What should I baseline right after az postgres flexible-server create finishes so the server is production-ready?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-provisioning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - Query Store|parameter review|alerts
+    - maintenance window|baseline
+    correctness_checks:
+    - Does the response explain that provisioning is not finished at the create command?
+    - Does it mention immediate baseline actions such as parameter review, observability, or networking validation?
+    - Does it keep the answer on Azure provisioning readiness?
+
+  # vector-diskann expansion
+
+  - id: az-vec-03
+    task: I forgot to allowlist pg_diskann and now CREATE INDEX USING diskann fails. What are the exact Azure prerequisites before the index DDL works?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-vector-diskann
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - azure.extensions
+    - CREATE EXTENSION pg_diskann|vector
+    correctness_checks:
+    - Does the response mention allowlisting both vector and pg_diskann before creation?
+    - Does it explain that pg_diskann is separate from pgvector?
+    - Does it stay Azure DiskANN specific?
+
+  - id: az-vec-04
+    task: My embeddings are 1536 dimensions but I accidentally declared the column as vector(768). Why does index creation fail later?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-vector-diskann
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - vector\(1536\)|dimension
+    - pgvector|index
+    correctness_checks:
+    - Does the response mention consistent vector dimensionality as a prerequisite for inserts and indexing?
+    - Does it keep the explanation grounded in pgvector/DiskANN behavior?
+    - Does it avoid treating this as an Azure networking or auth issue?
+
+  - id: az-vec-05
+    task: For a 300k-row dataset, should I still reach for DiskANN or is HNSW the better default?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-vector-diskann
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - HNSW
+    - < 1M|small
+    correctness_checks:
+    - Does the response explain the small-versus-large dataset heuristic between HNSW and DiskANN?
+    - Does it avoid recommending DiskANN unconditionally for every vector workload?
+    - Does it keep the answer on Azure vector indexing choices?
+
+  - id: az-vec-06
+    task: I need cosine similarity, but my DDL used vector_l2_ops and my query orders by <=>. Could that mismatch keep the index from being used?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-vector-diskann
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - vector_cosine_ops|vector_l2_ops
+    - <=>|<->
+    correctness_checks:
+    - Does the response explain that the distance operator and operator class must match?
+    - Does it keep the answer grounded in pgvector/DiskANN operator semantics?
+    - Does it avoid hand-waving that PostgreSQL will adapt automatically?
+
+  - id: az-vec-07
+    task: Is CREATE INDEX CONCURRENTLY a good idea when migrating from HNSW to DiskANN on a live Azure PostgreSQL workload?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-vector-diskann
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - CONCURRENTLY
+    - migration|HNSW|DiskANN
+    correctness_checks:
+    - Does the response mention concurrent build or careful migration sequencing for low downtime?
+    - Does it explain that HNSW and DiskANN are separate index builds rather than an in-place conversion?
+    - Does it stay within Azure vector-index operations?
+
+  - id: az-vec-08
+    task: My filtered query is WHERE tenant_id = 7 ORDER BY embedding <=> $1 LIMIT 20. What DiskANN knobs matter most for recall versus latency?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-vector-diskann
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - search_type|search_list_size|max_neighbors
+    - filtered|tenant
+    correctness_checks:
+    - Does the response mention DiskANN search tuning knobs for filtered search?
+    - Does it explain the recall-versus-latency tradeoff rather than only saying 'increase everything'?
+    - Does it remain Azure DiskANN specific?
+
+  - id: az-vec-09
+    task: How do I install pg_diskann on my self-hosted PostgreSQL 16 cluster running in Kubernetes?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-vector-diskann
+    platform_scope: azure-postgresql
+    expected_activation: false
+    expected_patterns: []
+    anti_patterns:
+    - azure.extensions|Flexible Server|DiskANN is available everywhere
+    correctness_checks:
+    - Does the response state that Azure DiskANN guidance is not the right primary activation for self-hosted PostgreSQL?
+    - Does it avoid pretending pg_diskann is a standard community package universally available outside Azure Flexible Server?
+    - Does it redirect toward self-hosted pgvector/HNSW or Azure-only availability constraints?
+    notes: 'Negative case: self-hosted installation request should not activate the Azure DiskANN skill as if the feature were generally available.'
+
+  # networking-ssl expansion
+
+  - id: az-net-02
+    task: Should I use sslmode=require or verify-full for production Azure PostgreSQL clients, and what extra file do I need for verify-full?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-networking-ssl
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - verify-full
+    - DigiCert|sslrootcert
+    correctness_checks:
+    - Does the response explain why verify-full is stronger than require?
+    - Does it mention the DigiCert root certificate or sslrootcert for proper verification?
+    - Does it stay in Azure TLS guidance rather than generic SSL basics only?
+
+  - id: az-net-03
+    task: I switched to Private Endpoint and now nslookup still returns a public IP from one VNet. What DNS object is probably missing?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-networking-ssl
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - privatelink\.postgres\.database\.azure\.com
+    - private DNS zone|vnet-link
+    correctness_checks:
+    - Does the response mention the Azure Private DNS zone needed for Private Endpoint resolution?
+    - Does it explain that DNS linkage to the client VNet matters?
+    - Does it keep the answer Azure networking specific?
+
+  - id: az-net-04
+    task: My public-access server says 'no pg_hba.conf entry for host'. On Azure, what does that usually really mean?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-networking-ssl
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - firewall-rule|firewall
+    - no pg_hba.conf entry
+    anti_patterns:
+    - edit pg_hba.conf|ssh into server
+    correctness_checks:
+    - Does the response explain the Azure interpretation of this error, such as missing firewall allowlist or wrong DNS path?
+    - Does it avoid telling the user to edit pg_hba.conf on the managed service?
+    - Does it stay Azure-specific?
+
+  - id: az-net-05
+    task: A security review said 'Allow Azure services' is fine because it only opens my own subscription. Is that true?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-networking-ssl
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - Allow Azure services
+    - any Azure|all subscriptions
+    correctness_checks:
+    - Does the response explain the actual broad scope of Allow Azure services?
+    - Does it avoid describing it as restricted only to the user's subscription?
+    - Does it keep the answer in Azure PostgreSQL networking terms?
+
+  - id: az-net-06
+    task: Can I convert a public-access Flexible Server into delegated-subnet/VNet mode later with az postgres flexible-server update?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-networking-ssl
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - cannot switch|recreate|new server
+    - public|private|VNet
+    correctness_checks:
+    - Does the response explain that public/private network mode is effectively immutable after creation?
+    - Does it recommend creating a new server and migrating instead of a simple toggle?
+    - Does it avoid inventing an in-place conversion command?
+
+  - id: az-net-07
+    task: Our Windows client still trusts BaltimoreCyberTrustRoot.crt.pem from an old setup. Is that still the right CA for Azure PostgreSQL?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-networking-ssl
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - DigiCert
+    - Baltimore|expired|deprecated
+    correctness_checks:
+    - Does the response explain that Baltimore is no longer the correct CA for Azure PostgreSQL Flexible Server?
+    - Does it mention the DigiCert root chain instead?
+    - Does it keep the guidance specific to Azure PostgreSQL certificate validation?
+
+  # azure-ai expansion
+
+  - id: az-ai-01
+    task: I keep mixing up azure_ai and azure_openai. Which schema actually contains the SQL functions that call Azure OpenAI?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-azure-ai
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - azure_openai
+    - azure_ai\.set_setting|schema
+    correctness_checks:
+    - Does the response explain that configuration lives under azure_ai while the callable functions are in azure_openai?
+    - Does it avoid telling the user to call azure_ai.create() as if that were the function namespace?
+    - Does it stay focused on Azure AI extension setup?
+
+  - id: az-ai-02
+    task: The docs say to pass a deployment name, but my team keeps supplying 'gpt-4o' directly in SQL. Why does that fail?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-azure-ai
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - deployment name
+    - model name|gpt-4o
+    correctness_checks:
+    - Does the response distinguish deployment name from model name clearly?
+    - Does it explain why using the raw model label can fail even when the resource exists?
+    - Does it stay within azure_ai extension semantics?
+
+  - id: az-ai-03
+    task: How should I configure the endpoint string for azure_ai.set_setting? Do I include /openai/ or a trailing slash?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-azure-ai
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - https://.*openai\.azure\.com
+    - no trailing slash|no /openai/ path
+    correctness_checks:
+    - Does the response mention the correct endpoint shape without extra path segments or trailing slash?
+    - Does it keep the answer focused on Azure OpenAI extension configuration?
+    - Does it avoid inventing unsupported endpoint formats?
+
+  - id: az-ai-04
+    task: I want to classify support tickets inside SQL and keep the output deterministic. Is there a model parameter I should pin for that?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-azure-ai
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - temperature
+    - 0\.0|classify|azure_openai\.create
+    correctness_checks:
+    - Does the response recommend a deterministic temperature for classification-style tasks?
+    - Does it keep the pattern grounded in azure_openai.create usage?
+    - Does it avoid mixing this up with embedding generation?
+
+  - id: az-ai-05
+    task: We're seeing intermittent 429s when running AI enrichment in batches. What's a safe SQL-side batching pattern?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-azure-ai
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - LIMIT|batch
+    - pg_sleep|429|retry
+    correctness_checks:
+    - Does the response mention batching and backoff rather than a single massive UPDATE?
+    - Does it connect the guidance to 429 rate limiting on Azure OpenAI calls?
+    - Does it stay focused on Azure AI in-database execution?
+
+  - id: az-ai-06
+    task: Can azure_openai.create process an array of 100 texts in one function call, or is it one row at a time?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-azure-ai
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - one text per call|single-text-per-call
+    - batch|loop|LIMIT
+    correctness_checks:
+    - Does the response explain that the extension processes one text input per call rather than a bulk array payload?
+    - Does it suggest batching at the SQL level instead of hallucinating multi-input support?
+    - Does it remain aligned with the Azure AI extension limitations?
+
+  # genai-patterns expansion
+
+  - id: az-genai-01
+    task: What's a good chunk size strategy before storing embeddings for long PDF pages in Azure PostgreSQL? We care about retrieval quality more than raw throughput.
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-genai-patterns
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - chunk|overlap
+    - embedding|retrieval
+    correctness_checks:
+    - Does the response discuss chunking strategy instead of jumping straight to index DDL only?
+    - Does it connect chunk size to retrieval quality tradeoffs?
+    - Does it stay within Azure PostgreSQL RAG or embedding patterns?
+
+  - id: az-genai-02
+    task: Should I pre-filter by tenant_id before vector ranking in a multi-tenant RAG workload, or rank globally and filter after?
+    difficulty: easy
+    target_skill: skills/references/azure-postgresql-genai-patterns
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - pre-filter|tenant
+    - vector|RAG|WHERE
+    correctness_checks:
+    - Does the response mention metadata pre-filtering for multi-tenant retrieval?
+    - Does it explain why post-filtering can hurt relevance or efficiency?
+    - Does it keep the answer on RAG retrieval patterns rather than only Azure auth or networking?
+
+  - id: az-genai-03
+    task: 'We want hybrid retrieval over docs: vector similarity plus keyword matches. How should I combine the two score streams?'
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-genai-patterns
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - hybrid|RRF|reciprocal rank
+    - tsvector|vector
+    correctness_checks:
+    - Does the response mention a hybrid retrieval strategy such as RRF or similar score combination?
+    - Does it include both lexical and vector retrieval in the answer?
+    - Does it stay within Azure PostgreSQL genAI patterns?
+
+  - id: az-genai-04
+    task: My ingestion job needs embeddings for 2 million rows. Since create_embeddings works on one text per call, what's the usual SQL batching loop?
+    difficulty: medium
+    target_skill: skills/references/azure-postgresql-genai-patterns
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - create_embeddings
+    - LIMIT|batch|loop
+    correctness_checks:
+    - Does the response explain batching for one-text-per-call embedding generation?
+    - Does it avoid hallucinating an array-input shortcut that the extension does not support?
+    - Does it remain focused on in-database embedding patterns?
+
+  - id: az-genai-05
+    task: After retrieval, I want to generate the final answer in SQL using the top chunks as context. What's the end-to-end pattern inside Azure PostgreSQL?
+    difficulty: hard
+    target_skill: skills/references/azure-postgresql-genai-patterns
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - azure_openai\.create_embeddings|create_embeddings
+    - azure_openai\.create|context|RAG
+    correctness_checks:
+    - Does the response describe the retrieval step and the final generation step together?
+    - Does it keep the answer inside Azure PostgreSQL rather than outsourcing the whole pipeline to an app layer only?
+    - Does it stay focused on genAI patterns rather than basic extension installation?
+
+  # root references expansion
+
+  - id: root-06
+    task: I'm on PostgreSQL 14 and want to use MERGE for upserts. Before you write SQL, what should you verify?
+    difficulty: easy
+    target_skill: skills/references
+    platform_scope: any
+    expected_activation: true
+    expected_patterns:
+    - version\(\)|SELECT version
+    - MERGE|15
+    correctness_checks:
+    - Does the response check PostgreSQL version before assuming the feature exists?
+    - Does it explain that MERGE requires a newer major version than PostgreSQL 14?
+    - Does it behave like the root skill by applying a guardrail before routing or coding?
+
+  - id: root-07
+    task: I need to isolate tenants in the database and also handle pooled connections safely. Which PostgreSQL sub-skills are most relevant?
+    difficulty: easy
+    target_skill: skills/references
+    platform_scope: any
+    expected_activation: true
+    expected_patterns:
+    - row-level-security|connection-management
+    - pool|tenant
+    correctness_checks:
+    - Does the response route the user toward the appropriate sub-skills instead of pretending one topic covers everything?
+    - Does it identify both tenant isolation and connection context as separate concerns?
+    - Does it act like a root routing answer rather than a deep implementation for only one skill?
+
+  - id: root-08
+    task: I'm on Azure Flexible Server and a teammate suggested ALTER SYSTEM to change a parameter. What's the first managed-service reality check you would give?
+    difficulty: medium
+    target_skill: skills/references
+    platform_scope: any
+    expected_activation: true
+    expected_patterns:
+    - ALTER SYSTEM
+    - parameter set|managed service|Azure
+    correctness_checks:
+    - Does the response explain that managed Azure PostgreSQL has service-specific parameter workflows instead of ALTER SYSTEM?
+    - Does it route the user toward the relevant Azure sub-skill rather than blindly giving on-prem commands?
+    - Does it behave like a root-skill guardrail?
+
+  - id: root-09
+    task: My app says 'could not connect' to Azure PostgreSQL. Before guessing, what high-level buckets should I check first?
+    difficulty: medium
+    target_skill: skills/references
+    platform_scope: any
+    expected_activation: true
+    expected_patterns:
+    - networking-ssl|entra-id-auth|connection-pooling
+    - firewall|ssl|token
+    correctness_checks:
+    - Does the response route the problem across the likely Azure sub-skills instead of diving into one narrow guess?
+    - Does it outline a sensible triage order such as networking, auth, and pooling?
+    - Does it stay in root-skill routing mode?
+
+  - id: root-10
+    task: Write me a docker-compose.yml for a local Postgres + Redis dev stack.
+    difficulty: hard
+    target_skill: skills/references
+    platform_scope: any
+    expected_activation: false
+    expected_patterns: []
+    anti_patterns:
+    - advanced-indexing|query-performance|azure-postgresql|row-level-security
+    correctness_checks:
+    - Does the response recognize that this is an environment setup question, not a references-skill activation?
+    - Does it avoid forcing PostgreSQL reference-skill routing as the main answer?
+    - Does it refrain from pretending skill activation is needed for a generic Docker task?
+    notes: 'Negative case: generic Docker environment setup should not activate the root PostgreSQL references skill.'

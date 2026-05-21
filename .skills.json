@@ -13,73 +13,125 @@
       "path": "skills/SKILL.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
-        "postgresql",
-        "postgres",
-        "psql",
-        "pg_",
-        "azure database for postgresql",
-        "flexible server",
-        "pgvector",
-        "diskann",
-        "jsonb",
-        "tsvector",
-        "row level security",
-        "table partition",
-        "logical replication",
-        "connection pooling",
-        "entra id",
-        "azure_ai",
-        "query performance",
-        "create index",
-        "extension lifecycle",
-        "full text search",
-        "postgresql index",
-        "database index"
+        "postgresql help",
+        "work with postgresql",
+        "connect to postgres",
+        "azure postgresql help",
+        "postgresql flexible server help"
       ],
       "always_load": false,
       "references_dir": "skills/references/"
     },
     {
-      "id": "azure-postgresql",
-      "path": "skills/references/azure-postgresql-provisioning.md",
-      "platform_scope": "azure-postgresql",
-      "activation_keywords": [
-        "azure database for postgresql",
-        "azure postgresql",
-        "flexible server"
-      ],
-      "always_load": false
-    },
-    {
-      "id": "extension-lifecycle",
-      "path": "skills/references/azure-postgresql-extension-lifecycle.md",
-      "platform_scope": "azure-postgresql",
-      "activation_keywords": [
-        "pgvector extension",
-        "azure.extensions",
-        "shared_preload_libraries"
-      ],
-      "always_load": false
-    },
-    {
-      "id": "genai-patterns",
-      "path": "skills/references/azure-postgresql-genai-patterns.md",
+      "id": "vector-search",
+      "path": "skills/references/postgresql-vector-search.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
-        "rag pipeline",
-        "embeddings",
-        "semantic search with pgvector"
+        "vector column",
+        "embedding store",
+        "similarity search",
+        "cosine distance",
+        "vector index",
+        "nearest neighbor",
+        "stored in pgvector"
       ],
       "always_load": false
     },
     {
-      "id": "vector-diskann",
-      "path": "skills/references/azure-postgresql-vector-diskann.md",
+      "id": "genai-rag",
+      "path": "skills/references/postgresql-genai-rag.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
-        "hnsw",
-        "diskann",
-        "pgvector"
+        "rag app",
+        "application code",
+        "embeddings postgresql",
+        "semantic search pgvector",
+        "hybrid search rrf",
+        "reciprocal rank fusion",
+        "vector + full text",
+        "retrieval augmented"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "extensions",
+      "path": "skills/references/postgresql-extensions.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "pg_stat_statements",
+        "pg_trgm",
+        "shared_preload_libraries",
+        "extension install",
+        "install extension"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "advanced-indexing",
+      "path": "skills/references/postgresql-advanced-indexing.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "btree index",
+        "gin index",
+        "gist index",
+        "brin index",
+        "partial index",
+        "covering index",
+        "create index",
+        "multicolumn index",
+        "index bloat",
+        "index strategy",
+        "add an index"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "jsonb-patterns",
+      "path": "skills/references/postgresql-jsonb-patterns.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "jsonb",
+        "json containment",
+        "gin jsonb_ops",
+        "jsonb_path_query",
+        "document store postgresql",
+        "jsonb index",
+        "-> operator",
+        "->> operator"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "table-partitioning",
+      "path": "skills/references/postgresql-table-partitioning.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "table partition",
+        "range partition",
+        "list partition",
+        "hash partition",
+        "pg_partman",
+        "partition pruning",
+        "detach partition",
+        "500m rows",
+        "large table time-series",
+        "detach a partition",
+        "partition my"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "row-level-security",
+      "path": "skills/references/postgresql-row-level-security.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "row level security",
+        "rls policy",
+        "tenant isolation",
+        "create policy",
+        "force row level security",
+        "multi-tenant",
+        "enabled rls"
       ],
       "always_load": false
     },
@@ -90,38 +142,45 @@
       "activation_keywords": [
         "tsvector",
         "tsquery",
-        "full text search"
+        "full text search",
+        "ts_rank",
+        "websearch_to_tsquery",
+        "text search configuration",
+        "search functionality",
+        "autocomplete search",
+        "autocomplete",
+        "prefix search",
+        "ranking"
       ],
       "always_load": false
     },
     {
-      "id": "jsonb-patterns",
-      "path": "skills/references/postgresql-jsonb-patterns.md",
+      "id": "connection-management",
+      "path": "skills/references/postgresql-connection-management.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
-        "jsonb",
-        "jsonb_path_ops"
+        "max_connections",
+        "too many clients",
+        "too many connections",
+        "idle connections",
+        "connection exhaustion"
       ],
       "always_load": false
     },
     {
-      "id": "advanced-indexing",
-      "path": "skills/references/postgresql-advanced-indexing.md",
+      "id": "replication",
+      "path": "skills/references/postgresql-replication.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
-        "create index",
-        "partial index",
-        "covering index"
-      ],
-      "always_load": false
-    },
-    {
-      "id": "row-level-security",
-      "path": "skills/references/postgresql-row-level-security.md",
-      "platform_scope": "postgresql",
-      "activation_keywords": [
-        "row level security",
-        "enable row level security"
+        "logical replication",
+        "publication",
+        "subscription",
+        "cdc postgres",
+        "wal_level logical",
+        "replicate tables",
+        "replication slot",
+        "wal filling",
+        "replicate specific tables"
       ],
       "always_load": false
     },
@@ -130,9 +189,214 @@
       "path": "skills/references/postgresql-query-performance.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
+        "slow query",
         "explain analyze",
         "query plan",
-        "autovacuum"
+        "work_mem tuning",
+        "vacuum analyze",
+        "autovacuum tuning",
+        "query performance"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "vector-diskann",
+      "path": "skills/references/azure-postgresql-vector-diskann.md",
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": [
+        "diskann",
+        "pg_diskann",
+        "filtered vector search",
+        "azure vector index tuning",
+        "vector search azure",
+        "hnsw indexes azure",
+        "vector search on azure"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "azure-ai",
+      "path": "skills/references/azure-postgresql-azure-ai.md",
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": [
+        "azure_ai",
+        "ai.complete",
+        "llm from sql",
+        "in-database embeddings",
+        "generate embeddings sql",
+        "call ai from sql",
+        "connect azure openai",
+        "ai functions from sql",
+        "classify using ai",
+        "ai directly in sql",
+        "call gpt from database",
+        "call gpt-4 directly",
+        "call openai from sql",
+        "summarize text sql",
+        "sentiment analysis sql"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "genai-patterns",
+      "path": "skills/references/azure-postgresql-genai-patterns.md",
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": [
+        "azure_ai rag",
+        "in-database rag pipeline",
+        "azure_openai.create_embeddings",
+        "rag azure_ai",
+        "embeddings without leaving the database",
+        "embeddings without leaving database",
+        "batch-embed",
+        "entire rag pipeline inside",
+        "generate embeddings for",
+        "embed the user",
+        "in-database embeddings on azure"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "extension-lifecycle",
+      "path": "skills/references/azure-postgresql-extension-lifecycle.md",
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": [
+        "azure.extensions",
+        "allowlist",
+        "extension on azure",
+        "azure_pg_admin",
+        "extension flexible server",
+        "install extension azure",
+        "permission denied extension azure",
+        "permission denied to create extension",
+        "manage extensions on azure flexible server",
+        "install pgvector extension on azure"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "entra-id-auth",
+      "path": "skills/references/azure-postgresql-entra-id-auth.md",
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": [
+        "entra id",
+        "managed identity",
+        "service principal",
+        "passwordless auth",
+        "aad token",
+        "entra id postgres",
+        "token-based connection",
+        "token expir"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "connection-pooling",
+      "path": "skills/references/azure-postgresql-connection-pooling.md",
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": [
+        "built-in pgbouncer",
+        "azure connection pooling",
+        "pool_mode azure flexible server",
+        "connection pooling azure",
+        "pgbouncer on azure flexible server",
+        "connection pooling on azure flexible server"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "provisioning",
+      "path": "skills/references/azure-postgresql-provisioning.md",
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": [
+        "provision flexible server",
+        "az postgres create",
+        "resize azure postgres",
+        "burstable",
+        "generalpurpose",
+        "memoryoptimized",
+        "iops scaling",
+        "terraform azure postgres",
+        "create azure postgres",
+        "scale down",
+        "scale storage",
+        "scale up",
+        "change tier",
+        "change sku",
+        "increase vcores"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "ha-disaster-recovery",
+      "path": "skills/references/azure-postgresql-ha-disaster-recovery.md",
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": [
+        "zone redundant ha",
+        "zone-redundant",
+        "failover azure",
+        "pitr",
+        "read replica azure",
+        "geo-restore",
+        "backup azure postgres",
+        "high availability azure postgres",
+        "same-zone ha",
+        "restore azure postgres"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "networking-ssl",
+      "path": "skills/references/azure-postgresql-networking-ssl.md",
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": [
+        "private link",
+        "vnet",
+        "firewall rule azure",
+        "ssl azure",
+        "tls azure",
+        "public access azure",
+        "private endpoint postgres",
+        "network access azure",
+        "can't connect",
+        "private endpoint",
+        "ssl connection is required",
+        "certificate verify failed",
+        "connection timeout azure",
+        "allow ip",
+        "whitelist ip"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "intelligent-tuning",
+      "path": "skills/references/azure-postgresql-intelligent-tuning.md",
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": [
+        "query store",
+        "index recommendations",
+        "performance insights",
+        "intelligent tuning",
+        "query performance azure",
+        "slow queries azure",
+        "indexes azure postgresql recommends"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "upgrades-maintenance",
+      "path": "skills/references/azure-postgresql-upgrades-maintenance.md",
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": [
+        "major version upgrade",
+        "maintenance window",
+        "in-place upgrade",
+        "mvu",
+        "upgrade postgres azure",
+        "schedule maintenance",
+        "upgrade my azure postgresql",
+        "upgrade from version",
+        "upgrade version"
       ],
       "always_load": false
     }
