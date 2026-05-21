@@ -62,7 +62,8 @@ activation:
 - **Partial indexes + prepared statements**: planner may not prove a parameterized predicate implies the partial-index predicate.
 - **Expression indexes + functions**: the query expression must match exactly, and indexed functions must be `IMMUTABLE`.
 - **`INCLUDE` + visibility map**: index-only scans still need heap access until pages become all-visible.
-- **BRIN + heap order**: low correlation makes BRIN nearly useless; check `pg_stats.correlation` first.
+- **BRIN + heap order**: low correlation makes BRIN nearly useless; check `pg_stats.correlation` first. Tune `pages_per_range` (default 128): smaller values improve selectivity but increase index size. For append-only tables with perfect correlation, BRIN can be 1000x smaller than B-tree.
+- **BRIN + mixed workloads**: random UPDATEs destroy physical ordering over time; BRIN degrades silently. Monitor with correlation checks.
 - **Partitioning + indexes**: indexes are per-partition; there are no global indexes across declarative partitions.
 - **Collation + text indexes**: collation or opclass mismatch can make a seemingly correct index unusable.
 

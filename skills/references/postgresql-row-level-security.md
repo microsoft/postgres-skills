@@ -57,7 +57,8 @@ activation:
 - **RLS + `SECURITY DEFINER`**: Function runs with owner privileges and can bypass tenant isolation.
 - **RLS + views**: View owner context applies unless you use `security_invoker = true` on PG 15+.
 - **RLS + connection poolers**: Use `SET LOCAL`, not session `SET`, in transaction pooling.
-- **RLS + INSERT/UPDATE**: `USING` filters reads; `WITH CHECK` governs allowed new rows.
+- **RLS + INSERT/UPDATE**: `USING` filters reads; `WITH CHECK` governs allowed new rows. A policy with only `USING` implicitly copies it to `WITH CHECK` for `ALL` commands. But a `SELECT`-only policy does NOT enable INSERT; you need a separate policy for INSERT with explicit `WITH CHECK`.
+- **RLS + separate command policies**: Best practice is separate policies per command (`SELECT`, `INSERT`, `UPDATE`, `DELETE`) for clarity. Avoid one `ALL` policy when check logic differs between reads and writes.
 - **RLS + dump or restore**: Superusers and roles with `BYPASSRLS` do not see the same behavior as the app role.
 
 ## Diagnostic Checklist

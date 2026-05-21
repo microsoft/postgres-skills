@@ -66,8 +66,9 @@ activation:
 - **JSONB + B-tree**: equality/range predicates on `doc->>'key'` need a B-tree expression or generated-column index, not GIN.
 - **JSONB + MVCC/TOAST**: `jsonb_set` still creates a new row version; frequent updates to large documents can cause bloat.
 - **JSONB + generated columns**: best for stable, frequently-filtered paths that need relational indexes.
-- **JSONB + null semantics**: `doc->>'k'` returns SQL NULL for both missing keys and explicit JSON null.
+- **JSONB + null semantics**: `doc->>'k'` returns SQL NULL for both missing keys and explicit JSON null. To distinguish: use `doc ? 'k'` for existence, then `doc->'k' = 'null'::jsonb` for explicit JSON null.
 - **JSONB + SQL/JSON path**: path functions require PG 12+; `JSON_TABLE` requires PG 17+.
+- **JSONB + `jsonb_array_elements`**: set-returning function in `FROM` clause; for large arrays, each row expands in-memory. Filter the parent row first, then unnest. Use `WITH ORDINALITY` when position matters.
 
 ## Diagnostic Checklist
 

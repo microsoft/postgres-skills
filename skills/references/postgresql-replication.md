@@ -45,6 +45,7 @@ activation:
 | PG 15 | Column-list publications | `FOR TABLE t (col1, col2)` requires PG 15+ |
 | PG 16 | Publishing from standby | Before PG 16, logical publishers must be primaries |
 | PG 16 | `disable_on_error` and `ALTER SUBSCRIPTION ... SKIP` | Useful for stuck apply workers |
+| PG 17 | Failover-safe logical replication slots | Requires `sync_replication_slots = true` on standby + `failover = true` on slot creation; standby must list slots in `standby_slot_names` |
 
 ## Parameter Correctness
 
@@ -62,6 +63,8 @@ activation:
 - **Logical replication + DDL**: DDL is never replicated; apply subscriber schema changes first.
 - **Logical replication + sequences**: Sequence state is not replicated; reset sequences after failover or cutover.
 - **Logical replication + partitioning**: Partition behavior is version-sensitive; verify `REPLICA IDENTITY` and publication settings explicitly.
+- **Logical replication + REPLICA IDENTITY on partitioned tables**: PG 15+ propagates parent's replica identity to partitions automatically. PG 10-14 requires setting REPLICA IDENTITY on each child partition individually; failing to do so silently drops UPDATE/DELETE operations.
+- **Logical replication + failover (pre-PG 17)**: Logical slots are local to the instance. After failover, recreate slots on the new primary and expect brief data duplication or loss. Use pg_replication_origin to track what was already applied.
 - **Logical replication + large transactions**: One huge transaction can create lag spikes and hold WAL for long periods.
 - **Logical replication + `REFRESH PUBLICATION`**: With `copy_data = true`, newly added tables may be recopied in full.
 - **Logical replication + standby publishers**: Supported only in PG 16+.

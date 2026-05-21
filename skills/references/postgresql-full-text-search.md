@@ -60,7 +60,8 @@ activation:
 
 - **FTS + `pg_trgm`**: FTS handles stemming; trigram handles misspellings. Use trigram as fallback, not replacement.
 - **FTS + partitioning**: GIN indexes are per-partition; there is no global GIN index across partitions.
-- **FTS + generated columns**: Prefer a stored vector on PG 12+ so queries hit the same expression the index stores.
+- **FTS + generated columns**: Prefer a stored generated column on PG 12+ so queries hit the same expression the index stores. This is cheaper than a trigger: no per-statement overhead, no risk of trigger accidentally firing on unrelated updates, and the column is always consistent.
+- **FTS + triggers (legacy approach)**: Triggers rebuild the vector on every relevant UPDATE. For high-write tables: (1) ensure the trigger only fires when text columns actually change (`WHEN OLD.body IS DISTINCT FROM NEW.body`), (2) consider `tsvector_update_trigger()` built-in, (3) generated columns are strictly superior on PG 12+ and should replace custom triggers.
 - **FTS + `default_text_search_config`**: Do not depend on server defaults across environments; hard-code the config in DDL and queries.
 - **FTS + `ts_headline`**: Highlighting rescans text; apply it after ranking and limiting candidates.
 - **FTS + exact identifiers**: Product codes and issue IDs often need `simple`, trigram, or exact match logic in addition to prose search.

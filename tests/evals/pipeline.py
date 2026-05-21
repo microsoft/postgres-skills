@@ -1030,8 +1030,12 @@ def azure_openai_agent(task: str, skill_context: str, model: str) -> str:
     )
     if skill_context:
         system_prompt += (
-            "\n\n## Reference Material\n"
-            "Use the following reference for common pitfalls and best practices. "
+            "\n\n## Reference Material (background knowledge)\n"
+            "The following reference describes common pitfalls and best practices. "
+            "Use it as background knowledge to AVOID mistakes, but answer naturally from your own expertise. "
+            "Do NOT restructure your answer around the reference or narrow your response to only what it covers. "
+            "Provide a thorough answer: cover relevant tradeoffs, version considerations, and operational implications beyond just the direct answer. "
+            "The reference should ADD depth to your response, not constrain its scope. "
             "Cross-check any specific syntax, flags, or version claims against your own knowledge. "
             "Always state minimum PostgreSQL version requirements when recommending newer features.\n\n"
             f"{skill_context}"
@@ -1073,8 +1077,12 @@ def openai_agent(task: str, skill_context: str, model: str) -> str:
     )
     if skill_context:
         system_prompt += (
-            "\n\n## Reference Material\n"
-            "Use the following reference for common pitfalls and best practices. "
+            "\n\n## Reference Material (background knowledge)\n"
+            "The following reference describes common pitfalls and best practices. "
+            "Use it as background knowledge to AVOID mistakes, but answer naturally from your own expertise. "
+            "Do NOT restructure your answer around the reference or narrow your response to only what it covers. "
+            "Provide a thorough answer: cover relevant tradeoffs, version considerations, and operational implications beyond just the direct answer. "
+            "The reference should ADD depth to your response, not constrain its scope. "
             "Cross-check any specific syntax, flags, or version claims against your own knowledge. "
             "Always state minimum PostgreSQL version requirements when recommending newer features.\n\n"
             f"{skill_context}"

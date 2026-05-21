@@ -54,7 +54,7 @@ activation:
 
 - **PgBouncer transaction mode + prepared statements**: `PREPARE` and `EXECUTE` can hit different backends.
 - **PgBouncer transaction mode + session state**: `SET`, temp tables, and advisory locks do not survive backend reuse.
-- **`max_connections` + memory**: More backends increase private memory overhead and amplify bad `work_mem` settings.
+- **`max_connections` + memory**: Each backend consumes ~5-10 MB base RSS (stack + local buffers + catalog cache). With `work_mem = 4MB` and complex queries, a backend can use 50-100 MB. At 1500 connections, worst-case private memory alone can reach 50-150 GB before shared buffers.
 - **Serverless autoscaling + per-process pools**: `pool_size × instances` can exceed server limits fast.
 - **Idle transactions + autovacuum**: One abandoned transaction can block cleanup on hot tables.
 

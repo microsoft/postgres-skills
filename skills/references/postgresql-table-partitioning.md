@@ -59,6 +59,7 @@ activation:
 - **Partitioning + ORMs**: Queries that omit the partition key often scan every partition.
 - **Partitioning + prepared statements**: Cast mismatches or generic plans can weaken pruning.
 - **Partitioning + DEFAULT**: DEFAULT keeps inserts alive but blocks later partition creation until you move trapped rows.
+- **Partitioning + ATTACH**: `ALTER TABLE ... ATTACH PARTITION` takes `ACCESS EXCLUSIVE` lock on parent briefly; on PG 14+, adding a valid `CHECK` constraint first avoids full-table validation scan.
 
 ## Diagnostic Checklist
 
@@ -86,6 +87,17 @@ WHERE created_at >= TIMESTAMPTZ '2024-01-01'
 | `unique constraint on partitioned table must include all partitioning columns` | PK or UNIQUE omits partition key | Include partition key columns in constraint |
 | `updated partition constraint for default partition "events_default" would be violated by some row` | DEFAULT already contains rows for the new range | Move rows out of DEFAULT first |
 
+## DEFAULT Partition Cleanup Pattern
+
+When rows are trapped in DEFAULT because the target partition was not pre-created:
+
+1. Create the missing partition (may fail if rows already violate new constraint).
+2. Move rows: `DELETE FROM ONLY events_default WHERE ... RETURNING *` piped into `INSERT INTO parent`.
+3. Use `ONLY` to avoid touching sub-partitions. Insert into parent so PostgreSQL routes correctly.
+4. For large volumes, batch with `LIMIT` inside a CTE and repeat until 0 rows. Each batch in its own transaction to limit WAL/lock duration.
+5. Index the partition key on the default partition before cleanup to avoid sequential scans.
+6. Verify: `SELECT count(*) FROM ONLY events_default WHERE <range predicate>` must return 0.
+
 ## Common Mistakes / Gotchas
 
 - **Use hash partitioning for time-series**: Range partitioning prunes by date; hash does not.
@@ -94,6 +106,7 @@ WHERE created_at >= TIMESTAMPTZ '2024-01-01'
 - **Expect `DROP PARTITION` syntax**: PostgreSQL uses `DETACH PARTITION`, then `DROP TABLE`.
 - **Assume uniqueness is global without the key**: PostgreSQL will reject it.
 - **Rely on DEFAULT forever**: It is a safety net, not the steady-state design.
+- **Omit `ONLY` when operating on DEFAULT**: Without `ONLY`, DML can affect sub-partitions unexpectedly.
 
 ```sql
 -- PG 14+
