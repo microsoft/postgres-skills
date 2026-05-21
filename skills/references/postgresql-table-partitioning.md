@@ -31,18 +31,46 @@ activation:
 
 # Table Partitioning
 
-> **Response focus:** Prioritize partition pruning failures, PK-must-include-partition-key, DEFAULT partition traps, and version-gated DETACH CONCURRENTLY. Avoid explaining basic partitioning concepts or strategy selection unless asked.
+> **Response focus:** Prioritize pruning failures, DEFAULT partition traps, version-gated DDL, and uniqueness rules. Skip basic partitioning primers.
 
-## What LLMs Get Wrong
+## Version History
 
-1. PostgreSQL does **not** support `DROP PARTITION`. Use `ALTER TABLE ... DETACH PARTITION`, then `DROP TABLE` on the detached child.
-2. Hash partitioning is usually the wrong fit for time-series workloads because it cannot prune by date range.
-3. Partitioning is not for every large table. Without a consistent filter predicate on the partition key, you pay extra planning cost and get little or no pruning benefit.
-4. Partition-wise aggregation is **not** always on. `enable_partitionwise_aggregate = off` by default.
+| Version | Feature | Notes |
+|---------|---------|-------|
+| PG 10 | Declarative RANGE and LIST partitioning | First native partitioned tables |
+| PG 11 | HASH partitioning, DEFAULT partition, execution-time pruning | Major usability jump |
+| PG 12 | Foreign keys to and from partitioned tables | Removes a major adoption blocker |
+| PG 14 | `DETACH PARTITION ... CONCURRENTLY` | Lower-impact archival detach |
 
-## Proving Pruning Works
+## Parameter Correctness
+
+| Setting | Default | Correct use | Gotcha |
+|---------|---------|-------------|--------|
+| `enable_partition_pruning` | `on` | Leave on unless testing | Turning it off defeats the whole design |
+| `enable_partitionwise_join` | `off` | Enable only when matching partitions help joins | Not automatic |
+| `enable_partitionwise_aggregate` | `off` | Enable for aligned aggregation workloads | Can increase planning work |
+| `publish_via_partition_root` | `false` on publication | Set `true` for logical replication through parent name | Subscriber otherwise sees child table names |
+
+## Feature Interactions
+
+- **Partitioning + unique constraints**: `PRIMARY KEY` and `UNIQUE` must include all partition key columns.
+- **Partitioning + foreign keys**: Referencing or referenced partitioned tables needs PG 12+.
+- **Partitioning + logical replication**: Set `publish_via_partition_root = true` if consumers expect the parent table name.
+- **Partitioning + ORMs**: Queries that omit the partition key often scan every partition.
+- **Partitioning + prepared statements**: Cast mismatches or generic plans can weaken pruning.
+- **Partitioning + DEFAULT**: DEFAULT keeps inserts alive but blocks later partition creation until you move trapped rows.
+
+## Diagnostic Checklist
+
+| Symptom | Run | Look for | Fix |
+|---------|-----|----------|-----|
+| Query scans all partitions | `EXPLAIN (COSTS OFF) SELECT ... WHERE created_at >= TIMESTAMPTZ '2024-01-01' AND created_at < TIMESTAMPTZ '2024-02-01';` | `Subplans Removed` missing or `0` | Use typed predicates on partition key |
+| Need partition inventory | `SELECT inhrelid::regclass FROM pg_inherits WHERE inhparent = 'events'::regclass;` | Missing future partition or DEFAULT | Pre-create next partitions |
+| Attach fails | `SELECT count(*) FROM events_default WHERE created_at >= '2024-03-01' AND created_at < '2024-04-01';` | Rows trapped in DEFAULT | Move rows out, then attach or create |
+| Old partition detach blocks traffic | `SELECT version();` | PG 14 or newer determines `CONCURRENTLY` support | Use `DETACH ... CONCURRENTLY` on PG 14+ |
 
 ```sql
+-- Prove pruning works
 EXPLAIN (COSTS OFF)
 SELECT *
 FROM events
@@ -50,123 +78,36 @@ WHERE created_at >= TIMESTAMPTZ '2024-01-01'
   AND created_at < TIMESTAMPTZ '2024-02-01';
 ```
 
-```text
-->  Append
-      Subplans Removed: 11    ← pruned at plan time
-      ->  Seq Scan on events_2024_01
-```
+## Error Messages
 
-If you see `Subplans Removed: 0` or no pruning mention at all, pruning failed.
+| Error | Root cause | Fix |
+|-------|------------|-----|
+| `no partition of relation "events" found for row` | No matching partition and no usable DEFAULT | Add partition or DEFAULT; fix bounds |
+| `unique constraint on partitioned table must include all partitioning columns` | PK or UNIQUE omits partition key | Include partition key columns in constraint |
+| `updated partition constraint for default partition "events_default" would be violated by some row` | DEFAULT already contains rows for the new range | Move rows out of DEFAULT first |
 
-## Instructions
+## Common Mistakes / Gotchas
 
-**Step 1: Strategy selection**
-
-| Strategy | Best For | Partition Key |
-|----------|----------|---------------------|
-| RANGE | Time-series, logs | `created_at` |
-| LIST | Multi-tenant | `tenant_id` |
-| HASH | Even distribution | `user_id` |
-
-**Step 2: Verify partition pruning works**
+- **Use hash partitioning for time-series**: Range partitioning prunes by date; hash does not.
+- **Assume pruning survived a cast**: `date` literals against `timestamptz` keys often break pruning.
+- **Create hundreds of partitions by default**: Planning cost rises fast. Keep count deliberate.
+- **Expect `DROP PARTITION` syntax**: PostgreSQL uses `DETACH PARTITION`, then `DROP TABLE`.
+- **Assume uniqueness is global without the key**: PostgreSQL will reject it.
+- **Rely on DEFAULT forever**: It is a safety net, not the steady-state design.
 
 ```sql
-EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at >= TIMESTAMPTZ '2024-01-15';
--- Must show pruning evidence such as "Subplans Removed" in the Append node
--- If pruning fails: check type mismatch on partition key
-```
-
-**Step 3: Detach for archival (PG 14+ CONCURRENTLY)**
-
-```sql
--- PG 14+: non-blocking detach
+-- PG 14+
 ALTER TABLE events DETACH PARTITION events_2023_01 CONCURRENTLY;
 
--- PG 13 and earlier: brief ACCESS EXCLUSIVE lock
-ALTER TABLE events DETACH PARTITION events_2023_01;
+-- Minimal gotcha example: uniqueness must include partition key
+ALTER TABLE events
+    ADD PRIMARY KEY (id, created_at);
 ```
-
-**Step 4: Always create DEFAULT partition**
-
-```sql
-CREATE TABLE events_default PARTITION OF events DEFAULT;
--- Without this, inserts fail when no matching partition exists
-```
-
-### Verify
-
-```sql
--- Confirm partitions exist
-SELECT inhrelid::regclass FROM pg_inherits WHERE inhparent = 'events'::regclass;
-
--- Confirm pruning works in queries
-EXPLAIN (COSTS OFF) SELECT * FROM events WHERE created_at = TIMESTAMPTZ '2024-01-15 00:00:00+00';
--- Look for pruning evidence such as "Subplans Removed"
-```
-
-## Common Mistakes
-
-1. **[CRITICAL] Default partition traps data**: Once rows land in DEFAULT, creating a new partition for that range fails. Pre-create partitions ahead of time.
-
-   ❌ Wrong:
-   ```sql
-   -- Rows for March already in DEFAULT partition
-   CREATE TABLE events_2024_03 PARTITION OF events
-       FOR VALUES FROM ('2024-03-01') TO ('2024-04-01');
-   -- ERROR: updated partition constraint for default would be violated
-   ```
-
-   ✅ Right:
-   ```sql
-   -- Move trapped rows first, then create partition
-   INSERT INTO events_2024_03 SELECT * FROM events_default
-       WHERE created_at >= '2024-03-01' AND created_at < '2024-04-01';
-   DELETE FROM events_default
-       WHERE created_at >= '2024-03-01' AND created_at < '2024-04-01';
-   -- Or: pre-create partitions with pg_partman before data arrives
-   ```
-
-2. **[HIGH] Partition pruning failure with casts**: Type mismatch prevents pruning.
-
-   ❌ Wrong:
-   ```sql no-execute
-   -- timestamptz partition key but date literal
-   WHERE created_at > '2024-01-01'::date  -- scans ALL partitions
-   ```
-
-   ✅ Right:
-   ```sql no-execute
-   WHERE created_at > '2024-01-01 00:00:00+00'::timestamptz  -- prunes correctly
-   ```
-
-3. **[MEDIUM] Too many partitions**: >200 partitions increase planning time. Keep roughly 50-200 and merge old monthly partitions into yearly ones.
-
-4. **[HIGH] UNIQUE/PK must include partition key**: Cannot create a unique index without the partition key.
-
-   ❌ Wrong:
-   ```sql no-execute
-   PRIMARY KEY (id)  -- ERROR: unique constraint must include partition key
-   ```
-
-   ✅ Right:
-   ```sql no-execute
-   PRIMARY KEY (id, created_at)  -- partition key included
-   ```
-
-5. **[HIGH] pg_partman automation**: Without it, inserts fail when the next period's partition does not exist. Setup: `CREATE EXTENSION pg_partman; SELECT partman.create_parent('public.events', 'created_at', 'native', 'monthly')`
-
-6. **[HIGH] ORM queries miss the partition key**: Django and SQLAlchemy often emit `SELECT * FROM events WHERE id = 123`; without a date filter, PostgreSQL scans every partition. Fix: include the partition key in application queries and use composite lookups such as `(id, created_at)`.
-
-7. **[HIGH] publish_via_partition_root for replication**: `ALTER PUBLICATION pub SET (publish_via_partition_root = true)` or subscribers see individual partition names.
-
-8. **[MEDIUM] Version and boundary gotchas**: `DETACH PARTITION CONCURRENTLY` is PG 14+ only; on older versions expect a brief `ACCESS EXCLUSIVE` lock. Wrong partition bounds or missing future partitions cause "no partition" insert failures and awkward data moves.
-
-9. **[MEDIUM] Planner and version assumptions**: Partition-wise joins require `enable_partitionwise_join = on`; foreign keys referencing partitioned tables are version-specific (PG 12+ for references to partitioned tables). Global uniqueness still requires including the partition key or enforcing it in the app.
 
 ## Anti-Hallucination Rules
 
-- Do NOT claim foreign keys can reference partitioned tables directly on PG < 12. PG 12+ supports FKs referencing partitioned tables.
-- Do NOT claim UNIQUE indexes work without including the partition key — this is a hard PostgreSQL constraint.
-- Do NOT invent partition management syntax that doesn't exist (e.g., `ALTER TABLE MERGE PARTITIONS` is not standard PostgreSQL).
-- Do NOT claim `DETACH PARTITION CONCURRENTLY` works on PG < 14.
-- Do NOT recommend partitioning tables with fewer than 10M rows unless there is a clear data lifecycle reason (archival, TTL).
+- Do not claim `DETACH PARTITION CONCURRENTLY` works before PG 14.
+- Do not claim global uniqueness works without including the partition key.
+- Do not invent non-existent syntax such as `DROP PARTITION` or `MERGE PARTITIONS`.
+- Do not recommend partitioning when queries do not filter on a stable key.
+- Do not claim PG 11 or earlier supports foreign keys to and from partitioned tables like PG 12+.

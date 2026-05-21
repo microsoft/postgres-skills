@@ -32,45 +32,46 @@ activation:
 
 # Query Performance Tuning
 
-## When to use this skill
+> **Response focus:** Diagnose misestimates, plan-cache issues, spills, JIT overhead, and blocking before suggesting indexes or global GUC changes.
 
-Use for production PostgreSQL issues involving:
-- `EXPLAIN (ANALYZE, BUFFERS)` interpretation
-- Bad row estimates that choose the wrong join strategy
-- CPU-vs-I/O bottleneck diagnosis
-- `pg_stat_statements` prioritization
-- Version-gated planner behavior such as pre-PG12 CTE materialization
-- Pagination, blocking, and temp-file spill traps
+## Version History
 
-Do NOT use this skill for basic EXPLAIN primers or when the answer is plainly "add the obvious missing index". Route clean indexing work to `advanced-indexing`.
+| Version | Feature | Why it matters |
+|---------|---------|----------------|
+| PG 10 | `CREATE STATISTICS` for `ndistinct` and `dependencies` | Fixes multi-column estimate failures |
+| PG 11 | JIT compilation | Helps long CPU-heavy queries, hurts short OLTP when compile time dominates |
+| PG 12 | CTE inlining by default | `WITH` stops being an optimization fence unless `MATERIALIZED` |
+| PG 13 | Incremental sort | Avoids full re-sort when input is partially ordered |
+| PG 14 | Memoize plan node | Helps nested loops with repeated parameter values |
 
-## Response focus
+## Parameter Correctness
 
-Prioritize failure modes that make agents prescribe the wrong fix: row-estimate errors, wrong bottleneck classification, and low-selectivity indexing advice. Skip generic `work_mem`, JIT, and parallel-query tutorials.
+| Setting | Scope | Correct use | Wrong advice to avoid |
+|---------|-------|-------------|-----------------------|
+| `work_mem` | session, role, db | Raise locally for a known spilling sort/hash | Raising cluster-wide for one bad query |
+| `hash_mem_multiplier` | cluster | Include it in hash memory math | Forgetting hash nodes can use more than `work_mem` |
+| `jit_above_cost` | session, role, db, cluster | Raise or disable for short OLTP if JIT compile time dominates | Enabling JIT blindly everywhere |
+| `plan_cache_mode` | session | Compare `force_custom_plan` vs `force_generic_plan` for parameter-sensitive SQL | Assuming prepared statements always pick the best plan |
+| `default_statistics_target` | session, role, db, cluster | Prefer per-column `ALTER TABLE ... SET STATISTICS` for skewed columns | Raising it globally without evidence |
+| `effective_cache_size` | planner hint | Reflect realistic OS plus shared cache | Treating it as reserved memory |
 
-## What LLMs Get Wrong
+## Feature Interactions
 
-- LLMs recommend `SET work_mem = '1GB'` globally without considering that parallel workers multiply it. Total memory can approach `work_mem × hash_mem_multiplier × workers`.
-- LLMs claim `VACUUM FULL` should run regularly for performance. Wrong: it rewrites the entire table and takes an `ACCESS EXCLUSIVE` lock. Regular `VACUUM` is almost always sufficient.
-- LLMs suggest increasing `random_page_cost` to force index scans. Wrong: lowering `random_page_cost` encourages index scans on SSD.
+- **Prepared statements + skewed predicates**: Generic plans can stay slow for one tenant and fast for another. Test with `SET plan_cache_mode = force_custom_plan`.
+- **CTEs + version**: Pre-PG12 CTEs materialize. PG12+ inlines unless you force `MATERIALIZED`.
+- **Extended statistics + correlated columns**: `customer_id` plus `status` or `country` plus `region` often need `CREATE STATISTICS`, not a new index.
+- **Parallel workers + `work_mem`**: Sort and hash memory multiply across workers and plan nodes.
+- **JIT + OLTP**: Queries under the JIT cost threshold often get slower if compilation cost outweighs execution time.
 
-## Fast diagnosis order
+## Diagnostic Checklist
 
-1. Get `EXPLAIN (ANALYZE, BUFFERS)` before suggesting parameters or indexes.
-2. Compare estimated vs actual rows at scans and joins. A 10x+ mismatch means statistics first, tuning second.
-3. Check buffer usage before deciding CPU vs I/O:
-   - mostly `shared hit` = CPU-bound or poor SQL shape
-   - high `read` = I/O-bound, cache miss, or missing access path
-   - temp read/write = spill; consider session-level `work_mem`
-4. Rule out blocking and lock waits before rewriting SQL.
-
-## High-value reminders
-
-- `actual_time` is per-loop (per loop iteration); multiply by `loops` for real node cost.
-- On managed PostgreSQL, `ALTER SYSTEM` is usually unavailable; use platform parameter APIs or session/database settings.
-- `Rows Removed by Filter` is only actionable after you check selectivity. Large filtered counts on a low-cardinality column do not automatically justify an index.
-
-## Useful checks
+| Symptom | Run | Look for | Fix |
+|---------|-----|----------|-----|
+| Same SQL fast for one bind value, slow for another | `SET plan_cache_mode = force_custom_plan; EXPLAIN (ANALYZE, BUFFERS) ...` | Custom plan differs sharply from prepared plan | Use custom plans, rewrite predicate, or reduce skew |
+| 10x row estimate error | `EXPLAIN (ANALYZE, BUFFERS) ...` | `rows=` vs `actual rows=` mismatch at scan or join | `ANALYZE`; add extended stats; raise per-column stats target |
+| Temp files or spill | `EXPLAIN (ANALYZE, BUFFERS) ...` | `Sort Method: external merge`, hash batches, temp read/write | Raise local `work_mem`; reduce row width; pre-aggregate |
+| Query is "slow" but mostly waiting | `SELECT pid, wait_event_type, wait_event, state, query FROM pg_stat_activity WHERE state <> 'idle';` | Lock waits or client waits | Fix blocker first |
+| Need top offenders | `SELECT query, total_exec_time, calls, mean_exec_time FROM pg_stat_statements ORDER BY total_exec_time DESC LIMIT 20;` | High total impact, not just high mean | Optimize by total time burned |
 
 ```sql
 -- Stale stats candidates
@@ -79,70 +80,34 @@ FROM pg_stat_user_tables
 WHERE n_live_tup > 0
   AND n_mod_since_analyze > n_live_tup * 0.1;
 
--- Hot queries by total impact, not just per-call latency
-SELECT query, total_exec_time, calls, mean_exec_time
-FROM pg_stat_statements
-ORDER BY total_exec_time DESC
-LIMIT 20;
+-- Check skewed column stats
+SELECT attname, n_distinct, most_common_vals, most_common_freqs
+FROM pg_stats
+WHERE schemaname = 'public' AND tablename = 'orders';
 ```
+
+## Error Messages
+
+| Error | Root cause | Fix |
+|-------|------------|-----|
+| `canceling statement due to statement timeout` | Query ran too long or waited on a blocker | Check `pg_stat_activity`, then plan and locks |
+| `could not write to file "base/pgsql_tmp/...": No space left on device` | Sort or hash spilled beyond temp space | Reduce spill, raise local `work_mem`, add temp storage |
+| `out of memory` | Hash or sort memory exploded, often with parallelism | Lower concurrency, lower row width, avoid global `work_mem` increases |
 
 ## Common Mistakes / Gotchas
 
-1. **[HIGH] Ignoring loops multiplier**: A node showing `actual time=0.1..0.1` with `loops=10000` cost ~1000 ms total. Agents routinely underweight inner-loop work if they read node time literally.
+- **Ignore `loops` at your peril**: Node time is per loop. `0.1 ms × 10000 loops` still hurts.
+- **Treat every Seq Scan as a bug**: On low selectivity or small tables, Seq Scan is correct.
+- **Add an index for a statistics problem**: Fix 10x estimate errors before adding access paths.
+- **Sort by `mean_exec_time` first**: Start with `total_exec_time` in `pg_stat_statements`.
+- **Blame CPU when the query is blocked**: Check waits before tuning SQL.
+- **Global `work_mem` increase for one spill**: Prefer session or statement scope.
+- **Assume JIT always helps**: It often hurts short requests.
 
-2. **[HIGH] Join order / cardinality misestimation**: The agent recommends a new index, but the real failure is bad row estimates causing a nested-loop join on a large intermediate result.
+## Anti-Hallucination Rules
 
-   Fix: compare estimated vs actual rows in `EXPLAIN ANALYZE`. If the mismatch is 10x+, refresh stats with `ANALYZE`; for correlated predicates, create extended statistics:
-   ```sql
-   CREATE STATISTICS s_orders_customer_status
-   ON customer_id, status
-   FROM orders;
-
-   ANALYZE orders;
-   ```
-
-3. **[HIGH] I/O vs CPU bottleneck confusion**: The agent increases `work_mem` for an I/O-bound query or adds an index to a CPU-bound aggregation/function-heavy query.
-
-   Fix: use `EXPLAIN (ANALYZE, BUFFERS)`.
-   - high `shared hit`, low `read` => data is already cached; reduce computation, row explosion, or repeated function work
-   - high `read` => query is I/O-bound; look for better access paths, more RAM/cache, or realistic `effective_cache_size`
-
-4. **[HIGH] Missing index vs bad selectivity**: The agent adds an index on a low-cardinality column such as `status` or a boolean flag. The planner ignores it because selectivity is too poor, often worse than ~10%.
-
-   Fix: prefer a partial index such as `WHERE status = 'active'` or a composite index that starts with a more selective predicate.
-
-5. **[HIGH] OFFSET pagination at scale**: `OFFSET 100000` still scans and discards 100K rows.
-
-   ❌ Wrong:
-   ```sql
-   SELECT * FROM orders ORDER BY id LIMIT 20 OFFSET 100000;
-   ```
-
-   ✅ Right:
-   ```sql
-   SELECT *
-   FROM orders
-   WHERE id > :last_seen_id
-   ORDER BY id
-   LIMIT 20;
-   ```
-
-6. **[HIGH] Plan instability after bulk load or skew change**: After large inserts, deletes, or repartitioning, agents jump to config tuning before fixing stale statistics.
-
-   Fix: run `ANALYZE` first. For skewed columns, raise per-column stats targets instead of globally changing defaults.
-
-7. **[MEDIUM] Treating every temp spill as a global `work_mem` problem**: `Sort Method: external merge` or hash batches means that operator spilled. That does **not** justify raising `work_mem` cluster-wide.
-
-   Fix: change `work_mem` for the session or statement first, then re-check the plan. Global increases multiply across concurrent workers and can cause memory pressure.
-
-8. **[HIGH] Missing `pg_stat_statements` top-N analysis**: Sorting by `mean_exec_time` finds rare outliers, not the queries burning the most wall-clock time.
-
-   Fix: sort by `total_exec_time` first, then inspect `calls` and `mean_exec_time`.
-
-9. **[HIGH] CTE materialization trap (pre-PG 12)**: Before PG 12, CTEs are optimization fences. Agents that rewrite everything into CTEs can accidentally force large materializations.
-
-   Fix: inline the subquery on old versions, or on PG 12+ use `MATERIALIZED` / `NOT MATERIALIZED` deliberately.
-
-10. **[MEDIUM] Tuning SQL when the session is actually blocked**: A query with long runtime may be waiting on locks, not executing.
-
-    Fix: check `wait_event_type`, `wait_event`, and blockers in `pg_stat_activity` before changing indexes or planner settings.
+- Do not claim `VACUUM FULL` is routine performance maintenance.
+- Do not recommend raising `work_mem` globally without concurrency math.
+- Do not treat pre-PG12 and PG12+ CTE behavior as identical.
+- Do not prescribe indexes before checking row-estimate quality and wait events.
+- Do not claim `effective_cache_size` reserves RAM.

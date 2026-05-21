@@ -35,87 +35,83 @@ activation:
 
 # Advanced Indexing Strategy
 
-## When to use this skill
+## Version History
 
-Use for production PostgreSQL issues involving:
-- Choosing between B-tree, GIN, GiST, BRIN index types
-- Partial indexes, expression indexes, covering indexes (INCLUDE)
-- BRIN correlation requirements
-- Index not being used by planner
-- REINDEX safety in production
-
-Do NOT use for basic `CREATE INDEX` syntax or when the user simply needs EXPLAIN interpretation (route to `query-performance`).
-
-## Response focus
-
-Prioritize index type tradeoffs, version-gated features, and common misapplications. Include runnable CREATE INDEX examples when the user asks for help creating an index.
-
-## When NOT to Index
-
-Agents frequently recommend indexes that the planner will ignore or that cause more harm than good:
-
-| Situation | Why index won't help | Better approach |
+| Version | Feature | Notes |
 |---|---|---|
-| Column has < 10 distinct values (status, boolean) | Selectivity too low; seq-scan wins | Partial index: `WHERE status = 'active'` |
-| Table has < 10K rows | Planner always prefers seq-scan for small tables | Don't index; full scan is fast enough |
-| Write-heavy table with > 8 indexes | Each INSERT updates all indexes; write amplification | Audit unused indexes: `SELECT * FROM pg_stat_user_indexes WHERE idx_scan = 0` |
-| Highly correlated column already matches physical order | BRIN provides same benefit at 1000x less space | Use BRIN instead of B-tree |
-| Expression in WHERE doesn't match index expression exactly | Index silently ignored | Verify with `EXPLAIN` that index is actually used |
+| All supported versions | B-tree, GIN, GiST, BRIN, partial indexes, expression indexes | Core indexing toolbox |
+| PG 11 | `INCLUDE` columns | Covering indexes for index-only scans |
+| PG 11 | Parallel `CREATE INDEX` improvements | Controlled by `max_parallel_maintenance_workers` |
+| PG 12 | `REINDEX CONCURRENTLY` | Safer rebuild path for production |
+| PG 13 | B-tree deduplication | Helps duplicate-heavy non-unique B-tree indexes |
 
-## What LLMs Get Wrong
+## Parameter Correctness
 
-- LLMs recommend GIN for equality lookups on scalar values. Wrong: B-tree is better. GIN is for containment and membership on arrays, JSONB, and full-text data.
-- LLMs suggest `CREATE INDEX CONCURRENTLY` inside transactions. Wrong: it cannot run in a transaction block.
-- LLMs claim covering indexes with `INCLUDE` speed up writes. Wrong: they add write overhead and only help reads by enabling index-only scans.
-- LLMs recommend dropping and recreating indexes instead of `REINDEX CONCURRENTLY`. Wrong: drop plus create leaves a window with no index serving queries.
+| Item | Correct meaning | Why it matters |
+|---|---|---|
+| B-tree | Equality, range, ordering | Default choice for scalar predicates |
+| GIN | Membership/containment (`@>`, arrays, FTS) | Not the right default for scalar equality |
+| GiST | Nearest-neighbor / geometric / specialized ops | More flexible, often slower than B-tree for plain equality |
+| BRIN | Page-range summaries | Only works well with strong physical correlation |
+| `INCLUDE (...)` | Non-key payload columns | Helps index-only scans; adds write cost |
+| `CREATE INDEX CONCURRENTLY` | Avoids blocking writes | Cannot run inside a transaction block |
+| `REINDEX CONCURRENTLY` | Online rebuild path | PG 12+ only |
 
-## Common Mistakes
+## Feature Interactions
 
-1. **[HIGH] Missing expression match**: Expression index must exactly match the query expression (`lower(email)` index won't help `UPPER(email)` query)
+- **Partial indexes + prepared statements**: planner may not prove a parameterized predicate implies the partial-index predicate.
+- **Expression indexes + functions**: the query expression must match exactly, and indexed functions must be `IMMUTABLE`.
+- **`INCLUDE` + visibility map**: index-only scans still need heap access until pages become all-visible.
+- **BRIN + heap order**: low correlation makes BRIN nearly useless; check `pg_stats.correlation` first.
+- **Partitioning + indexes**: indexes are per-partition; there are no global indexes across declarative partitions.
+- **Collation + text indexes**: collation or opclass mismatch can make a seemingly correct index unusable.
 
-2. **[HIGH] BRIN on randomly-ordered data**: BRIN only works when physical row order correlates with column values
+## Diagnostic Checklist
 
-   ❌ Wrong:
-   ```sql
-   -- user_id is randomly distributed across heap pages
-   CREATE INDEX idx_users_brin ON users USING brin(user_id);
-   ```
+| Symptom | Run | Fix |
+|---|---|---|
+| Query still seq-scans | `EXPLAIN (ANALYZE, BUFFERS) SELECT ...;` | Verify predicate shape, selectivity, and exact expression match |
+| Suspect unused indexes | `SELECT relname, indexrelname, idx_scan FROM pg_stat_user_indexes ORDER BY idx_scan, indexrelname;` | Drop or justify indexes with `idx_scan = 0` after enough workload time |
+| Considering BRIN | `SELECT correlation FROM pg_stats WHERE tablename = 'logs' AND attname = 'created_at';` | Use BRIN only when correlation is high |
+| Build progress unknown | `SELECT * FROM pg_stat_progress_create_index;` | Monitor active builds, especially concurrent ones |
+| Index created but planner ignores it | `ANALYZE orders;` | Refresh stats, then re-check plan |
+| Want index-only scans | `EXPLAIN (ANALYZE, BUFFERS) SELECT total FROM orders WHERE status = 'open';` | Consider `INCLUDE` payload columns if reads justify extra write cost |
 
-   ✅ Right:
-   ```sql
-   -- Check correlation first
-   SELECT correlation FROM pg_stats WHERE tablename='users' AND attname='user_id';
-   -- Only use BRIN if correlation > 0.9
-   CREATE INDEX idx_logs_brin ON logs USING brin(created_at);  -- append-only, correlation ~1.0
-   ```
+## Error Messages
 
-3. **[MEDIUM] Ignoring index-only scans**: Add `INCLUDE` columns to avoid heap fetches: `CREATE INDEX ON orders(status) INCLUDE (total, created_at)` (PG 12+)
+| Error | Root cause | Fix |
+|---|---|---|
+| `CREATE INDEX CONCURRENTLY cannot run inside a transaction block` | Concurrent build was started inside `BEGIN ... COMMIT` | Run it as a standalone statement |
+| `REINDEX CONCURRENTLY cannot run inside a transaction block` | Same restriction for online reindex | Run it outside a transaction |
+| `functions in index expression must be marked IMMUTABLE` | Expression index uses non-immutable function | Rewrite with immutable expression or use a generated column |
+| `data type jsonb has no default operator class for access method "btree"` | Tried to build B-tree without a supported operator class | Use GIN/GiST or index an extracted scalar expression instead |
 
-4. **[MEDIUM] Not detecting unused indexes**: Query `pg_stat_user_indexes` for `idx_scan = 0` to find indexes wasting write amplification
+## Common Mistakes / Gotchas
 
-5. **[HIGH] Partial index predicate mismatch**: Query WHERE must be a superset of the partial index predicate or planner won't use it
+- **[CRITICAL] Rebuilding with plain `REINDEX` in production**: it blocks writes; prefer `REINDEX CONCURRENTLY` on PG 12+.
+- **[HIGH] Choosing GIN for scalar equality**: use B-tree for `=` and range filters on normal columns.
+- **[HIGH] Expression mismatch**: `lower(email)` index does not help `upper(email)` or unwrapped `email` queries.
+- **[HIGH] Partial-index predicate mismatch**: planner uses the index only when it can prove the query predicate implies the index predicate.
+- **[HIGH] BRIN on random data**: BRIN is for append-like ordering, not shuffled identifiers.
+- **[HIGH] Forgetting leftmost-prefix rules on multicolumn B-tree indexes**: equality columns first, range columns later.
+- **[MEDIUM] Assuming `INCLUDE` speeds writes**: it improves read paths only, while increasing write amplification.
+- **[MEDIUM] Treating bitmap heap scans as failure**: they are normal for medium-selectivity predicates.
+- **[MEDIUM] Missing collation/opclass alignment**: text index and query collation must agree.
 
-6. **[CRITICAL] REINDEX without CONCURRENTLY**: `REINDEX INDEX idx` locks the table for writes
+```sql
+SELECT correlation
+FROM pg_stats
+WHERE tablename = 'logs' AND attname = 'created_at';
 
-   ❌ Wrong:
-   ```sql
-   REINDEX INDEX idx_orders_status;  -- ACCESS EXCLUSIVE lock
-   ```
+SELECT relname, indexrelname, idx_scan
+FROM pg_stat_user_indexes
+ORDER BY idx_scan, indexrelname;
+```
 
-   ✅ Right:
-   ```sql
-   REINDEX INDEX CONCURRENTLY idx_orders_status;  -- PG 12+, no lock
-   ```
+## Anti-Hallucination Rules
 
-7. **[HIGH] Multi-column B-tree column order**: Leftmost column must appear in WHERE or index is unusable. Equality filters first, range filters last
-
-8. **[MEDIUM] Index not used after creation**: Run `ANALYZE <table>` to update statistics, then re-check EXPLAIN
-
-9. **[MEDIUM] Index build too slow on large table**: Use `CREATE INDEX CONCURRENTLY` to avoid locking writes
-
-10. **[MEDIUM] Wrong index type error**: GIN/GiST require correct operator class; check `pg_opclass`
-
-11. **[MEDIUM] Parallel index build (PG 11+)**: `CREATE INDEX` uses parallel workers on PG 11+. Tune with `SET max_parallel_maintenance_workers = 4` for faster builds on large tables. Not available on PG 10 and earlier
-12. **[HIGH] Collation/opclass mismatch for text indexes**: If queries use `COLLATE "C"` or ICU collation, build the index with that same collation or it is ignored
-13. **[HIGH] Planner ignores index due to low selectivity**: Indexes on low-cardinality columns like `status` often lose to seq scans. Prefer partial or composite indexes
-14. **[MEDIUM] Bitmap scan vs index scan confusion**: Bitmap heap scans are normal for ~1-20% selectivity. Do not treat them as planner failure when EXPLAIN shows moderate row counts
+- Do NOT recommend GIN for ordinary scalar equality lookups; B-tree is usually the right choice.
+- Do NOT suggest `CREATE INDEX CONCURRENTLY` or `REINDEX CONCURRENTLY` inside a transaction block.
+- Do NOT claim `INCLUDE` eliminates all heap reads; visibility-map state still controls index-only scans.
+- Do NOT recommend BRIN without checking physical correlation.
+- Do NOT assume partitioned tables have global indexes; PostgreSQL maintains indexes per partition.

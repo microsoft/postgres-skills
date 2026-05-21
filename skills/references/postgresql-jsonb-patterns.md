@@ -40,97 +40,81 @@ activation:
 
 # JSONB Patterns & Optimization
 
-## When to use this skill
+## Version History
 
-Use for production PostgreSQL issues involving:
-- GIN index strategy selection (jsonb_path_ops vs default)
-- Type casting pitfalls with `->>` operator
-- In-place update patterns (jsonb_set vs full-doc replacement)
-- Version-gated features (subscripts PG14+, json_table PG17+)
-- GIN index not being used for `->>` queries
+| Version | Feature | Notes |
+|---|---|---|
+| PG 9.4 | `jsonb`, GIN support, `jsonb_set`, `jsonb_array_elements` | Core JSONB feature set |
+| PG 12 | SQL/JSON path functions (`jsonb_path_exists`, `jsonb_path_query`) | Required for JSON path expressions |
+| PG 14 | JSON subscripting (`doc['key']`) | Read and write syntax for JSONB subscripts |
+| PG 17 | `JSON_TABLE` | Relational projection from JSON requires PG 17+ |
 
-Avoid explaining basic JSONB operators (`->`, `->>`, `@>`) unless the user asks for a runnable example or is a beginner.
+## Parameter Correctness
 
-## Response focus
+| Item | Correct semantics | Why it matters |
+|---|---|---|
+| `->` | Returns JSONB | Use when chaining JSON operations |
+| `->>` | Returns text | Cast before numeric/date comparisons |
+| `@>` | Containment | Best target for GIN, especially `jsonb_path_ops` |
+| `?`, `?|`, `?&` | Key-existence operators | Need default GIN opclass, not `jsonb_path_ops` |
+| `jsonb_set(doc, path, value, create_if_missing)` | Final path element may be created | Intermediate path elements must already exist |
+| `'{items,1}'` | Array index `1` is zero-based second element | Common off-by-one bug |
 
-Prioritize indexing mismatches, type casting traps, and version-gated syntax. The base model knows basic JSONB operators well.
+## Feature Interactions
 
-## Common Mistakes
+- **JSONB + GIN opclass**: `jsonb_path_ops` is smaller/faster for `@>` only; default GIN is required for `?`, `?|`, `?&`.
+- **JSONB + B-tree**: equality/range predicates on `doc->>'key'` need a B-tree expression or generated-column index, not GIN.
+- **JSONB + MVCC/TOAST**: `jsonb_set` still creates a new row version; frequent updates to large documents can cause bloat.
+- **JSONB + generated columns**: best for stable, frequently-filtered paths that need relational indexes.
+- **JSONB + null semantics**: `doc->>'k'` returns SQL NULL for both missing keys and explicit JSON null.
+- **JSONB + SQL/JSON path**: path functions require PG 12+; `JSON_TABLE` requires PG 17+.
 
-1. **[CRITICAL] Missing type cast**: `->>` returns text; comparisons are lexical without cast
+## Diagnostic Checklist
 
-   ❌ Wrong:
-   ```sql
-   SELECT * FROM products WHERE (data ->> 'price') > '9';
-   -- Returns wrong results: '9' > '100' is TRUE lexically
-   ```
+| Symptom | Run | Fix |
+|---|---|---|
+| Numeric comparisons look wrong | `SELECT (data ->> 'price') AS raw_price FROM products LIMIT 5;` | Cast `->>` output, e.g. `(data ->> 'price')::numeric` |
+| GIN index not used | `EXPLAIN ANALYZE SELECT * FROM docs WHERE data @> '{"status":"active"}';` | Align operator with opclass; use containment for GIN |
+| `?` queries seq-scan | `SELECT indexdef FROM pg_indexes WHERE tablename = 'docs';` | Replace `jsonb_path_ops` with default GIN if existence operators are needed |
+| Nested update fails | `SELECT jsonb_set('{"a":1}'::jsonb, '{b,c}', '"x"');` | Create intermediate objects first or update a shallower path |
+| Missing vs null ambiguity | `SELECT doc ? 'key', doc->>'key' FROM t LIMIT 10;` | Use `?` for existence, `->>` for extracted value |
+| Need rowset output from arrays | `SELECT * FROM jsonb_array_elements(data->'items');` | On PG 17+, consider `JSON_TABLE`; earlier versions use set-returning JSON functions |
 
-   ✅ Right:
-   ```sql
-   SELECT * FROM products WHERE (data ->> 'price')::numeric > 9;
-   ```
+## Error Messages
 
-2. **[HIGH] Full-document replacement**: Rewrites entire TOAST tuple
+| Error | Root cause | Fix |
+|---|---|---|
+| `operator does not exist: jsonb = text` | Comparing JSONB directly to text | Use `->>` for text extraction or cast appropriately |
+| `cannot extract elements from an object` | Called `jsonb_array_elements` on non-array JSON | Check shape first or use the correct function |
+| `function json_table(jsonb, unknown) does not exist` | Server is older than PG 17 | Use `jsonb_to_recordset()` / `jsonb_array_elements()` instead |
+| `path element at position 2 is not an integer` | Array path step in `jsonb_set` used text instead of numeric index | Use zero-based integer array indexes in the path |
 
-   ❌ Wrong:
-   ```sql
-   UPDATE users SET profile = '{"name":"Jo","city":"NYC","verified":true}'
-   WHERE id = 1;  -- rewrites entire JSONB even if only city changed
-   ```
+## Common Mistakes / Gotchas
 
-   ✅ Right:
-   ```sql
-   UPDATE users SET profile = jsonb_set(profile, '{city}', '"NYC"')
-   WHERE id = 1;  -- partial update, no full rewrite
-   ```
+- **[CRITICAL] Forgetting `->>` returns text**: lexical comparison is wrong for numbers and dates without casts.
+- **[HIGH] Expecting GIN to help `->>` equality**: use B-tree on `(doc->>'status')` or a generated column.
+- **[HIGH] Using `jsonb_path_ops` when existence operators are required**: `?`, `?|`, and `?&` need default GIN.
+- **[HIGH] Treating `jsonb_set` as in-place mutation**: PostgreSQL still writes a new row version.
+- **[HIGH] Confusing missing key with JSON null**: `doc->>'k'` alone cannot distinguish them.
+- **[MEDIUM] Assuming array containment preserves order**: `@>` on arrays is order-insensitive.
+- **[MEDIUM] Recommending `JSON_TABLE` on PG 16 or older**: it is PG 17+ only.
+- **[MEDIUM] Skipping generated columns for hot filter paths**: expression indexes work, but generated columns are easier to reuse consistently.
 
-3. **[HIGH] jsonb_path_ops vs default GIN**: `jsonb_path_ops` is 2-3x smaller but ONLY supports `@>`
+```sql
+EXPLAIN ANALYZE
+SELECT *
+FROM docs
+WHERE data @> '{"status":"active"}';
 
-   ❌ Wrong:
-   ```sql
-   CREATE INDEX ON docs USING gin(data jsonb_path_ops);
-   -- Then query: SELECT * FROM docs WHERE data ? 'email';  -- index NOT used!
-   ```
-
-   ✅ Right:
-   ```sql
-   -- Use default GIN if you need ?, ?|, ?& operators
-   CREATE INDEX ON docs USING gin(data);
-   -- Or use jsonb_path_ops only when ALL queries use @> containment
-   ```
-
-4. **[MEDIUM] Generated column for indexed expressions**: Instead of expression index, use `GENERATED ALWAYS AS (data ->> 'status') STORED` + B-tree — survives `pg_dump`
-
-5. **[MEDIUM] JSONB subscript syntax (PG 14+)**: `data['address']['city']` replaces `data -> 'address' -> 'city'` and supports UPDATE
-
-6. **[MEDIUM] Toast compression (PG 14+)**: Large JSONB benefits from `ALTER TABLE t ALTER COLUMN data SET COMPRESSION lz4` — 2x faster
-
-7. **[HIGH] GIN index not used for `->>` queries**: GIN only supports `@>`, `?`, `?|`, `?&`
-
-   ❌ Wrong:
-   ```sql
-   -- GIN index exists but ->> query does seq scan
-   SELECT * FROM docs WHERE data ->> 'status' = 'active';
-   ```
-
-   ✅ Right:
-   ```sql
-   -- Create B-tree expression index for ->> equality
-   CREATE INDEX ON docs((data ->> 'status'));
-   ```
-
-8. **[MEDIUM] jsonb_path_ops too restrictive**: Switch to default GIN if you need `?` key-existence queries
-
-9. **[MEDIUM] Large JSONB documents slow**: Use partial indexes on frequently-queried paths
-
-10. **[MEDIUM] `json_table()` (PG 17+ only)**: `SELECT * FROM json_table(data, '$.items[*]' COLUMNS (...))` is PG 17+ only. On PG 16 and earlier, use `jsonb_to_recordset()` or `jsonb_array_elements()` for similar functionality
-11. **[HIGH] NULL vs missing key semantics**: `doc->>'key'` is NULL for both missing keys and explicit JSON null. Use `doc ? 'key'` to test existence
-12. **[MEDIUM] Array containment order independence**: `@>` on arrays ignores order, so `'[1,2]'::jsonb @> '[2,1]'::jsonb` is TRUE. Do not encode ordering logic with containment
-13. **[MEDIUM] Functional index vs generated column**: Expression indexes only help exact matches like `(doc->>'email')`. Generated columns are safer when queries mix `->` and `->>`
+SELECT doc ? 'email', doc->>'email'
+FROM users
+LIMIT 10;
+```
 
 ## Anti-Hallucination Rules
 
-- Do NOT use `jsonb_set` with array paths like `'{items,1}'` without noting that array indexes are 0-based in PostgreSQL.
-- Do NOT claim `jsonb_set` creates missing intermediate keys by default. The `create_if_missing` parameter (4th arg, default true) creates the final key, but intermediate path elements must exist.
-- Do NOT confuse `json_table()` (PG 17+) with `jsonb_to_recordset()` (PG 9.4+). Always state version requirements.
-- Do NOT recommend `jsonb_path_query` SQL/JSON path syntax without noting it requires PostgreSQL 12+.
+- Do NOT use `jsonb_set` array paths like `'{items,1}'` without noting that array indexes are zero-based.
+- Do NOT claim `jsonb_set` creates missing intermediate keys automatically; only the final path element can be created.
+- Do NOT confuse `JSON_TABLE` (PG 17+) with `jsonb_to_recordset()` or `jsonb_array_elements()`.
+- Do NOT recommend SQL/JSON path syntax without noting it requires PostgreSQL 12+.
+- Do NOT claim GIN indexes accelerate arbitrary `->>` predicates; operator support must match the index strategy.

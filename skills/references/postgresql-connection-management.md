@@ -29,116 +29,74 @@ activation:
 
 # Connection Management
 
-## When to use this skill
+> **Response focus:** Diagnose connection exhaustion, pool-mode mismatch, prepared statement breakage, and idle-in-transaction cleanup before suggesting bigger limits.
 
-Use for production PostgreSQL issues involving:
-- "too many clients" errors or connection exhaustion
-- PgBouncer mode selection (session vs transaction)
-- Prepared statements broken by transaction-mode pooling
-- Idle connections holding locks/preventing VACUUM
-- Serverless connection patterns (Lambda, Cloud Functions)
+## Version History
 
-Include diagnostic queries and connection pool configuration examples. Focus on production failure modes and Azure-specific connection limits.
+| Version | Feature | Notes |
+|---------|---------|-------|
+| PG 9.6 | `idle_in_transaction_session_timeout` | Kills abandoned transactions that hold locks |
+| PG 14 | `idle_session_timeout` | Reclaims long-idle non-transaction sessions |
 
-## Response focus
+## Parameter Correctness
 
-Prioritize pooling mode tradeoffs, production failure modes, and managed-service constraints. The base model knows basic connection diagnostics well.
+| Setting | Scope | Correct use | Gotcha |
+|---------|-------|-------------|--------|
+| `max_connections` | postmaster | Change via server config and restart | `SET max_connections` does nothing |
+| `idle_in_transaction_session_timeout` | db, role, session, cluster | Set to a few minutes for app databases | Prevents idle transactions from blocking VACUUM |
+| `idle_session_timeout` | db, role, session, cluster | Use for non-pooled clients on PG 14+ | Can fight external poolers if set too low |
+| `statement_timeout` | db, role, session, cluster | Caps query runtime | Does not control connect time |
+| `connect_timeout` | client | Limits TCP connect wait | Does not cancel slow queries |
+| PgBouncer `pool_mode` | pooler | `transaction` for serverless, `session` for session state or prepared statements | Wrong mode causes subtle breakage |
+| PgBouncer `server_reset_query` | pooler | Clear backend state on reuse | Missing reset leaks session state |
 
-## High-value reminders
+## Feature Interactions
 
-- `max_connections` is postmaster-level — requires restart and superuser or platform admin role; cannot use `SET` or `ALTER SYSTEM` on managed services
-- `idle_in_transaction_session_timeout` prevents crashed clients from holding locks indefinitely
-- PgBouncer transaction mode breaks `PREPARE`/`EXECUTE` across backends
-- Total connections = `pool_size_per_instance × num_instances` — easy to exceed limits
+- **PgBouncer transaction mode + prepared statements**: `PREPARE` and `EXECUTE` can hit different backends.
+- **PgBouncer transaction mode + session state**: `SET`, temp tables, and advisory locks do not survive backend reuse.
+- **`max_connections` + memory**: More backends increase private memory overhead and amplify bad `work_mem` settings.
+- **Serverless autoscaling + per-process pools**: `pool_size × instances` can exceed server limits fast.
+- **Idle transactions + autovacuum**: One abandoned transaction can block cleanup on hot tables.
 
-## Pool Sizing Formula
+## Diagnostic Checklist
 
-**Server-side max_connections:**
-- OLTP: `4 × vCPUs` (e.g., 8 vCPU = 32 connections)
-- Mixed workload: `2 × vCPUs + 5` (for background workers)
-- Memory check: `max_connections × work_mem` must fit in RAM. 100 connections × 256MB work_mem = 25GB (likely OOM)
+| Symptom | Run | Look for | Fix |
+|---------|-----|----------|-----|
+| `too many clients` | `SELECT state, count(*) FROM pg_stat_activity GROUP BY state ORDER BY count(*) DESC;` | Large idle population | Add pooler, lower app pool sizes, clean leaks |
+| Need top connection owners | `SELECT application_name, usename, state, count(*) FROM pg_stat_activity GROUP BY 1,2,3 ORDER BY 4 DESC;` | One service consuming most slots | Cap that service first |
+| Idle transactions blocking work | `SELECT pid, usename, now() - xact_start AS age, wait_event_type, query FROM pg_stat_activity WHERE state = 'idle in transaction';` | Old transactions | Set `idle_in_transaction_session_timeout`; fix app commit or rollback |
+| Emergency cleanup | `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND now() - state_change > interval '10 minutes';` | Requires proper role | Use only as incident response |
+| Suspect PgBouncer mode issue | `SHOW pool_mode;` in PgBouncer | `transaction` with prepared statements or temp tables | Switch to `session` or remove session features |
 
-**PgBouncer pool_size:**
-- `pool_size = max_connections × 0.8` (reserve 20% for admin/monitoring)
-- `max_client_conn = pool_size × 10` (10:1 multiplexing ratio is safe for transaction mode)
+## Error Messages
 
-**Red flags:**
-- `max_connections > 500` without PgBouncer = degraded performance
-- `pool_size > max_connections` = PgBouncer can't actually use all slots
-- Client `CONN_MAX_AGE=0` (Django default) = reconnect every request, defeats pooling
+| Error | Root cause | Fix |
+|-------|------------|-----|
+| `FATAL: sorry, too many clients already` | All normal slots are in use | Reduce client fan-out, add pooler, increase limit only with memory headroom |
+| `remaining connection slots are reserved for non-replication superuser connections` | User exhausted non-reserved slots | Same fix as above; reserve slots for admin access |
+| `prepared statement "..." does not exist` | PgBouncer transaction mode moved the session to another backend | Use session mode or avoid session-scoped prepared statements |
+| `terminating connection due to idle-in-transaction timeout` | Session sat in an open transaction too long | Commit or rollback sooner; raise timeout only if justified |
 
-## Pooling decision tree
+## Common Mistakes / Gotchas
 
-- **< 50 connections**: No pooler needed
-- **50-200 + simple queries**: PgBouncer transaction mode
-- **> 200 or serverless**: External pooler required
-- **Prepared statements needed**: PgBouncer session mode OR PG 14+ protocol-level prepared statements
+- **Treat `max_connections` as the first fix**: It often hides pooling and leak problems.
+- **Ignore total fan-out**: `pool_size_per_instance × instances` is the real load on PostgreSQL.
+- **Use session mode for bursty serverless traffic**: It defeats multiplexing.
+- **Use transaction mode with temp tables or session `SET`**: Backend reuse breaks the workflow.
+- **Skip `idle_in_transaction_session_timeout`**: One crashed client can hold locks for hours.
+- **Assume `statement_timeout` protects connection storms**: It does not limit connects.
+- **Forget reset behavior in PgBouncer**: Residual session state leaks across clients.
 
-## Common Mistakes
+```ini
+; Minimal gotcha example for serverless
+pool_mode = transaction
+server_reset_query = DEALLOCATE ALL; DISCARD ALL; RESET ALL;
+```
 
-1. **[HIGH] Session-mode pooling with serverless**: Session mode holds connections open per client. Use transaction mode for Lambda/Cloud Functions
+## Anti-Hallucination Rules
 
-   ❌ Wrong:
-   ```ini
-   ; pgbouncer.ini — session mode with serverless
-   pool_mode = session
-   ```
-
-   ✅ Right:
-   ```ini
-   ; pgbouncer.ini — transaction mode for serverless
-   pool_mode = transaction
-   server_reset_query = DEALLOCATE ALL; DISCARD ALL;
-   ```
-
-2. **[CRITICAL] Transaction-mode pooling breaks prepared statements**: PgBouncer transaction mode cannot route `PREPARE`/`EXECUTE` across backends
-
-   ❌ Wrong:
-   ```sql
-   -- App uses PREPARE then EXECUTE across pooled connections
-   PREPARE get_user(int) AS SELECT * FROM users WHERE id = $1;
-   EXECUTE get_user(42);  -- may hit different backend
-   ```
-
-   ✅ Right:
-   ```ini
-   ; pgbouncer.ini — add DEALLOCATE ALL to reset query
-   server_reset_query = DEALLOCATE ALL; DISCARD ALL; RESET ALL;
-   ; OR use session mode if prepared statements are critical
-   ```
-
-3. **[HIGH] Application pool per-process adds up**: HikariCP pool_size=10 across 20 pods = 200 server connections. Calculate: `total = pool_size_per_instance × num_instances`. Use server-side pooler as central bottleneck
-
-4. **[CRITICAL] Missing `idle_in_transaction_session_timeout`**: Crashed clients leave open transactions holding locks and preventing VACUUM
-
-   ❌ Wrong:
-   ```sql
-   -- No timeout set; crashed client blocks VACUUM indefinitely
-   ```
-
-   ✅ Right:
-   ```sql
-   ALTER DATABASE mydb SET idle_in_transaction_session_timeout = '5min';
-   ```
-
-5. **[MEDIUM] `idle_session_timeout` (PG 14+) not used**: Idle connections consume backend slots. Set to 30min for non-pooled connections
-
-6. **[MEDIUM] Using `ALTER SYSTEM SET` on managed PostgreSQL**: Unavailable on Azure/RDS/Cloud SQL. Use `ALTER DATABASE` or server parameters UI
-
-7. **[MEDIUM] Using `SET` for postmaster-level params**: `SET max_connections` has no effect. Requires restart via portal/CLI
-
-8. **[HIGH] Connection storm after restart**: All instances reconnect simultaneously. Use exponential backoff with jitter; set PgBouncer `min_pool_size` to pre-warm
-
-9. **[MEDIUM] "too many clients" emergency**: `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE state = 'idle' AND now() - state_change > interval '10 min'`
-
-10. **[MEDIUM] Permission denied on pg_terminate_backend**: Requires `pg_signal_backend` role or superuser/platform admin role
-11. **[HIGH] Async app connection leak**: Exceptions in Node.js or asyncio code can skip `pool.release()`. Always use `try/finally` or context managers
-12. **[MEDIUM] `statement_timeout` vs connection timeout confusion**: `statement_timeout` cancels a running query; `connect_timeout` only limits initial TCP connect time
-13. **[MEDIUM] `max_connections` sizing**: Rough OLTP baseline is ~4× vCPUs. Jumping to 500+ without PgBouncer often OOMs from per-connection memory overhead
-
-## Guardrails
-
-- Do NOT claim `max_connections` can be changed with `SET` or `ALTER SYSTEM` on managed services — it requires server restart via portal/CLI
-- Do NOT recommend connection counts above 500 without PgBouncer — PostgreSQL process-per-connection model degrades rapidly
-- Do NOT claim PgBouncer transaction mode supports prepared statements natively
-- If user's exact managed service is unknown, caveat with "check your provider's max_connections limits"
+- Do not claim `SET max_connections` works.
+- Do not claim PgBouncer transaction mode supports session-scoped prepared statements.
+- Do not recommend raising `max_connections` without checking memory and fan-out math.
+- Do not treat `statement_timeout` and `connect_timeout` as interchangeable.
+- Do not ignore `idle in transaction` sessions when diagnosing bloat or blocked VACUUM.

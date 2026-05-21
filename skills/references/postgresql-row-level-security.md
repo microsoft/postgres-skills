@@ -31,86 +31,89 @@ activation:
 
 # Row-Level Security (RLS)
 
-## When to use this skill
+> **Response focus:** Prioritize owner bypass, `FORCE ROW LEVEL SECURITY`, pooler-safe tenant context, `SECURITY DEFINER` risk, and `WITH CHECK` failures.
 
-Use for production PostgreSQL issues involving:
-- Multi-tenant data isolation with RLS policies
-- Connection pooler safety (SET LOCAL vs SET)
-- FORCE ROW LEVEL SECURITY on table owner
-- SECURITY DEFINER function bypass risks
-- Permissive vs Restrictive policy stacking (PG 10+)
+## Version History
 
-Include runnable policy examples. Focus on multi-tenant patterns, pooler-safe session variables, and common bypass mistakes.
+| Version | Feature | Notes |
+|---------|---------|-------|
+| PG 9.5 | RLS introduced | `ENABLE ROW LEVEL SECURITY`, policies, `FORCE` available |
+| PG 10 | `AS RESTRICTIVE` policies | Enables AND-style mandatory filters |
+| PG 15 | `security_invoker = true` views | Lets views respect caller RLS instead of owner context |
 
-## Response focus
+## Parameter Correctness
 
-Prioritize pooler-safe patterns, bypass risks, and policy stacking logic. The base model knows basic RLS setup.
+| Setting or construct | Correct value or pattern | Why it matters |
+|----------------------|--------------------------|----------------|
+| Table setting | `ALTER TABLE orders ENABLE ROW LEVEL SECURITY;` | Without this, policies exist but do nothing |
+| Owner enforcement | `ALTER TABLE orders FORCE ROW LEVEL SECURITY;` | Table owner otherwise bypasses policies |
+| Tenant context with poolers | `SET LOCAL app.current_tenant = 'tenant_123';` inside a transaction | Session `SET` is unsafe with transaction pooling |
+| Policy reads | `current_setting('app.current_tenant', true)` | `missing_ok = true` avoids hard failure when unset |
+| Role attribute | Avoid granting `BYPASSRLS` unless deliberate | Bypasses all table policies |
 
-## Critical pattern: Pooler-safe tenant isolation
+## Feature Interactions
+
+- **RLS + table owner**: Owner bypasses unless you `FORCE ROW LEVEL SECURITY`.
+- **RLS + `SECURITY DEFINER`**: Function runs with owner privileges and can bypass tenant isolation.
+- **RLS + views**: View owner context applies unless you use `security_invoker = true` on PG 15+.
+- **RLS + connection poolers**: Use `SET LOCAL`, not session `SET`, in transaction pooling.
+- **RLS + INSERT/UPDATE**: `USING` filters reads; `WITH CHECK` governs allowed new rows.
+- **RLS + dump or restore**: Superusers and roles with `BYPASSRLS` do not see the same behavior as the app role.
+
+## Diagnostic Checklist
+
+| Symptom | Run | Look for | Fix |
+|---------|-----|----------|-----|
+| Owner sees rows others do not | `SELECT relrowsecurity, relforcerowsecurity FROM pg_class WHERE oid = 'orders'::regclass;` | `relforcerowsecurity = false` | `ALTER TABLE orders FORCE ROW LEVEL SECURITY;` |
+| App gets zero rows | `SELECT * FROM pg_policies WHERE tablename = 'orders';` | Missing or overly strict `USING` policy | Fix policy logic |
+| INSERT fails under RLS | Inspect policy for `WITH CHECK` | Read policy exists but write check missing | Add `WITH CHECK` that matches tenant rule |
+| Pooler mixes tenant context | `SHOW pool_mode;` in PgBouncer and inspect app transaction boundaries | Transaction pooling with session `SET` | Use `BEGIN; SET LOCAL ...; COMMIT;` |
+| Suspect bypass roles | `SELECT rolname, rolbypassrls FROM pg_roles WHERE rolname IN ('app_user','owner_role');` | `rolbypassrls = true` | Remove `BYPASSRLS` unless required |
 
 ```sql
--- With connection poolers: SET LOCAL (transaction-scoped, not session)
+-- Pooler-safe tenant context
 BEGIN;
 SET LOCAL app.current_tenant = 'tenant_123';
--- ... queries ...
+SELECT * FROM orders;
 COMMIT;
 
--- Policy using current_setting
-CREATE POLICY tenant_isolation ON orders
-    USING (tenant_id = current_setting('app.current_tenant'));
+-- Verify policies
+SELECT policyname, cmd, permissive, qual, with_check
+FROM pg_policies
+WHERE schemaname = 'public' AND tablename = 'orders';
 ```
 
-## Common Mistakes
+## Error Messages
 
-1. **[CRITICAL] Forgetting FORCE on owner**: Table owner bypasses RLS silently. Always `ALTER TABLE t FORCE ROW LEVEL SECURITY`
+| Error | Root cause | Fix |
+|-------|------------|-----|
+| `new row violates row-level security policy for table "orders"` | `INSERT` or `UPDATE` fails `WITH CHECK` | Add or fix `WITH CHECK` for allowed tenant rows |
+| `query would be affected by row-level security policy for table "orders"` | `row_security = off` while query would filter rows | Run with `row_security = on` or a deliberate bypass role |
 
-2. **[CRITICAL] `current_setting` with connection poolers**: PgBouncer transaction-mode resets session variables between transactions
+## Common Mistakes / Gotchas
 
-   ❌ Wrong:
-   ```sql
-   -- Set once per connection (lost on next transaction in pool)
-   SET app.current_tenant = 'tenant_A';
-   SELECT * FROM orders;
-   ```
+- **Forget `FORCE`**: Tests pass as owner and fail in production for app roles.
+- **Use session `SET` with PgBouncer transaction mode**: Tenant context disappears on the next statement.
+- **Rely on multiple permissive policies for AND logic**: Same-command permissive policies OR together.
+- **Use `SECURITY DEFINER` casually**: It can bypass RLS and leak cross-tenant data.
+- **Skip `WITH CHECK`**: Reads work, writes fail.
+- **Turn on RLS before adding a policy**: Non-owner roles get default deny immediately.
+- **Ignore indexes on policy columns**: RLS can turn every request into a filtered Seq Scan.
 
-   ✅ Right:
-   ```sql
-   -- SET LOCAL scoped to transaction; safe with poolers
-   BEGIN;
-   SET LOCAL app.current_tenant = 'tenant_A';
-   SELECT * FROM orders;
-   COMMIT;
-   ```
+```sql
+-- Minimal gotcha example: read and write rules are different
+CREATE POLICY orders_tenant_select ON orders
+    USING (tenant_id = current_setting('app.current_tenant', true));
 
-3. **[HIGH] Policy stacking logic**: Multiple policies for same command are OR'd. Use a SINGLE policy with combined logic for AND behavior
+CREATE POLICY orders_tenant_write ON orders
+    FOR INSERT, UPDATE
+    USING (tenant_id = current_setting('app.current_tenant', true))
+    WITH CHECK (tenant_id = current_setting('app.current_tenant', true));
+```
+## Anti-Hallucination Rules
 
-4. **[HIGH] Leakproof function requirement**: Non-LEAKPROOF functions in policies may leak rows via error messages. Mark security functions as `LEAKPROOF`
-
-5. **[CRITICAL] RLS + pg_dump/pg_restore**: `pg_dump` runs as superuser (bypasses RLS). `COPY` in application code respects RLS. Mismatched expectations cause data loss
-
-6. **[HIGH] Permissive vs Restrictive policies (PG 10+)**: Default is PERMISSIVE (OR'd). Use `CREATE POLICY ... AS RESTRICTIVE` for mandatory AND constraints
-
-7. **[CRITICAL] SECURITY DEFINER functions bypass RLS**: Functions run as function owner, silently bypassing RLS
-
-   ❌ Wrong:
-   ```sql
-   CREATE FUNCTION get_all_orders() RETURNS SETOF orders
-   LANGUAGE sql SECURITY DEFINER  -- runs as owner, bypasses RLS!
-   AS $$ SELECT * FROM orders; $$;
-   ```
-
-   ✅ Right:
-   ```sql
-   CREATE FUNCTION get_all_orders() RETURNS SETOF orders
-   LANGUAGE sql SECURITY INVOKER  -- respects caller's RLS policies
-   AS $$ SELECT * FROM orders; $$;
-   ```
-
-8. **[MEDIUM] Locked out (no rows returned)**: Connect as table owner (bypasses RLS) and fix policy
-
-9. **[MEDIUM] Performance degradation from RLS**: Add index on policy column. Check EXPLAIN for seq scan with filter
-
-10. **[MEDIUM] Policy blocks migrations**: Temporarily `ALTER TABLE t DISABLE ROW LEVEL SECURITY` during migrations
-11. **[HIGH] Missing WITH CHECK on INSERT/UPDATE policies**: `USING` controls visibility, but writes still fail without matching `WITH CHECK` for tenant/ownership rules
-12. **[MEDIUM] Default-deny breaks existing application**: Enabling RLS before creating a permissive policy blocks all non-owner access immediately
-13. **[MEDIUM] Function information leak via error messages**: `SECURITY DEFINER` code can reveal hidden rows through unique/FK errors even when SELECT is blocked
+- Do not claim table owners obey RLS unless `FORCE ROW LEVEL SECURITY` is enabled.
+- Do not claim `USING` alone controls INSERT or UPDATE acceptance.
+- Do not treat `SECURITY DEFINER` as RLS-safe by default.
+- Do not assume views respect caller RLS on PG versions before `security_invoker = true` views.
+- Do not recommend session `SET` for tenant context behind transaction pooling.
