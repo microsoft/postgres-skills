@@ -109,20 +109,26 @@ These references are gated by `pgsql_get_server_capabilities` → `isAzure: true
 
 ## Eval-tested quality
 
-Every skill is continuously evaluated against 107 test challenges. CI runs the eval pipeline on every push to main and commits results.
+Every skill is continuously evaluated against 300 test challenges across generic PostgreSQL and Azure-specific scenarios. CI runs the eval pipeline on every push to main.
 
 | Metric | What it measures | Latest |
 |--------|-----------------|--------|
-| **F1 Score** | Overall activation accuracy | 91.9% |
-| **Precision** | Skills fire only when relevant | 90.1% |
-| **Recall** | Skills fire when needed | 93.8% |
-| **Delta** | Quality improvement over no-skill baseline | +4.2% (significant) |
-| **Hallucination Rate** | Facts fabricated | 5/107 (4.7%) |
+| **F1 Score** | Overall activation accuracy | 94.4% |
+| **Precision** | Skills fire only when relevant | 92.9% |
+| **Recall** | Skills fire when needed | 95.8% |
+| **Win Rate (Generic)** | Skills beat no-skill baseline (paired judge) | 55.2% wins / 31.2% losses |
+| **Win Rate (Weighted)** | Hard=3x, Medium=2x, Easy=1x | 55.4% wins / 33.9% losses |
+| **Correctness** | Factual accuracy (test vs control) | 99.7% vs 97.6% |
+| **Hallucination Rate** | Facts fabricated | 5/300 (1.7%) |
+| **Wilcoxon p-value** | Statistical significance | p=0.0001 |
 
 ```bash
 # Run evals (requires Azure OpenAI key)
 cd tests/evals
-python pipeline.py --provider azure --output results/
+python pipeline.py --provider azure --model gpt-5.4 --concurrency 3
+
+# Run generic-only subset
+python pipeline.py --provider azure --model gpt-5.4 --concurrency 3 --challenges challenges/generic_only.yaml
 
 # Dry run (no API calls, validates structure)
 python pipeline.py --dry-run
@@ -143,9 +149,9 @@ postgresql-agent-skills/
 │       └── ...                          # 18 more references
 ├── tests/
 │   ├── checks/                          # CI checks (routing precision, size, security)
-│   ├── evals/                           # Eval pipeline (107 challenges, LLM-as-judge)
+│   ├── evals/                           # Eval pipeline (300 challenges, LLM-as-judge)
 │   │   ├── pipeline.py                  # Main eval orchestrator
-│   │   ├── challenges/challenges.yaml   # 107 test challenges
+│   │   ├── challenges/challenges.yaml   # 300 test challenges
 │   │   └── results/latest.json          # Auto-committed eval results
 │   └── test_ai_app.js                   # 90-check dogfood test
 ├── .github/workflows/ci.yml             # 16-job CI pipeline
