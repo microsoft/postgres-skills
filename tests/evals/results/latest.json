@@ -1,183 +1,306 @@
 {
-  "generated_at": "2026-05-21T19:23:01.254627+00:00",
+  "generated_at": "2026-05-22T18:10:48.318787+00:00",
   "provenance": {
-    "pipeline_commit": "7d5630e6d19864929da5bb6f0ceeaf557a800b9f",
-    "challenges_sha256": "d525d7cdc3e9",
+    "pipeline_commit": "78e1901ee19ae9def505088cb5cca224a85b8991",
+    "challenges_sha256": "4aa157eb7e54",
     "model_id": "gpt-5.4",
     "judge_model_id": "gpt-5.4",
     "calibration_mode": false,
-    "total_challenges": 103
+    "total_challenges": 300
   },
   "summary": {
-    "total_challenges": 103,
-    "total_results": 206,
-    "precision": 0.929,
-    "recall": 0.958,
-    "f1_score": 0.944,
-    "hallucination_rate": 5,
+    "total_challenges": 300,
+    "total_results": 599,
+    "precision": 0.933,
+    "recall": 0.939,
+    "f1_score": 0.936,
+    "hallucination_rate": 22,
     "false_activation_rate": 1.0,
-    "correctness_pass_rate": 0.986,
-    "correctness_pass_rate_control": 0.976,
-    "correctness_pass_rate_test": 0.997,
-    "correctness_results_count": 193,
-    "correctness_challenge_count": 97
+    "correctness_pass_rate": 0.955,
+    "correctness_pass_rate_control": 0.917,
+    "correctness_pass_rate_test": 0.993,
+    "correctness_results_count": 402,
+    "correctness_challenge_count": 202
   },
   "delta": {
     "method": "judge",
-    "control_avg_score": 0.84,
-    "test_avg_score": 0.861,
-    "improvement": 0.021,
-    "pattern_delta": 0.01,
-    "cohens_d": 0.423,
+    "control_avg_score": 0.76,
+    "test_avg_score": 0.803,
+    "improvement": 0.043,
+    "pattern_delta": 0.05,
+    "cohens_d": 0.347,
     "cohens_d_interpretation": "small",
     "bootstrap_95_ci": {
-      "lower": 0.0073,
-      "upper": 0.0359,
-      "mean": 0.0215,
+      "lower": 0.0221,
+      "upper": 0.0647,
+      "mean": 0.0431,
       "significant": true
     },
     "wilcoxon_test": {
-      "W_statistic": 745.5,
-      "W_plus": 2257.5,
-      "W_minus": 745.5,
-      "z_score": -3.839,
-      "p_value_approx": 0.0001,
+      "W_statistic": 7916.5,
+      "W_plus": 26013.5,
+      "W_minus": 7916.5,
+      "z_score": -7.455,
+      "p_value_approx": 0.0,
       "significant": true,
-      "n_pairs": 77
+      "n_pairs": 260
     },
     "paired_winrate": {
-      "win_rate": 0.552,
-      "loss_rate": 0.312,
-      "tie_rate": 0.135,
-      "wins": 53,
-      "losses": 30,
-      "ties": 13,
-      "total": 96,
-      "net_wins": 23
+      "win_rate": 0.593,
+      "loss_rate": 0.329,
+      "tie_rate": 0.079,
+      "wins": 166,
+      "losses": 92,
+      "ties": 22,
+      "total": 280,
+      "net_wins": 74
     },
     "segmented_winrate": {
       "azure": {
-        "win_rate": 0,
-        "loss_rate": 0,
-        "tie_rate": 0,
-        "total": 0,
-        "net_wins": 0
+        "win_rate": 0.61,
+        "loss_rate": 0.365,
+        "tie_rate": 0.025,
+        "wins": 97,
+        "losses": 58,
+        "ties": 4,
+        "total": 159,
+        "net_wins": 39
       },
       "generic": {
-        "win_rate": 0.552,
-        "loss_rate": 0.312,
-        "tie_rate": 0.135,
-        "wins": 53,
-        "losses": 30,
-        "ties": 13,
-        "total": 96,
-        "net_wins": 23
+        "win_rate": 0.59,
+        "loss_rate": 0.274,
+        "tie_rate": 0.137,
+        "wins": 69,
+        "losses": 32,
+        "ties": 16,
+        "total": 117,
+        "net_wins": 37
       },
       "hard_medium": {
-        "win_rate": 0.544,
-        "loss_rate": 0.353,
-        "tie_rate": 0.103,
-        "wins": 37,
-        "losses": 24,
-        "ties": 7,
-        "total": 68,
-        "net_wins": 13
+        "win_rate": 0.573,
+        "loss_rate": 0.35,
+        "tie_rate": 0.078,
+        "wins": 118,
+        "losses": 72,
+        "ties": 16,
+        "total": 206,
+        "net_wins": 46
       }
     },
     "weighted_winrate": {
-      "win_rate": 0.554,
-      "loss_rate": 0.339,
-      "tie_rate": 0.108,
+      "win_rate": 0.573,
+      "loss_rate": 0.354,
+      "tie_rate": 0.074,
       "weighting": "hard=3x, medium=2x, easy=1x"
     }
   },
   "per_skill": {
-    "skills/references/postgresql-advanced-indexing": {
-      "tp": 11,
+    "skills/postgresql-best-practices/references/postgresql-advanced-indexing": {
+      "tp": 13,
       "fp": 1,
       "fn": 1,
       "tn": 0,
-      "avg_pattern_score": 0.962,
-      "avg_judge_score": 0.847,
+      "avg_pattern_score": 0.967,
+      "avg_judge_score": 0.863,
       "hallucinations": 0
     },
-    "skills/references/postgresql-query-performance": {
-      "tp": 12,
+    "skills/postgresql-best-practices/references/postgresql-query-performance": {
+      "tp": 14,
       "fp": 1,
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.857,
+      "avg_judge_score": 0.859,
       "hallucinations": 0
     },
-    "skills/references/postgresql-jsonb-patterns": {
-      "tp": 10,
+    "skills/postgresql-best-practices/references/postgresql-jsonb-patterns": {
+      "tp": 13,
+      "fp": 1,
+      "fn": 1,
+      "tn": 0,
+      "avg_pattern_score": 1.0,
+      "avg_judge_score": 0.842,
+      "hallucinations": 0
+    },
+    "skills/postgresql-best-practices/references/postgresql-table-partitioning": {
+      "tp": 13,
+      "fp": 1,
+      "fn": 1,
+      "tn": 0,
+      "avg_pattern_score": 0.933,
+      "avg_judge_score": 0.834,
+      "hallucinations": 0
+    },
+    "skills/postgresql-best-practices/references/postgresql-row-level-security": {
+      "tp": 14,
+      "fp": 1,
+      "fn": 0,
+      "tn": 0,
+      "avg_pattern_score": 1.0,
+      "avg_judge_score": 0.887,
+      "hallucinations": 0
+    },
+    "skills/postgresql-best-practices/references/postgresql-full-text-search": {
+      "tp": 14,
+      "fp": 1,
+      "fn": 0,
+      "tn": 0,
+      "avg_pattern_score": 1.0,
+      "avg_judge_score": 0.867,
+      "hallucinations": 1
+    },
+    "skills/postgresql-best-practices/references/postgresql-connection-management": {
+      "tp": 14,
+      "fp": 1,
+      "fn": 0,
+      "tn": 0,
+      "avg_pattern_score": 1.0,
+      "avg_judge_score": 0.876,
+      "hallucinations": 1
+    },
+    "skills/postgresql-best-practices/references/postgresql-replication": {
+      "tp": 14,
+      "fp": 1,
+      "fn": 0,
+      "tn": 0,
+      "avg_pattern_score": 1.0,
+      "avg_judge_score": 0.809,
+      "hallucinations": 0
+    },
+    "skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle": {
+      "tp": 12,
       "fp": 0,
       "fn": 2,
       "tn": 0,
-      "avg_pattern_score": 0.958,
-      "avg_judge_score": 0.873,
-      "hallucinations": 0
+      "avg_pattern_score": 1.0,
+      "avg_judge_score": 0.843,
+      "hallucinations": 1
     },
-    "skills/references/postgresql-table-partitioning": {
-      "tp": 11,
+    "skills/postgresql-best-practices/references/azure-postgresql-provisioning": {
+      "tp": 13,
       "fp": 1,
       "fn": 1,
       "tn": 0,
-      "avg_pattern_score": 0.962,
-      "avg_judge_score": 0.841,
-      "hallucinations": 0
+      "avg_pattern_score": 0.933,
+      "avg_judge_score": 0.805,
+      "hallucinations": 1
     },
-    "skills/references/postgresql-row-level-security": {
-      "tp": 12,
+    "skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery": {
+      "tp": 14,
       "fp": 1,
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.875,
-      "hallucinations": 0
+      "avg_judge_score": 0.837,
+      "hallucinations": 6
     },
-    "skills/references/postgresql-full-text-search": {
-      "tp": 12,
+    "skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth": {
+      "tp": 13,
       "fp": 1,
-      "fn": 0,
+      "fn": 1,
       "tn": 0,
-      "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.882,
+      "avg_pattern_score": 0.967,
+      "avg_judge_score": 0.797,
       "hallucinations": 3
     },
-    "skills/references/postgresql-connection-management": {
-      "tp": 12,
+    "skills/postgresql-best-practices/references/azure-postgresql-networking-ssl": {
+      "tp": 14,
       "fp": 1,
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.868,
-      "hallucinations": 2
+      "avg_judge_score": 0.806,
+      "hallucinations": 4
     },
-    "skills/references/postgresql-replication": {
-      "tp": 12,
+    "skills/postgresql-best-practices/references/azure-postgresql-connection-pooling": {
+      "tp": 13,
+      "fp": 1,
+      "fn": 1,
+      "tn": 0,
+      "avg_pattern_score": 0.967,
+      "avg_judge_score": 0.856,
+      "hallucinations": 0
+    },
+    "skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning": {
+      "tp": 14,
       "fp": 1,
       "fn": 0,
       "tn": 0,
       "avg_pattern_score": 1.0,
-      "avg_judge_score": 0.843,
+      "avg_judge_score": 0.586,
+      "hallucinations": 4
+    },
+    "skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance": {
+      "tp": 13,
+      "fp": 1,
+      "fn": 1,
+      "tn": 0,
+      "avg_pattern_score": 0.967,
+      "avg_judge_score": 0.719,
       "hallucinations": 0
+    },
+    "skills/postgresql-best-practices/references/azure-postgresql-vector-diskann": {
+      "tp": 14,
+      "fp": 1,
+      "fn": 0,
+      "tn": 0,
+      "avg_pattern_score": 1.0,
+      "avg_judge_score": 0.771,
+      "hallucinations": 0
+    },
+    "skills/postgresql-best-practices/references/azure-postgresql-genai-patterns": {
+      "tp": 12,
+      "fp": 1,
+      "fn": 2,
+      "tn": 0,
+      "avg_pattern_score": 0.967,
+      "avg_judge_score": 0.689,
+      "hallucinations": 0
+    },
+    "skills/postgresql-best-practices/references/azure-postgresql-azure-ai": {
+      "tp": 11,
+      "fp": 1,
+      "fn": 3,
+      "tn": 0,
+      "avg_pattern_score": 0.911,
+      "avg_judge_score": 0.695,
+      "hallucinations": 0
+    },
+    "skills/postgresql-best-practices/references": {
+      "tp": 11,
+      "fp": 1,
+      "fn": 3,
+      "tn": 0,
+      "avg_pattern_score": 0.833,
+      "avg_judge_score": 0.816,
+      "hallucinations": 1
     }
   },
   "statistical_power": {
     "n_per_skill": {
-      "skills/references/postgresql-advanced-indexing": 12,
-      "skills/references/postgresql-jsonb-patterns": 12,
-      "skills/references/postgresql-query-performance": 12,
-      "skills/references/postgresql-table-partitioning": 12,
-      "skills/references/postgresql-row-level-security": 12,
-      "skills/references/postgresql-full-text-search": 12,
-      "skills/references/postgresql-connection-management": 12,
-      "skills/references/postgresql-replication": 12
+      "skills/postgresql-best-practices/references/postgresql-advanced-indexing": 14,
+      "skills/postgresql-best-practices/references/postgresql-jsonb-patterns": 14,
+      "skills/postgresql-best-practices/references/postgresql-query-performance": 14,
+      "skills/postgresql-best-practices/references/postgresql-table-partitioning": 14,
+      "skills/postgresql-best-practices/references/postgresql-row-level-security": 14,
+      "skills/postgresql-best-practices/references/postgresql-full-text-search": 14,
+      "skills/postgresql-best-practices/references/postgresql-connection-management": 14,
+      "skills/postgresql-best-practices/references/postgresql-replication": 14,
+      "skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle": 14,
+      "skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery": 14,
+      "skills/postgresql-best-practices/references/azure-postgresql-provisioning": 14,
+      "skills/postgresql-best-practices/references/azure-postgresql-networking-ssl": 14,
+      "skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth": 14,
+      "skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning": 14,
+      "skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance": 14,
+      "skills/postgresql-best-practices/references/azure-postgresql-connection-pooling": 14,
+      "skills/postgresql-best-practices/references/azure-postgresql-vector-diskann": 14,
+      "skills/postgresql-best-practices/references/azure-postgresql-genai-patterns": 14,
+      "skills/postgresql-best-practices/references/azure-postgresql-azure-ai": 14,
+      "skills/postgresql-best-practices/references": 14
     },
-    "min_challenges_per_skill": 12,
-    "mdd": 0.289,
+    "min_challenges_per_skill": 14,
+    "mdd": 0.267,
     "recommendation": "Consider adding more challenges per skill to detect smaller effects (target: MDD < 0.10)"
   },
   "scoring_rubric": {

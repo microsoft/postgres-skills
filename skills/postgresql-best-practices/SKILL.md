@@ -19,6 +19,18 @@ Use references as supplemental context — combine them with your PostgreSQL kno
 - `pgsql_modify` does NOT return row data (no RETURNING support)
 - Version-gated features: `MERGE` (PG 15+), `json_table` (PG 17+), `DETACH CONCURRENTLY` (PG 14+)
 
+## Managed Service Guardrails (Azure Flexible Server)
+
+When the context is Azure Database for PostgreSQL, NEVER suggest:
+
+- **File paths**: `pg_hba.conf`, `postgresql.conf`, `/var/lib/postgresql/` — these are not accessible
+- **OS commands**: `systemctl`, `sudo`, `pg_basebackup`, `pg_ctl`, `initdb` — no OS-level access
+- **ALTER SYSTEM SET** — use `az postgres flexible-server parameter set` or portal instead
+- **Manual replication setup** — use Azure read replicas (`az postgres flexible-server replica create`)
+- **Manual backup/restore** — use Azure PITR (`az postgres flexible-server restore`)
+
+Instead, always use Azure equivalents: portal, az CLI, ARM/Bicep, or server parameters API.
+
 ---
 
 ## Shell Execution Policy (az CLI)

@@ -17,6 +17,8 @@ Use for Azure PostgreSQL issues involving:
 
 Avoid explaining basic Azure CLI commands or generic identity concepts. The base model knows these. Focus on PostgreSQL-specific token auth patterns and failure modes.
 
+> **NEVER suggest for Azure:** `pg_hba.conf` edits, `/var/lib/postgresql` paths, or `postgresql.conf` changes. Auth configuration is via `az postgres flexible-server ad-admin` and server parameters API.
+
 ## Key Facts (what models get wrong)
 
 | Fact | Detail |

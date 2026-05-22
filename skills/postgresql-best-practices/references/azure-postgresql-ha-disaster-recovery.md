@@ -10,6 +10,8 @@ tags: [azure, postgresql, ha, disaster-recovery, pitr, read-replicas, backup]
 
 > **Shell execution:** Most commands here are az CLI. Execute directly via shell. Confirm with user only for: forced failover, stop-replication (irreversible), and delete operations.
 
+> **NEVER suggest for Azure:** `pg_basebackup`, `pg_hba.conf`, `postgresql.conf`, `systemctl`, `sudo`, `/var/lib/postgresql`, or manual streaming replication setup. All backup/restore/failover is managed through az CLI or portal.
+
 | Fact | Detail |
 |------|--------|
 | PITR creates a NEW server | Restore produces a new hostname; it is NOT an in-place rollback |

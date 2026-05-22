@@ -10,6 +10,8 @@ tags: [azure, postgresql, ssl, tls, private-endpoint, vnet, firewall, networking
 
 > **Shell execution:** Firewall and private endpoint commands are az CLI. Execute directly via shell if available. No confirmation needed (these are additive, not destructive).
 
+> **NEVER suggest for Azure:** `pg_hba.conf` edits or `iptables`/`ufw` rules. Access control is via Azure firewall rules, VNet, and private endpoints only.
+
 ## Key Facts (what models get wrong)
 
 | Fact | Detail |

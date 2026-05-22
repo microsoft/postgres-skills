@@ -10,6 +10,8 @@ tags: [azure, postgresql, query-store, auto-index, performance-insights, tuning]
 
 Prioritize where agents over-trust Azure's tuning surface: incomplete Query Store coverage, misleading one-off index recommendations, and unsafe apply steps. Skip basic "use Query Store" or generic EXPLAIN framing.
 
+> **NEVER suggest for Azure:** `ALTER SYSTEM SET`, `postgresql.conf` edits, `systemctl reload`, or `sudo` commands. Parameter changes are via `az postgres flexible-server parameter set` or portal.
+
 ## Prerequisites
 
 - `azure_pg_admin` role is required for most intelligent performance views.
