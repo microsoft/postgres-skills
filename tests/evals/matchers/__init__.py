@@ -147,7 +147,7 @@ class HallucinationDetector:
         self.UNIVERSAL_PATTERNS = [
             (rf"CREATE\s+EXTENSION\s+(?!IF\s+NOT\s+EXISTS)(?!(?:{ext_pattern})\b)\w+\b",
              "References non-existent PostgreSQL extension"),
-            (r"pg_catalog\.(?!pg_class|pg_attribute|pg_namespace|pg_type|pg_index|pg_stat_user_tables|pg_stat_user_indexes|pg_stat_activity|pg_locks|pg_settings|pg_roles|pg_database|pg_tablespace|pg_constraint|pg_trigger|pg_proc|pg_depend|pg_description|pg_am|pg_operator|pg_opclass|pg_statistic|pg_replication_slots|pg_stat_replication|pg_stat_wal_receiver|pg_publication|pg_subscription|pg_stat_progress_vacuum|pg_stat_bgwriter|pg_stat_archiver)\w+",
+            (r"pg_catalog\.(?!pg_class|pg_attribute|pg_namespace|pg_type|pg_index|pg_stat_user_tables|pg_stat_user_indexes|pg_stat_activity|pg_locks|pg_settings|pg_roles|pg_database|pg_tablespace|pg_constraint|pg_trigger|pg_proc|pg_depend|pg_description|pg_am|pg_operator|pg_opclass|pg_statistic|pg_replication_slots|pg_stat_replication|pg_stat_wal_receiver|pg_publication|pg_subscription|pg_stat_progress_vacuum|pg_stat_bgwriter|pg_stat_archiver|pg_ts_config|pg_ts_dict|pg_ts_parser|pg_ts_template|pg_available_extensions|pg_extension|pg_indexes|pg_views|pg_tables|pg_sequences|pg_matviews|pg_policies|pg_cursors)\w+",
              "References non-existent pg_catalog object"),
             (r"SET\s+(?:shared_preload_libraries|shared_buffers|max_connections|wal_level|max_wal_senders|max_replication_slots|hot_standby|archive_mode)\s*=",
              "SET cannot change postmaster-level GUC at runtime (requires restart)"),
@@ -173,6 +173,7 @@ class HallucinationDetector:
         r"pg_hba\.conf",
         r"postgresql\.conf",
         r"pg_basebackup",
+        r"SET\s+(?:shared_preload_libraries|shared_buffers|max_connections|wal_level|max_wal_senders|max_replication_slots|hot_standby|archive_mode)\s*=",
     }
     NEGATION_CONTEXT = re.compile(
         r"(cannot|does not allow|not\s+possible|not\s+allowed|not\s+supported|not\s+available"

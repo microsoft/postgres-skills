@@ -1029,12 +1029,19 @@ def azure_openai_agent(task: str, skill_context: str, model: str) -> str:
         "Be concise and focused on the user's actual scenario."
     )
     if skill_context:
+        is_azure = "azure" in skill_context.lower()[:200]
+        azure_qualifier = (
+            "When answering about Azure managed PostgreSQL, focus on Azure-native approaches "
+            "(portal, az CLI, ARM). Do NOT explain self-hosted internals like pg_hba.conf, "
+            "postgresql.conf, systemctl, or filesystem paths — these are inaccessible on managed services. "
+        ) if is_azure else ""
         system_prompt += (
             "\n\n## Reference Material (background knowledge)\n"
             "The following reference describes common pitfalls and best practices. "
             "Use it as background knowledge to AVOID mistakes, but answer naturally from your own expertise. "
             "Do NOT restructure your answer around the reference or narrow your response to only what it covers. "
             "Provide a thorough answer: cover relevant tradeoffs, version considerations, and operational implications beyond just the direct answer. "
+            f"{azure_qualifier}"
             "The reference should ADD depth to your response, not constrain its scope. "
             "Cross-check any specific syntax, flags, or version claims against your own knowledge. "
             "Always state minimum PostgreSQL version requirements when recommending newer features.\n\n"
@@ -1076,12 +1083,19 @@ def openai_agent(task: str, skill_context: str, model: str) -> str:
         "Be concise and focused on the user's actual scenario."
     )
     if skill_context:
+        is_azure = "azure" in skill_context.lower()[:200]
+        azure_qualifier = (
+            "When answering about Azure managed PostgreSQL, focus on Azure-native approaches "
+            "(portal, az CLI, ARM). Do NOT explain self-hosted internals like pg_hba.conf, "
+            "postgresql.conf, systemctl, or filesystem paths — these are inaccessible on managed services. "
+        ) if is_azure else ""
         system_prompt += (
             "\n\n## Reference Material (background knowledge)\n"
             "The following reference describes common pitfalls and best practices. "
             "Use it as background knowledge to AVOID mistakes, but answer naturally from your own expertise. "
             "Do NOT restructure your answer around the reference or narrow your response to only what it covers. "
             "Provide a thorough answer: cover relevant tradeoffs, version considerations, and operational implications beyond just the direct answer. "
+            f"{azure_qualifier}"
             "The reference should ADD depth to your response, not constrain its scope. "
             "Cross-check any specific syntax, flags, or version claims against your own knowledge. "
             "Always state minimum PostgreSQL version requirements when recommending newer features.\n\n"
