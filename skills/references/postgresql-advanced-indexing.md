@@ -1,36 +1,7 @@
 ---
-name: advanced-indexing
-description: "B-tree, GIN, GiST, BRIN, partial, and expression index strategies for PostgreSQL"
-tags: [postgresql, indexing, performance, gin, gist, brin]
-platform_scope: postgresql
-activation:
-  user_intent:
-    - "what index should I create"
-    - "which index type should I use"
-    - "EXPLAIN shows sequential scan on large table"
-    - "how to create a partial index"
-    - "expression index or covering index"
-    - "index for JSONB or array queries"
-  technical_keywords:
-    - CREATE INDEX
-    - GIN
-    - GiST
-    - BRIN
-    - INCLUDE
-    - partial index
-    - expression index
-    - jsonb_path_ops
-    - pg_stat_user_indexes
-    - idx_scan
-    - REINDEX CONCURRENTLY
-    - Seq Scan
-  exclusion_conditions:
-    - "when query is slow due to configuration (work_mem, shared_buffers, statistics) not missing indexes, use `postgresql/query-performance/` instead"
-    - "when table has fewer than 10,000 rows (seq scan may be optimal), do not use this skill"
-    - "when user needs EXPLAIN interpretation or planner behavior guidance, use `postgresql/query-performance/` instead"
-  adjacent_skills:
-    - "`postgresql/query-performance/`"
-    - "`postgresql/jsonb-patterns/`"
+title: "PostgreSQL Advanced Indexing"
+description: "B-tree, GIN, GiST, BRIN, partial, and expression index strategies for PostgreSQL"
+tags: [postgresql, indexing, performance, gin, gist, brin]
 ---
 
 # Advanced Indexing Strategy

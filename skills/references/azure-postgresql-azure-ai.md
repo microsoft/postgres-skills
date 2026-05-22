@@ -1,28 +1,7 @@
 ---
-name: azure-ai
-description: Configure the azure_ai extension and use Azure OpenAI functions (generate, classify, extract, score) directly in SQL on Azure Database for PostgreSQL.
-tags: [azure, postgresql, azure-ai, azure-openai, generate, extract, summarize, classify, ai-functions, managed-identity]
-activation:
-  user_intent:
-    - configure azure_ai extension
-    - call Azure OpenAI from SQL
-    - classify or generate text in SQL
-    - extract entities from database columns
-    - score or summarize rows with AI
-  technical_keywords:
-    - azure_ai
-    - azure_openai.create
-    - set_setting
-    - managed_identity
-    - azure_openai.create()
-  exclusion_conditions:
-    - "when user needs vector embeddings, use `azure-postgresql/genai-patterns/` instead"
-    - "when user needs RAG / hybrid search, use `azure-postgresql/genai-patterns/` instead"
-    - "when user needs vector indexing or DiskANN tuning, use `azure-postgresql/vector-diskann/` instead"
-  adjacent_skills:
-    - "`azure-postgresql/genai-patterns/`"
-    - "`azure-postgresql/vector-diskann/`"
-    - "`azure-postgresql/extension-lifecycle/`"
+title: "Azure PostgreSQL Azure AI"
+description: Configure the azure_ai extension and use Azure OpenAI functions (generate, classify, extract, score) directly in SQL on Azure Database for PostgreSQL.
+tags: [azure, postgresql, azure-ai, azure-openai, generate, extract, summarize, classify, ai-functions, managed-identity]
 ---
 
 ## Key Facts (what models get wrong)

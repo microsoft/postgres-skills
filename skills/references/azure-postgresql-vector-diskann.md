@@ -1,29 +1,7 @@
 ---
-name: vector-diskann
-description: "Azure Database for PostgreSQL vector search with DiskANN and pgvector: index selection, filtered search, distance operations, and quantization"
-tags: [azure, postgresql, vector, diskann, pgvector, hnsw, similarity-search]
-platform_scope: azure-postgresql
-activation:
-  user_intent:
-    - vector similarity search on Azure PostgreSQL
-    - choose between DiskANN and HNSW indexes
-    - filtered vector search with metadata
-    - which distance function to use for embeddings
-    - create a vector index on my table
-  technical_keywords:
-    - diskann
-    - hnsw
-    - pgvector
-    - pg_diskann
-    - vector_cosine_ops
-    - vector_l2_ops
-    - "<=>", "<->", "<#>"
-    - CREATE INDEX USING diskann
-  exclusion_conditions:
-    - "when user needs to generate embeddings, use `azure-postgresql/genai-patterns/` instead"
-    - "when user needs end-to-end RAG pipeline, use `azure-postgresql/genai-patterns/` instead"
-  adjacent_skills:
-    - "`azure-postgresql/genai-patterns/`"
+title: "Azure PostgreSQL Vector DiskANN"
+description: "Azure Database for PostgreSQL vector search with DiskANN and pgvector: index selection, filtered search, distance operations, and quantization"
+tags: [azure, postgresql, vector, diskann, pgvector, hnsw, similarity-search]
 ---
 
 ## Prerequisites

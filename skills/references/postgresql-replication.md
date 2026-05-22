@@ -1,33 +1,7 @@
 ---
-name: logical-replication
-description: "PostgreSQL logical replication setup, publication/subscription patterns, and conflict resolution"
-tags: [postgresql, replication, logical, publication, subscription, cdc]
-platform_scope: postgresql
-activation:
-  user_intent:
-    - "replicate specific tables between PostgreSQL servers"
-    - "set up CDC (Change Data Capture) from PostgreSQL"
-    - "replicate between different PostgreSQL major versions"
-    - "zero-downtime migration between servers"
-    - "set up publication and subscription"
-  technical_keywords:
-    - CREATE PUBLICATION
-    - CREATE SUBSCRIPTION
-    - wal_level = logical
-    - pg_replication_slots
-    - REPLICA IDENTITY
-    - confirmed_flush_lsn
-    - pg_stat_subscription
-    - publish_via_partition_root
-    - max_replication_slots
-    - pgoutput
-    - wal2json
-  exclusion_conditions:
-    - "when user needs full byte-for-byte standby, use streaming replication instead"
-    - "when user needs event streaming to Kafka, use Debezium on top of logical replication"
-  adjacent_skills:
-    - "`postgresql/connection-management/`"
-    - "`postgresql/table-partitioning/`"
+title: "PostgreSQL Logical Replication"
+description: "PostgreSQL logical replication setup, publication/subscription patterns, and conflict resolution"
+tags: [postgresql, replication, logical, publication, subscription, cdc]
 ---
 
 # Logical Replication

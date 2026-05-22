@@ -1,32 +1,7 @@
 ---
-name: ha-disaster-recovery
-description: "Azure Database for PostgreSQL Flexible Server high availability, point-in-time restore, read replicas, and geo-redundant backup"
-tags: [azure, postgresql, ha, disaster-recovery, pitr, read-replicas, backup]
-platform_scope: azure-postgresql
-activation:
-  user_intent:
-    - "set up failover or high availability for Azure PostgreSQL"
-    - "restore database to a point in time"
-    - "create read replicas or geo-replication"
-    - "configure backup retention, RPO, or RTO"
-    - "plan for outage recovery"
-  technical_keywords:
-    - high-availability
-    - ZoneRedundant
-    - point-in-time restore
-    - PITR
-    - restore-time
-    - replica create
-    - geo-redundant-backup
-    - failover
-    - RPO
-    - RTO
-    - backup retention
-  exclusion_conditions:
-    - "when user needs networking for replica connectivity, use `azure-postgresql/networking-ssl/` instead"
-  adjacent_skills:
-    - "`azure-postgresql/networking-ssl/`"
-    - "`azure-postgresql/provisioning/`"
+title: "Azure PostgreSQL HA Disaster Recovery"
+description: "Azure Database for PostgreSQL Flexible Server high availability, point-in-time restore, read replicas, and geo-redundant backup"
+tags: [azure, postgresql, ha, disaster-recovery, pitr, read-replicas, backup]
 ---
 
 ## Key Facts (what models get wrong)

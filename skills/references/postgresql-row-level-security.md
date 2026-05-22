@@ -1,32 +1,7 @@
 ---
-name: row-level-security
-description: "PostgreSQL Row-Level Security policies for multi-tenant isolation and data access control"
-tags: [postgresql, rls, security, multi-tenant, policies]
-platform_scope: postgresql
-activation:
-  user_intent:
-    - "how to set up multi-tenant data isolation"
-    - "row-level security or RLS"
-    - "per-user or per-role data filtering"
-    - "prevent tenants from seeing each other's data"
-    - "set app.tenant_id for RLS"
-  technical_keywords:
-    - ROW LEVEL SECURITY
-    - ENABLE ROW LEVEL SECURITY
-    - FORCE ROW LEVEL SECURITY
-    - CREATE POLICY
-    - current_setting
-    - SET LOCAL
-    - USING
-    - WITH CHECK
-    - PERMISSIVE
-    - RESTRICTIVE
-    - LEAKPROOF
-    - pg_policies
-  exclusion_conditions:
-    - "when need schema-level isolation (separate schemas per tenant), do not use this skill"
-  adjacent_skills:
-    - "`postgresql/query-performance/`"
+title: "PostgreSQL Row Level Security"
+description: "PostgreSQL Row-Level Security policies for multi-tenant isolation and data access control"
+tags: [postgresql, rls, security, multi-tenant, policies]
 ---
 
 # Row-Level Security (RLS)

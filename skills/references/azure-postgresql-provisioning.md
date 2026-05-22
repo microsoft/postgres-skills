@@ -1,29 +1,7 @@
 ---
-name: provisioning
-description: "Provision Azure Database for PostgreSQL Flexible Server: SKU selection, storage configuration, Terraform/Bicep templates"
-tags: [azure, postgresql, provisioning, terraform, bicep, sku, storage]
-platform_scope: azure-postgresql
-activation:
-  user_intent:
-    - create a new Azure PostgreSQL server
-    - choose between Burstable, General Purpose, or Memory Optimized SKUs
-    - deploy PostgreSQL with Terraform or Bicep
-    - configure storage, IOPS, or scaling for Flexible Server
-    - provision a new Flexible Server
-  technical_keywords:
-    - az postgres flexible-server create
-    - azurerm_postgresql_flexible_server
-    - Standard_D4ds_v5
-    - GP_Standard_D4ds_v5
-    - storage-size
-    - sku-name
-    - --tier
-  exclusion_conditions:
-    - "when user has an existing server needing configuration changes, use `azure-postgresql/intelligent-tuning/` instead"
-    - "when user needs networking/VNet setup, use `azure-postgresql/networking-ssl/` instead"
-  adjacent_skills:
-    - "`azure-postgresql/networking-ssl/`"
-    - "`azure-postgresql/ha-disaster-recovery/`"
+title: "Azure PostgreSQL Provisioning"
+description: "Provision Azure Database for PostgreSQL Flexible Server: SKU selection, storage configuration, Terraform/Bicep templates"
+tags: [azure, postgresql, provisioning, terraform, bicep, sku, storage]
 ---
 
 # Provisioning Azure Database for PostgreSQL Flexible Server

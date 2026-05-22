@@ -1,29 +1,7 @@
 ---
-name: intelligent-tuning
-description: "Azure Database for PostgreSQL Flexible Server intelligent performance tuning: Query Store, automatic indexing, and performance recommendations"
-tags: [azure, postgresql, query-store, auto-index, performance-insights, tuning]
-platform_scope: azure-postgresql
-activation:
-  user_intent:
-    - "use Query Store or query performance insights on Azure PostgreSQL"
-    - "get automatic index recommendations"
-    - "identify top resource-consuming queries"
-    - "enable intelligent performance or auto-tune"
-    - "find slow queries without manual EXPLAIN"
-  technical_keywords:
-    - query_store.qs_view
-    - query_store.query_texts_view
-    - query_store.pgms_wait_sampling_view
-    - intelligent_performance.index_recommendations
-    - pg_qs.query_capture_mode
-    - pg_qs.retention_period_in_days
-    - Query Store
-    - auto-index
-    - performance insights
-  exclusion_conditions:
-    - "when user asks about server SKU/scaling, use `azure-postgresql/provisioning/` instead"
-  adjacent_skills:
-    - "`azure-postgresql/provisioning/`"
+title: "Azure PostgreSQL Intelligent Tuning"
+description: "Azure Database for PostgreSQL Flexible Server intelligent performance tuning: Query Store, automatic indexing, and performance recommendations"
+tags: [azure, postgresql, query-store, auto-index, performance-insights, tuning]
 ---
 
 # Intelligent Tuning

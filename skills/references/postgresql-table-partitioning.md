@@ -1,32 +1,7 @@
 ---
-name: table-partitioning
-description: "PostgreSQL native table partitioning with range, list, and hash strategies including partition pruning"
-tags: [postgresql, partitioning, range, list, hash, pruning]
-platform_scope: postgresql
-activation:
-  user_intent:
-    - "how to partition a large table"
-    - "table growing beyond 50-100 million rows"
-    - "archiving old data without bloat"
-    - "bulk DELETE causes bloat and long locks"
-    - "VACUUM runs too long on large tables"
-    - "queries filter by date range or tenant ID"
-  technical_keywords:
-    - PARTITION BY RANGE
-    - PARTITION BY LIST
-    - PARTITION BY HASH
-    - CREATE TABLE PARTITION OF
-    - DETACH PARTITION
-    - partition pruning
-    - pg_partman
-    - publish_via_partition_root
-    - DEFAULT partition
-  exclusion_conditions:
-    - "when table is small (< 10M rows) and performs fine, do not use this skill"
-    - "when random access patterns with no consistent filter column, do not use this skill"
-  adjacent_skills:
-    - "`postgresql/query-performance/`"
-    - "`postgresql/advanced-indexing/`"
+title: "PostgreSQL Table Partitioning"
+description: "PostgreSQL native table partitioning with range, list, and hash strategies including partition pruning"
+tags: [postgresql, partitioning, range, list, hash, pruning]
 ---
 
 # Table Partitioning

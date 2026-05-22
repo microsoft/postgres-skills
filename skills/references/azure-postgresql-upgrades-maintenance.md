@@ -1,29 +1,7 @@
 ---
-name: upgrades-maintenance
-description: "Azure Database for PostgreSQL Flexible Server major version upgrades, maintenance windows, and in-place upgrade procedures"
-tags: [azure, postgresql, upgrade, major-version, maintenance, mvu]
-platform_scope: azure-postgresql
-activation:
-  user_intent:
-    - upgrade PostgreSQL major version
-    - configure maintenance windows or scheduled patching
-    - perform in-place upgrade or MVU
-    - find out when maintenance will occur
-    - plan downtime for upgrades
-  technical_keywords:
-    - az postgres flexible-server upgrade
-    - --validate-only
-    - --maintenance-window
-    - MVU
-    - major version upgrade
-    - ANALYZE
-  exclusion_conditions:
-    - "when user needs to upgrade extensions, use `azure-postgresql/extension-lifecycle/` instead"
-    - "when user asks about scaling SKU, use `azure-postgresql/provisioning/` instead"
-    - "when user needs HA failover, use `azure-postgresql/ha-disaster-recovery/` instead"
-  adjacent_skills:
-    - "`azure-postgresql/extension-lifecycle/`"
-    - "`azure-postgresql/ha-disaster-recovery/`"
+title: "Azure PostgreSQL Upgrades Maintenance"
+description: "Azure Database for PostgreSQL Flexible Server major version upgrades, maintenance windows, and in-place upgrade procedures"
+tags: [azure, postgresql, upgrade, major-version, maintenance, mvu]
 ---
 
 # Upgrades and Maintenance

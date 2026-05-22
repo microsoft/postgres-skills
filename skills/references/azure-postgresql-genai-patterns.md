@@ -1,30 +1,7 @@
 ---
-name: genai-patterns
-description: Generate vector embeddings in-database via azure_ai extension and build RAG pipelines with hybrid search on Azure Database for PostgreSQL.
-tags: [azure, postgresql, embeddings, vector, pgvector, rag, hybrid-search, RRF, azure-openai, genai]
-activation:
- user_intent:
- - generate embeddings for my table
- - build a RAG pipeline using azure_ai
- - in-database embeddings without app roundtrip
- - store embeddings from azure_openai
- - hybrid search with Reciprocal Rank Fusion (RRF) on Azure
- - embed user query in SQL and search similar documents
- technical_keywords:
- - create_embeddings
- - azure_openai.create_embeddings
- - azure_ai
- - vector(1536)
- - in-database RAG
- - batch embed
- exclusion_conditions:
- - "when user needs vector indexing or DiskANN/HNSW tuning only, use `azure-postgresql/vector-diskann/` instead"
- - "when user needs text generation / classification / extraction, use `azure-postgresql/azure-ai/` instead"
- - "when user builds app-driven RAG (app calls OpenAI SDK, stores vectors), use `postgresql-genai-rag` instead"
- adjacent_skills:
- - "`azure-postgresql/azure-ai/`"
- - "`azure-postgresql/vector-diskann/`"
- - "`postgresql-genai-rag`"
+title: "Azure PostgreSQL GenAI Patterns"
+description: Generate vector embeddings in-database via azure_ai extension and build RAG pipelines with hybrid search on Azure Database for PostgreSQL.
+tags: [azure, postgresql, embeddings, vector, pgvector, rag, hybrid-search, RRF, azure-openai, genai]
 ---
 
 ## When to use this skill

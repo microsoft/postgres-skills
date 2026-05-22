@@ -1,8 +1,7 @@
 ---
-name: postgresql-genai-rag
-description: "Build RAG pipelines and semantic search on any PostgreSQL with pgvector — embedding storage, hybrid search, reciprocal rank fusion."
-tags: [postgresql, rag, embeddings, vector, hybrid-search, semantic-search, pgvector]
-platform_scope: postgresql
+title: "PostgreSQL GenAI RAG"
+description: "Build RAG pipelines and semantic search on any PostgreSQL with pgvector — embedding storage, hybrid search, reciprocal rank fusion."
+tags: [postgresql, rag, embeddings, vector, hybrid-search, semantic-search, pgvector]
 ---
 
 # GenAI / RAG Patterns with pgvector

@@ -1,30 +1,7 @@
 ---
-name: connection-management
-description: "PostgreSQL connection lifecycle, pooling strategies, idle timeout tuning, and connection exhaustion prevention"
-tags: [postgresql, connections, pooling, pgbouncer, timeout]
-platform_scope: postgresql
-activation:
-  user_intent:
-    - "too many connections error"
-    - "how to set up connection pooling"
-    - "PgBouncer configuration"
-    - "slow connection establishment or high connection churn"
-    - "tune max_connections or idle timeouts"
-    - "serverless functions exhausting connection limits"
-  technical_keywords:
-    - "FATAL: sorry, too many clients already"
-    - "too many connections"
-    - max_connections
-    - idle_in_transaction_session_timeout
-    - idle_session_timeout
-    - PgBouncer
-    - pgpool
-    - pg_stat_activity
-    - pg_terminate_backend
-  exclusion_conditions:
-    - "when issue is query performance not connection overhead, use `postgresql/query-performance/` instead"
-  adjacent_skills:
-    - "`postgresql/query-performance/`"
+title: "PostgreSQL Connection Management"
+description: "PostgreSQL connection lifecycle, pooling strategies, idle timeout tuning, and connection exhaustion prevention"
+tags: [postgresql, connections, pooling, pgbouncer, timeout]
 ---
 
 # Connection Management

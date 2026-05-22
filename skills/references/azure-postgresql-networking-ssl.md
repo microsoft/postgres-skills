@@ -1,34 +1,7 @@
 ---
-name: networking-ssl
-description: "Configure SSL/TLS, private endpoints, VNet integration, and firewall rules for Azure Database for PostgreSQL Flexible Server"
-tags: [azure, postgresql, ssl, tls, private-endpoint, vnet, firewall, networking]
-platform_scope: azure-postgresql
-activation:
-  user_intent:
-    - "configure SSL certificate or sslmode for Azure PostgreSQL"
-    - "set up private endpoint or VNet integration"
-    - "add firewall rules or IP allowlisting"
-    - "fix SSL connection is required error or certificate verification failures"
-    - "restrict network access to PostgreSQL server"
-  technical_keywords:
-    - sslmode
-    - verify-full
-    - require_secure_transport
-    - DigiCertGlobalRootCA
-    - DigiCertGlobalRootG2
-    - private-endpoint
-    - firewall-rule
-    - vnet
-    - privatelink.postgres.database.azure.com
-    - "SSL connection is required"
-    - "SSL certificate verify failed"
-    - TLS 1.2
-  exclusion_conditions:
-    - "when user needs authentication/identity setup, use `azure-postgresql/entra-id-auth/` instead"
-    - "when user asks about connection pooling, use `azure-postgresql/connection-pooling/` instead"
-  adjacent_skills:
-    - "`azure-postgresql/entra-id-auth/`"
-    - "`azure-postgresql/provisioning/`"
+title: "Azure PostgreSQL Networking SSL"
+description: "Configure SSL/TLS, private endpoints, VNet integration, and firewall rules for Azure Database for PostgreSQL Flexible Server"
+tags: [azure, postgresql, ssl, tls, private-endpoint, vnet, firewall, networking]
 ---
 
 # Networking and SSL

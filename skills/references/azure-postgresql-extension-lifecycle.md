@@ -1,34 +1,7 @@
 ---
-name: extension-lifecycle
-description: "Manage PostgreSQL extensions on Azure Database for PostgreSQL Flexible Server: allowlisting, shared_preload_libraries, CREATE EXTENSION, and version upgrades"
-tags: [azure, postgresql, extensions, allowlist, shared-preload, pgvector]
-platform_scope: azure-postgresql
-activation:
-  user_intent:
-    - "install an extension on Azure PostgreSQL"
-    - "fix extension is not allowlisted error"
-    - "fix must be preloaded error"
-    - "use CREATE EXTENSION or shared_preload_libraries"
-    - "upgrade an extension version"
-    - "check which extensions are available on Azure"
-  technical_keywords:
-    - CREATE EXTENSION
-    - ALTER EXTENSION
-    - azure.extensions
-    - shared_preload_libraries
-    - pg_available_extensions
-    - allowlist
-    - vector
-    - pg_stat_statements
-    - pg_cron
-    - azure_pg_admin
-    - "extension is not allowlisted"
-    - "must be loaded via shared_preload_libraries"
-  exclusion_conditions:
-    - "when user asks about azure_ai extension specifically, use `azure-postgresql/azure-ai/` instead"
-    - "when user asks about custom/community extensions not in the Azure allowlist, not supported"
-  adjacent_skills:
-    - "`azure-postgresql/azure-ai/`"
+title: "Azure PostgreSQL Extension Lifecycle"
+description: "Manage PostgreSQL extensions on Azure Database for PostgreSQL Flexible Server: allowlisting, shared_preload_libraries, CREATE EXTENSION, and version upgrades"
+tags: [azure, postgresql, extensions, allowlist, shared-preload, pgvector]
 ---
 
 # Extension Lifecycle

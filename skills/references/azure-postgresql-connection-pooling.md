@@ -1,28 +1,7 @@
 ---
-name: connection-pooling
-description: "Configure Azure Database for PostgreSQL Flexible Server built-in PgBouncer: transaction vs session mode, port 6432, and pool sizing"
-tags: [azure, postgresql, pgbouncer, connection-pooling, port-6432]
-platform_scope: azure-postgresql
-activation:
-  user_intent:
-    - "configure PgBouncer on Azure PostgreSQL"
-    - "set up connection pooling for serverless or high-connection workloads"
-    - "connect on port 6432 or use built-in pooler"
-    - "fix too many connections error on Azure Flexible Server"
-    - "choose between transaction and session pooling mode"
-  technical_keywords:
-    - pgbouncer.enabled
-    - pgbouncer.default_pool_mode
-    - pgbouncer.default_pool_size
-    - pgbouncer.max_client_conn
-    - port 6432
-    - "too many connections"
-    - transaction mode
-    - session mode
-  exclusion_conditions:
-    - "when user needs auth configuration, use `azure-postgresql/entra-id-auth/` instead"
-  adjacent_skills:
-    - "`azure-postgresql/entra-id-auth/`"
+title: "Azure PostgreSQL Connection Pooling"
+description: "Configure Azure Database for PostgreSQL Flexible Server built-in PgBouncer: transaction vs session mode, port 6432, and pool sizing"
+tags: [azure, postgresql, pgbouncer, connection-pooling, port-6432]
 ---
 
 # Connection Pooling (Built-in PgBouncer)

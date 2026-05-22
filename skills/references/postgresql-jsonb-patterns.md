@@ -1,41 +1,7 @@
 ---
-name: jsonb-patterns
-description: "JSONB operator selection, GIN indexing with jsonb_path_ops, and in-place update patterns for PostgreSQL"
-tags: [postgresql, jsonb, json, gin, operators]
-platform_scope: postgresql
-activation:
-  user_intent:
-    - "how to query JSONB columns"
-    - "which JSONB operator should I use"
-    - "index JSONB for containment queries"
-    - "update nested JSON fields in place"
-    - "type mismatch comparing JSONB values"
-    - "schema-less design with JSONB"
-    - "SQL/JSON path expression for JSONB"
-    - "jsonb subscript syntax"
-  technical_keywords:
-    - "->"
-    - "->>"
-    - "@>"
-    - "#>"
-    - jsonb_path_query
-    - jsonb_set
-    - jsonb_path_ops
-    - GIN
-    - TOAST
-    - "data['key']"
-    - "GENERATED ALWAYS AS"
-    - jsonb_path_exists
-    - jsonb_to_recordset
-    - jsonb_array_elements
-    - json_table
-  exclusion_conditions:
-    - "when data is relational and should use normalized tables, do not use this skill"
-    - "when user needs full-text search on JSON text values, use `postgresql/full-text-search/` instead"
-    - "when JSON is only stored/retrieved whole (no querying needed), do not use this skill"
-  adjacent_skills:
-    - "`postgresql/advanced-indexing/`"
-    - "`postgresql/full-text-search/`"
+title: "PostgreSQL JSONB Patterns"
+description: "JSONB operator selection, GIN indexing with jsonb_path_ops, and in-place update patterns for PostgreSQL"
+tags: [postgresql, jsonb, json, gin, operators]
 ---
 
 # JSONB Patterns & Optimization

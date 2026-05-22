@@ -1,32 +1,7 @@
 ---
-name: full-text-search
-description: "PostgreSQL native full-text search with tsvector, tsquery, GIN indexes, and ranking functions"
-tags: [postgresql, full-text-search, tsvector, tsquery, gin, ranking]
-platform_scope: postgresql
-activation:
-  user_intent:
-    - "how to add text search to PostgreSQL"
-    - "replace LIKE/ILIKE with ranked search"
-    - "language-aware stemming or stop words"
-    - "how to rank search results by relevance"
-    - "phrase search in PostgreSQL"
-  technical_keywords:
-    - tsvector
-    - tsquery
-    - to_tsvector
-    - ts_rank
-    - websearch_to_tsquery
-    - plainto_tsquery
-    - phraseto_tsquery
-    - setweight
-    - "@@"
-    - GIN
-    - ts_headline
-    - gin_pending_list_limit
-  exclusion_conditions:
-    - "when exact substring matching is sufficient (LIKE or trigram pg_trgm), do not use this skill"
-  adjacent_skills:
-    - "`postgresql/advanced-indexing/`"
+title: "PostgreSQL Full Text Search"
+description: "PostgreSQL native full-text search with tsvector, tsquery, GIN indexes, and ranking functions"
+tags: [postgresql, full-text-search, tsvector, tsquery, gin, ranking]
 ---
 
 # Full-Text Search

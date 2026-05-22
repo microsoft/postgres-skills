@@ -1,33 +1,7 @@
 ---
-name: query-performance
-description: "EXPLAIN ANALYZE interpretation, bottleneck identification, and PostgreSQL server configuration tuning"
-tags: [postgresql, performance, explain, work_mem, statistics]
-platform_scope: postgresql
-activation:
-  user_intent:
-    - "my query is slow"
-    - "how do I optimize this query"
-    - "interpret this EXPLAIN ANALYZE output"
-    - "queries spilling to disk"
-    - "tune work_mem or shared_buffers"
-    - "pg_stat_statements shows high total_time"
-    - "autovacuum tuning"
-    - "locks or deadlocks blocking queries"
-  technical_keywords:
-    - EXPLAIN ANALYZE
-    - work_mem
-    - shared_buffers
-    - effective_cache_size
-    - pg_stat_statements
-    - Sort Method: external merge
-    - Rows Removed by Filter
-    - default_statistics_target
-    - n_mod_since_analyze
-  exclusion_conditions:
-    - "when Seq Scan on large table is the bottleneck and adding an index is the fix, use `postgresql/advanced-indexing/` instead"
-    - "when table needs partitioning, use `postgresql/table-partitioning/` instead"
-  adjacent_skills:
-    - "`postgresql/advanced-indexing/`"
+title: "PostgreSQL Query Performance"
+description: "EXPLAIN ANALYZE interpretation, bottleneck identification, and PostgreSQL server configuration tuning"
+tags: [postgresql, performance, explain, work_mem, statistics]
 ---
 
 # Query Performance Tuning

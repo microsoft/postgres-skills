@@ -1,32 +1,7 @@
 ---
-name: entra-id-auth
-description: "Configure Microsoft Entra ID (Azure AD) authentication for Azure Database for PostgreSQL Flexible Server with managed identities and token-based access"
-tags: [azure, postgresql, entra-id, azure-ad, managed-identity, authentication]
-platform_scope: azure-postgresql
-activation:
-  user_intent:
-    - "set up passwordless authentication to Azure PostgreSQL"
-    - "configure managed identity or Entra ID or Azure AD for PostgreSQL"
-    - "replace password-based auth with token-based auth"
-    - "authenticate application without storing credentials"
-    - "fix password authentication failed when using token auth"
-  technical_keywords:
-    - pgaadauth_create_principal
-    - pgaadauth_list_principals
-    - managed identity
-    - Entra ID
-    - Azure AD
-    - service principal
-    - DefaultAzureCredential
-    - "https://ossrdbms-aad.database.windows.net/.default"
-    - active-directory-auth
-    - "password authentication failed"
-  exclusion_conditions:
-    - "when user needs SSL/TLS certificate configuration, use `azure-postgresql/networking-ssl/` instead"
-    - "when user asks about connection pooling with managed identity, use `azure-postgresql/connection-pooling/` instead"
-  adjacent_skills:
-    - "`azure-postgresql/networking-ssl/`"
-    - "`azure-postgresql/connection-pooling/`"
+title: "Azure PostgreSQL Entra ID Auth"
+description: "Configure Microsoft Entra ID (Azure AD) authentication for Azure Database for PostgreSQL Flexible Server with managed identities and token-based access"
+tags: [azure, postgresql, entra-id, azure-ad, managed-identity, authentication]
 ---
 
 # Entra ID Authentication
