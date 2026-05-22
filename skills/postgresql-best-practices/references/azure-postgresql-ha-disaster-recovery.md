@@ -93,6 +93,35 @@ tags: [azure, postgresql, ha, disaster-recovery, pitr, read-replicas, backup]
 - Do NOT claim replica promotion is reversible
 - Do NOT promise RTO < 60s for zone-redundant HA
 - Do NOT confuse HA (same-region automatic failover) with geo-replication (cross-region DR)
+- Do NOT describe manual streaming replication setup (pg_basebackup, pg_hba.conf, recovery.conf) — Azure manages all replication internally
+- Do NOT reference filesystem paths (/var/lib/postgresql) or OS commands (systemctl, sudo) — there is no OS access
+
+## Azure DR Step-by-Step (use instead of self-hosted procedures)
+
+**Failover testing:**
+```bash
+az postgres flexible-server restart --resource-group myRG --name myserver --failover Forced
+```
+
+**Disaster recovery (cross-region):**
+```bash
+# 1. Create cross-region read replica
+az postgres flexible-server replica create --resource-group myRG \
+    --replica-name myserver-dr --source-server myserver --location westus2
+
+# 2. Promote when needed (PERMANENT)
+az postgres flexible-server replica stop-replication --resource-group myRG --name myserver-dr
+
+# 3. Update connection strings to point to promoted server
+```
+
+**Point-in-time restore:**
+```bash
+az postgres flexible-server restore --resource-group myRG \
+    --name myserver-restored --source-server myserver \
+    --restore-time "2026-05-19T10:00:00Z"
+# Then: reconfigure HA, firewall, VNet, extensions on new server
+```
 
 ## References
 - [High availability in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-read-replicas)
