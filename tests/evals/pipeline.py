@@ -328,15 +328,15 @@ class EvalPipeline:
 
     def load_skill(self, skill_path: str, task: str = "", calibration_mode: bool = False) -> str:
         """Load a skill/reference file content. Only trims in calibration mode."""
-        # New flat structure: skill_path is like "skills/references/postgresql-advanced-indexing"
+        # New flat structure: skill_path is like "skills/postgresql-best-practices/references/postgresql-advanced-indexing"
         # Try as .md file first, then as directory with SKILL.md
         md_path = self.skills_root / f"{skill_path}.md"
         if md_path.exists():
             content = md_path.read_text(encoding="utf-8")
         elif (self.skills_root / skill_path / "SKILL.md").exists():
             content = (self.skills_root / skill_path / "SKILL.md").read_text(encoding="utf-8")
-        elif skill_path in ("skills/references", "skills"):
-            root_skill = self.skills_root / "skills" / "SKILL.md"
+        elif skill_path in ("skills/postgresql-best-practices/references", "skills/postgresql-best-practices", "skills/references", "skills"):
+            root_skill = self.skills_root / "skills" / "postgresql-best-practices" / "SKILL.md"
             if root_skill.exists():
                 content = root_skill.read_text(encoding="utf-8")
             else:

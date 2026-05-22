@@ -1,0 +1,1561 @@
+challenges:
+- anti_patterns:
+  - ALTER SYSTEM
+  - azure
+  correctness_checks:
+  - Does the response recommend a composite B-tree index on (email, created_at)?
+  - Does the response explain why column order matters for filtering then sorting?
+  - Is any CREATE INDEX example syntactically valid for PostgreSQL?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - CREATE INDEX
+  - btree|B-tree
+  id: gen-idx-01
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
+  task: My query on users table filters by email and sorts by created_at. It's doing
+    a sequential scan on 10M rows. Help me add the right index.
+- correctness_checks:
+  - Does the response recommend a GIN index for the JSONB column?
+  - Does the response mention choosing jsonb_path_ops or jsonb_ops based on query
+    operators?
+  - Does the response include a valid PostgreSQL JSONB query or index example?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - GIN|gin
+  - jsonb_path_ops|jsonb_ops
+  id: gen-idx-02
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
+  task: I need to search a JSONB column for documents containing a specific nested
+    key. The table has 5M rows.
+- correctness_checks:
+  - Does the response state that DiskANN is not a standard generic PostgreSQL index
+    type?
+  - Does the response redirect the user to Azure PostgreSQL DiskANN or pgvector-specific
+    guidance instead of generic indexing advice?
+  - Does the response avoid claiming that CREATE INDEX USING diskann is available
+    on vanilla PostgreSQL?
+  difficulty: easy
+  expected_activation: false
+  id: gen-idx-03
+  notes: Should NOT activate advanced-indexing; this is skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
+    territory
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
+  task: How do I set up DiskANN vector indexing on my PostgreSQL server?
+- correctness_checks:
+  - Does the response recommend checking the plan with EXPLAIN ANALYZE before changing
+    indexes?
+  - Does the response discuss indexing the join, filter, or sort path rather than
+    only giving generic tuning advice?
+  - Does the response note that SELECT * can increase I/O and should be trimmed if
+    possible?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - EXPLAIN|explain
+  - ANALYZE|analyze
+  id: gen-perf-01
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
+  task: 'My SELECT query takes 30 seconds. Here''s the query: SELECT * FROM orders
+    JOIN customers ON orders.customer_id = customers.id WHERE orders.total > 1000
+    ORDER BY orders.created_at DESC LIMIT 100'
+- correctness_checks:
+  - Does the response explain that loops is the number of times a plan node executed?
+  - Does the response relate high loop counts to repeated inner-node work such as
+    nested loops?
+  - Does the response explain what the actual time fields mean in EXPLAIN ANALYZE
+    output?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - loops
+  - actual time
+  id: gen-perf-02
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
+  task: How do I read the output of EXPLAIN ANALYZE? I see 'loops=100' but I'm not
+    sure what it means.
+- correctness_checks:
+  - Does the response use the correct JSONB path operators such as -> and ->> to reach
+    notifications.email?
+  - Does the response compare the extracted value correctly, for example against 'true'
+    text or a boolean cast?
+  - Is the SQL example valid PostgreSQL syntax?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - ->|->>
+  - jsonb
+  id: gen-json-01
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
+  task: I have a settings JSONB column. How do I query for users where settings.notifications.email
+    is true?
+- correctness_checks:
+  - Does the response state that -> returns JSON or JSONB while ->> returns text?
+  - Does the response explain why ->> is typically used for text comparison or display?
+  - Does the response avoid saying that ->> returns JSONB?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - ->>
+  - text|json
+  id: gen-json-02
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
+  task: What's the difference between -> and ->> operators in PostgreSQL?
+- correctness_checks:
+  - Does the response recommend considering range partitioning by event_date?
+  - Does the response explain partition pruning as the reason filtered queries can
+    improve?
+  - Does the response note that partitioning helps when access patterns and retention
+    align, not as a universal speed-up?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - PARTITION BY RANGE|partition by range
+  - event_date|date
+  id: gen-part-01
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
+  task: My events table has 500M rows and queries always filter by event_date. Should
+    I partition it?
+- correctness_checks:
+  - Does the response mention ALTER TABLE ... DETACH PARTITION ... CONCURRENTLY?
+  - Does the response note the PostgreSQL version requirement of 14 or later?
+  - Does the response warn that the concurrent detach has special transaction restrictions
+    or a two-step process?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - DETACH.*CONCURRENTLY|detach.*concurrently
+  id: gen-part-02
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
+  task: How do I detach a partition without locking the parent table?
+- correctness_checks:
+  - Does the response enable row level security and define a CREATE POLICY-based filter?
+  - Does the response use a tenant identifier from session context, current_setting,
+    or role mapping?
+  - Does the response mention that the application must set the tenant context per
+    session or transaction?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - CREATE POLICY|ROW LEVEL SECURITY
+  - current_setting|session
+  id: gen-rls-01
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  task: I need each tenant in my multi-tenant app to only see their own data. How
+    do I enforce this at the database level?
+- correctness_checks:
+  - Does the response explain that table owners or roles with BYPASSRLS can bypass
+    policies?
+  - Does the response mention FORCE ROW LEVEL SECURITY as the way to subject the table
+    owner to policies?
+  - Does the response suggest testing with a non-owner role that does not have BYPASSRLS?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - FORCE|force
+  - table owner|BYPASSRLS
+  id: gen-rls-02
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  task: I enabled RLS but my admin user can still see all rows. Why?
+- correctness_checks:
+  - Does the response use tsvector or to_tsvector for indexing title and body text?
+  - Does the response include ranking with ts_rank or ts_rank_cd?
+  - Does the response mention weighting title matches higher than body matches or
+    using a GIN index on the tsvector?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - tsvector|to_tsvector
+  - ts_rank|setweight
+  id: gen-fts-01
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
+  task: I need to add search functionality to my blog. Users should be able to search
+    posts by title and body with relevance ranking.
+- correctness_checks:
+  - Does the response mention prefix matching with :* in a tsquery?
+  - Does the response explain that prefix full-text search works on lexemes rather
+    than arbitrary substrings?
+  - Does the response mention pg_trgm or another alternative for true substring-style
+    autocomplete?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - tsquery|:*
+  id: gen-fts-02
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
+  task: How do I implement autocomplete/prefix search in PostgreSQL?
+- correctness_checks:
+  - Does the response recommend connection pooling such as PgBouncer or an application
+    pool?
+  - Does the response explain that too many backend connections consume memory and
+    hit max_connections?
+  - Does the response mention checking pg_stat_activity or sizing pool limits instead
+    of letting every server open unbounded connections?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - pool|pgbouncer|connection limit
+  - max_connections|pg_stat_activity
+  id: gen-conn-01
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
+  task: My app is throwing 'too many connections' errors. I have 200 app servers each
+    opening their own connection.
+- correctness_checks:
+  - Does the response query pg_stat_activity to find long-idle sessions?
+  - Does the response use pg_terminate_backend(pid) rather than unsupported syntax?
+  - Does the response filter on idle state duration, such as state_change older than
+    1 hour?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - pg_stat_activity
+  - pg_terminate_backend|idle
+  id: gen-conn-02
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
+  task: How do I find and kill idle connections that have been open for more than
+    1 hour?
+- correctness_checks:
+  - Does the response use logical replication with a publication and subscription
+    for selected tables?
+  - Does the response mention prerequisites such as wal_level=logical or connectivity/permissions?
+  - Does the response mention the initial data copy behavior or replication slot creation?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - PUBLICATION|CREATE PUBLICATION
+  - SUBSCRIPTION|CREATE SUBSCRIPTION
+  id: gen-repl-01
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-replication
+  task: I need to replicate specific tables from my production database to an analytics
+    database in real-time.
+- correctness_checks:
+  - Does the response tell the user to inspect pg_replication_slots?
+  - Does the response explain that an inactive or lagging slot retains WAL files?
+  - Does the response recommend resuming the consumer or safely dropping an unused
+    slot instead of ignoring the WAL growth?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - pg_replication_slots
+  - active|drop
+  id: gen-repl-02
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-replication
+  task: My replication slot is growing and WAL is filling up disk. What do I do?
+- correctness_checks:
+  - Does the response identify this as an Azure provisioning task rather than a generic
+    query-performance problem?
+  - Does the response avoid making EXPLAIN ANALYZE the main answer?
+  - Does the response mention an Azure deployment path such as portal, CLI, Bicep,
+    or Terraform?
+  difficulty: easy
+  expected_activation: false
+  id: gen-neg-01
+  notes: Azure provisioning, not generic performance
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
+  task: How do I deploy a PostgreSQL Flexible Server on Azure?
+- correctness_checks:
+  - Does the response identify this as Azure Entra authentication rather than generic
+    connection management?
+  - Does the response mention token-based or Entra-based auth setup rather than only
+    connection pooling advice?
+  - Does the response avoid making idle-connection cleanup or max_connections tuning
+    the main answer?
+  difficulty: easy
+  expected_activation: false
+  id: gen-neg-02
+  notes: Azure auth, not generic connection management
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
+  task: Set up Entra ID authentication for my PostgreSQL database
+- anti_patterns:
+  - ->>'deleted_at' IS NULL
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - \?
+  - IS NULL|is null
+  id: gen-new-01
+  notes: 'Agent must distinguish missing key from null value. Common failure: suggesting
+    ->> IS NULL which matches BOTH cases.'
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
+  task: I need to find all rows where the JSONB column 'metadata' has a key 'deleted_at'
+    that is explicitly null, but NOT rows where the key is missing entirely. How do
+    I write this WHERE clause?
+- difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - planning time|planner
+  - monthly|coarser|merge|reduce
+  id: gen-new-02
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
+  task: I'm partitioning my events table by day. We've been running for 3 years and
+    now have over 1000 partitions. Query planning has gotten very slow. What's wrong
+    and how do I fix it?
+- anti_patterns:
+  - GRANT
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - WITH CHECK
+  id: gen-new-03
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  task: I set up RLS with CREATE POLICY tenant_policy ON orders USING (tenant_id =
+    current_setting('app.tenant')). Users can SELECT their data but INSERT is being
+    denied. What am I missing?
+- difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - finally|release|error.*handler
+  - pool
+  id: gen-new-04
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
+  task: My Node.js app using pg pool keeps hitting 'too many clients' errors even
+    though max is set to 20. The connections seem to leak when requests throw errors.
+    How do I fix this?
+- difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - partition|child
+  - REPLICA IDENTITY
+  id: gen-new-05
+  notes: Agent must know REPLICA IDENTITY must be set on each partition, not just
+    parent
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-replication
+  task: I set REPLICA IDENTITY FULL on my partitioned table but UPDATE and DELETE
+    operations aren't replicating to the subscriber. What's wrong?
+- anti_patterns:
+  - REINDEX|reindex
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - selectivity|cardinality|partial
+  id: gen-new-06
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
+  task: 'I added a B-tree index on orders.status (values: ''pending'', ''shipped'',
+    ''delivered'', ''cancelled'') but the planner still does a sequential scan. The
+    table has 50M rows. Why?'
+- anti_patterns:
+  - elasticsearch|opensearch
+  correctness_checks:
+  - Does the response choose an appropriate text search configuration such as english
+    instead of treating every term literally?
+  - Does the response explain that stemming lets run, runs, and running match the
+    same lexeme?
+  - Is at least one PostgreSQL full-text query example syntactically plausible?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - english|simple
+  - to_tsvector|plainto_tsquery
+  id: gen-fts-03
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
+  task: Our docs search for 'running' misses rows containing 'run' and 'runs'. The
+    posts table has 800k rows. How do I make stemming work correctly?
+- correctness_checks:
+  - Does the response use phraseto_tsquery or the phrase operator rather than only
+    plainto_tsquery?
+  - Does the response explain that phrase search is different from unordered term
+    matching?
+  - Is the suggested SQL compatible with PostgreSQL FTS?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - phraseto_tsquery|<->
+  - tsquery|phrase
+  id: gen-fts-04
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
+  task: I need exact phrase search for an issue tracker. Searching for "disk full"
+    should match that phrase, not rows where disk and full are far apart.
+- correctness_checks:
+  - Does the response mention ts_headline for snippet generation or highlighting?
+  - Does the response show how the query text and source document feed the headline
+    function?
+  - Does it stay inside PostgreSQL FTS rather than switching immediately to an external
+    search engine?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - ts_headline
+  - StartSel|StopSel|headline
+  id: gen-fts-05
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
+  task: Users want Google-style snippets with the matched words highlighted in the
+    result page. Can PostgreSQL do that from the article body column?
+- correctness_checks:
+  - Does the response combine multiple text fields with setweight so title can outrank
+    body text?
+  - Does the response include a ranking function such as ts_rank or ts_rank_cd?
+  - Does it explain why weighted vectors are preferable to a single unweighted concatenation?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - setweight
+  - ts_rank|A|B|C|D
+  id: gen-fts-06
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
+  task: My knowledge base search should rank title matches above tags, and tags above
+    the long body text. What's the usual pattern?
+- correctness_checks:
+  - Does the response mention using a stored generated tsvector column as an alternative
+    to a manual trigger?
+  - Does the response note that PostgreSQL can index the generated column with GIN?
+  - Does the answer stay focused on FTS maintenance tradeoffs rather than generic
+    indexing only?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - GENERATED ALWAYS|stored generated
+  - tsvector
+  id: gen-fts-07
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
+  task: My search index on a generated tsvector column works, but inserts got slower
+    after I added a trigger that rebuilds it. Is there a cleaner approach on PostgreSQL
+    15?
+- correctness_checks:
+  - Does the response mention unaccent or an equivalent accent-folding step?
+  - Does the response explain where unaccent is applied, for example in the indexed
+    document and/or query expression?
+  - Is the solution consistent with PostgreSQL text search rather than plain ILIKE
+    only?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - unaccent
+  - to_tsvector|text search configuration
+  id: gen-fts-08
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
+  task: Searching for café should also find cafe in my product catalog. How do I
+    make accent-insensitive search work with PostgreSQL full-text search?
+- correctness_checks:
+  - Does the response mention ts_debug or another way to inspect tokenization and
+    stop-word handling?
+  - Does the response explain why common words may be dropped by the english configuration?
+  - Does it compare using english versus simple for this kind of search input?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - ts_debug|stop word
+  - simple|english
+  id: gen-fts-09
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
+  task: My search for 'the office' returns noisy matches because common words disappear.
+    How do I debug stop-word behavior and decide when to use the simple config instead?
+- correctness_checks:
+  - Does the response choose websearch_to_tsquery for user-friendly search syntax?
+  - Does the response mention support for quoted phrases and minus-style negation?
+  - Does it avoid describing raw tsquery syntax as the easiest user input format?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - websearch_to_tsquery
+  - quoted|minus|negation
+  id: gen-fts-10
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
+  task: Product managers paste searches like quick brown -fox or "memory leak" into
+    our app. Which tsquery function is closest to web search syntax?
+- correctness_checks:
+  - Does the response mention ranking normalization options or cover density ranking?
+  - Does it explain that document length can otherwise dominate ranking unfairly?
+  - Is the ranking guidance grounded in PostgreSQL FTS functions instead of generic
+    search advice?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - ts_rank|ts_rank_cd
+  - normalization|rank
+  id: gen-fts-11
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
+  task: Our legal search should prioritize shorter documents that match many terms,
+    not giant PDFs that happen to contain the words once. How do I tune ranking normalization?
+- correctness_checks:
+  - Does the response explain that stored tsvector values or indexed expressions may
+    need to be recomputed after dictionary/config changes?
+  - Does the response suggest a controlled refresh path such as UPDATE or rebuilding
+    the index where appropriate?
+  - Does it avoid pretending PostgreSQL automatically re-tokenizes all existing rows
+    after a config change?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - UPDATE|recompute|to_tsvector
+  - REINDEX|GIN
+  id: gen-fts-12
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
+  task: We changed dictionaries for our FTS config and now old rows search badly until
+    they are updated. How do I refresh the indexed lexemes without rewriting application
+    logic?
+- anti_patterns:
+  - to_tsvector|tsquery|websearch_to_tsquery
+  correctness_checks:
+  - Does the response say this is a substring search problem rather than a full-text-search
+    activation?
+  - Does the response redirect toward pg_trgm or an indexing approach for wildcard
+    matching?
+  - Does it avoid presenting to_tsvector plus tsquery as the primary fix for arbitrary
+    substring matching?
+  difficulty: hard
+  expected_activation: false
+  expected_patterns: []
+  id: gen-fts-13
+  notes: 'Negative case: substring matching belongs with advanced indexing and pg_trgm,
+    not full-text search.'
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
+  task: My orders table has 2 million rows and I need LIKE '%SKU123%' to be fast.
+    Should I use PostgreSQL full-text search for that?
+- correctness_checks:
+  - Does the response explain that the sort spilled to disk because available memory
+    was insufficient?
+  - Does it identify work_mem as the relevant setting to inspect or tune?
+  - Does it remain grounded in PostgreSQL plan interpretation?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - work_mem
+  - external merge|disk
+  id: gen-perf-03
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
+  task: 'EXPLAIN ANALYZE shows ''Sort Method: external merge  Disk: 8192kB'' on a
+    reporting query. What does that mean and what knob should I inspect?'
+- correctness_checks:
+  - Does the response explain that wrapping the column in a function can prevent a
+    plain index from being used?
+  - Does it suggest rewriting to a range predicate or using an expression index?
+  - Is the tuning guidance specific to PostgreSQL planning behavior?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - expression index|rewrite
+  - created_at >=|created_at <
+  id: gen-perf-04
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
+  task: My query filters on DATE(created_at) = current_date and ignores the index
+    on created_at. Why is that happening?
+- correctness_checks:
+  - Does the response mention refreshing planner statistics with ANALYZE after bulk
+    load?
+  - Does it explain that stale statistics can lead to poor plan choices?
+  - Does it avoid assuming the indexes are broken without checking stats first?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - ANALYZE
+  - statistics|planner
+  id: gen-perf-05
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
+  task: After a huge CSV load, the same dashboard query got slow even though the indexes
+    are still there. What maintenance step did I probably skip?
+- correctness_checks:
+  - Does the response use pg_stat_statements or an equivalent PostgreSQL query-performance
+    surface?
+  - Does it distinguish aggregated query fingerprints from raw statement logging?
+  - Does it keep the answer focused on performance investigation rather than only
+    indexing advice?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - pg_stat_statements
+  - total_exec_time|mean_exec_time
+  id: gen-perf-06
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
+  task: How do I find the highest-total-time queries across the whole server without
+    logging every statement text?
+- correctness_checks:
+  - Does the response mention generic versus custom plans for prepared statements?
+  - Does it explain why parameter skew can make one reused plan perform badly?
+  - Does it stay within PostgreSQL planner behavior rather than blame the ORM only?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - generic plan|custom plan
+  - plan_cache_mode|prepared
+  id: gen-perf-07
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
+  task: My prepared statement is fast for one customer and terrible for another because
+    row counts differ wildly. Is PostgreSQL reusing a generic plan?
+- correctness_checks:
+  - Does the response mention PostgreSQL parallel query eligibility or worker settings?
+  - Does it explain that some functions, plan shapes, or row estimates can prevent
+    parallelism?
+  - Does it avoid promising parallel execution for every large query?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - parallel
+  - max_parallel_workers_per_gather|parallel setup
+  id: gen-perf-08
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
+  task: Parallel query never kicks in on my 12-core analytics server even for a 40M-row
+    aggregate. Which plan settings or query properties usually block it?
+- correctness_checks:
+  - Does the response explain the role of the visibility map in index-only scans?
+  - Does it mention VACUUM or table visibility as the reason heap fetches can remain?
+  - Does it keep the answer focused on query-performance internals?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - index-only scan
+  - visibility map|heap fetch
+  id: gen-perf-09
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
+  task: I expected an index-only scan, but EXPLAIN still shows heap fetches on a table
+    that barely changes. What extra condition does PostgreSQL need?
+- correctness_checks:
+  - Does the response explain why large OFFSET values still force PostgreSQL to skip
+    many rows?
+  - Does it recommend keyset or seek pagination for deep page access?
+  - Does it preserve deterministic ordering in the suggested pattern?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - keyset|seek
+  - ORDER BY|cursor
+  id: gen-perf-10
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
+  task: Our API paginates with OFFSET 500000 LIMIT 50 and page 10000 is painfully
+    slow. What's the usual PostgreSQL fix?
+- correctness_checks:
+  - Does the response note the semantic trap of NULLs with NOT IN?
+  - Does it suggest a safer rewrite such as NOT EXISTS when appropriate?
+  - Does it frame the rewrite as both a correctness and performance improvement?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - NOT EXISTS
+  - NULL|anti join
+  id: gen-perf-11
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
+  task: A NOT IN subquery suddenly got slow and sometimes behaves oddly when NULLs
+    are present. Should I rewrite it?
+- correctness_checks:
+  - Does the response explain that many hash batches usually indicate memory pressure
+    or misestimation?
+  - Does it mention work_mem or related hash-memory behavior as the knob to inspect?
+  - Does it avoid claiming a new index alone fixes every hash-join spill?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - Hash Join|batches
+  - work_mem|hash_mem_multiplier
+  id: gen-perf-12
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
+  task: My hash join spills to many batches on a 60M-row join and runtime exploded.
+    How do I interpret that and what memory setting is involved?
+- correctness_checks:
+  - Does the response mention ATTACH PARTITION for reusing an existing table?
+  - Does it explain that the child table needs matching bounds or a validating CHECK
+    constraint?
+  - Does the advice stay within PostgreSQL partition maintenance?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - ATTACH PARTITION
+  - CHECK constraint|validate
+  id: gen-part-03
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
+  task: I already have a 200GB historical table for January. How do I attach it as
+    a partition under a new monthly-partitioned parent without rewriting all the rows?
+- correctness_checks:
+  - Does the response explain that a global uniqueness constraint must include the
+    partition key columns?
+  - Does it avoid implying PostgreSQL enforces cross-partition uniqueness on arbitrary
+    columns automatically?
+  - Does it frame this as a limitation of partitioned tables rather than a simple
+    syntax issue?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - partition key
+  - UNIQUE|PRIMARY KEY
+  id: gen-part-04
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
+  task: Can I put a UNIQUE(email) constraint on a partitioned users table when the
+    partitions are by signup_month?
+- correctness_checks:
+  - Does the response recommend dropping or detaching old partitions instead of mass
+    DELETE when retention aligns to partition boundaries?
+  - Does it explain why partition-level removal is faster and creates less bloat?
+  - Does it keep the answer focused on partition lifecycle?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - DROP TABLE|DETACH PARTITION
+  - retention|partition
+  id: gen-part-05
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
+  task: Deleting data older than 18 months takes hours on my partitioned audit table.
+    Is there a faster retention pattern?
+- correctness_checks:
+  - Does the response compare LIST versus HASH partitioning for many tenants?
+  - Does it mention skew and partition-count management as decision factors?
+  - Does it avoid pretending one strategy is always correct?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - LIST|HASH
+  - tenant_id|skew
+  id: gen-part-06
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
+  task: I partitioned by tenant_id but now I need to decide between LIST and HASH
+    partitioning for 600 tenants with uneven traffic. What's the tradeoff?
+- correctness_checks:
+  - Does the response explain that PostgreSQL uses per-partition indexes rather than
+    a single global index structure?
+  - Does it mention creating the index on the parent to propagate partition indexes
+    where appropriate?
+  - Does it keep the explanation accurate for PostgreSQL partitioned tables?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - partitioned index|local index
+  - CREATE INDEX ON
+  id: gen-part-07
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
+  task: Do I have to create indexes on every partition, or is one index on the parent
+    enough for a PostgreSQL partitioned table?
+- correctness_checks:
+  - Does the response explain that partitionwise join helps when joined tables are
+    partitioned compatibly?
+  - Does it mention that matching partition keys or partition bounds matter?
+  - Does it stay focused on planner behavior for partitioned tables?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - partitionwise join|partitionwise aggregate
+  - matching partition keys|planner
+  id: gen-part-08
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
+  task: I see 'Partitionwise Join' mentioned in plans on PostgreSQL 15. When does
+    that optimization actually help?
+- correctness_checks:
+  - Does the response explain that rows in the default partition usually need to be
+    moved after the proper partition exists?
+  - Does it mention creating the missing partition first before cleanup?
+  - Does it remain about partition maintenance rather than generic UPDATE tuning?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - DEFAULT
+  - INSERT INTO|ATTACH|move rows
+  id: gen-part-09
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
+  task: Rows landed in my default partition last weekend because the next monthly
+    partition wasn't created in time. What's the cleanup pattern after I add the missing
+    partition?
+- correctness_checks:
+  - Does the response acknowledge planner overhead from very high partition counts?
+  - Does it suggest coarser ranges or fewer partitions when the count becomes operationally
+    expensive?
+  - Does it avoid claiming more partitions always improve performance?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - planning time|planner
+  - monthly|coarser|reduce
+  id: gen-part-10
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
+  task: The planner got slower after we crossed 1200 daily partitions on an events
+    table. Should we coarsen the partition granularity?
+- correctness_checks:
+  - Does the response mention that foreign keys work but come with operational or
+    version-specific caveats on partitioned tables?
+  - Does it connect the answer to partitioned parent and child behavior rather than
+    only generic FK syntax?
+  - Does it avoid oversimplifying partitioned-table constraints as identical to a
+    plain table?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - foreign key
+  - partitioned table|partition
+  id: gen-part-11
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
+  task: A foreign key from invoices to a partitioned orders table behaves differently
+    than I expected. Are there caveats I should know before using FKs with partitions?
+- anti_patterns:
+  - PARTITION BY RANGE|LIST|HASH
+  correctness_checks:
+  - Does the response say built-in table partitioning is for one PostgreSQL cluster,
+    not multi-server sharding?
+  - Does it redirect toward sharding or distributed solutions instead of pure partition
+    DDL?
+  - Does it avoid claiming CREATE TABLE ... PARTITION BY can span separate servers?
+  difficulty: hard
+  expected_activation: false
+  expected_patterns: []
+  id: gen-part-12
+  notes: 'Negative case: cross-server sharding should not activate the table-partitioning
+    skill as the primary answer.'
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
+  task: We want to distribute one logical table across four PostgreSQL servers by
+    region. Is table partitioning the right feature for that?
+- correctness_checks:
+  - Does the response explain that INSERT and UPDATE visibility may require WITH CHECK,
+    not only USING?
+  - Does it keep the answer centered on RLS policy semantics rather than GRANT statements
+    alone?
+  - Is the suggested policy pattern plausible PostgreSQL syntax?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - WITH CHECK
+  - CREATE POLICY|USING
+  id: gen-rls-03
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  task: My RLS policy lets tenants SELECT their rows, but INSERT fails even when tenant_id
+    is correct. Do I need something besides USING?
+- correctness_checks:
+  - Does the response mention role-specific policies or different policies per role?
+  - Does it preserve tenant isolation for ordinary users while allowing a separate
+    read-only support path?
+  - Does it avoid framing this purely as an application-layer permission problem?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - CREATE POLICY
+  - TO support|role
+  id: gen-rls-04
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  task: I want support engineers to view every tenant's data read-only, while normal
+    app users stay tenant-isolated. How do I model that with RLS?
+- correctness_checks:
+  - Does the response mention FORCE ROW LEVEL SECURITY?
+  - Does it explain that owners or BYPASSRLS roles can otherwise bypass policies?
+  - Does it keep the answer focused on RLS behavior?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - FORCE ROW LEVEL SECURITY
+  - table owner|BYPASSRLS
+  id: gen-rls-05
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  task: The table owner still bypasses my policies in tests. What's the PostgreSQL
+    switch that forces even the owner through RLS?
+- correctness_checks:
+  - Does the response warn that SECURITY DEFINER code can run with elevated privileges
+    or a role that bypasses policies?
+  - Does it suggest careful ownership and privilege review for helper functions?
+  - Does it stay within PostgreSQL security semantics rather than generic app advice
+    only?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - SECURITY DEFINER
+  - BYPASSRLS|owner
+  id: gen-rls-06
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  task: I use SECURITY DEFINER helper functions in my app. Can those accidentally
+    bypass RLS, and how should I review that risk?
+- correctness_checks:
+  - Does the response explain that RLS adds a predicate but does not remove the need
+    for useful indexes?
+  - Does it mention indexing columns used in the policy, such as tenant_id?
+  - Does it avoid suggesting RLS itself is a performance feature?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - tenant_id
+  - index|policy
+  id: gen-rls-07
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  task: We're using RLS on a huge multi-tenant table. Should tenant_id also be indexed,
+    or does the policy itself make PostgreSQL prune rows efficiently?
+- correctness_checks:
+  - Does the response mention transaction-scoped context such as SET LOCAL when pooling
+    breaks session affinity?
+  - Does it explain why per-session settings can fail with transaction pooling?
+  - Does it remain focused on safe RLS context propagation?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - SET LOCAL|set_config
+  - current_setting|transaction mode
+  id: gen-rls-08
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  task: My RLS filter relies on current_setting('app.tenant_id'), but we're moving
+    to PgBouncer transaction mode. How do I keep the tenant context safe?
+- correctness_checks:
+  - Does the response address RLS behavior with partitioned tables explicitly?
+  - Does it explain whether policy management is done at the parent and how partitions
+    are affected?
+  - Does it avoid treating partitions and inheritance as unrelated to RLS?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - partitioned table|partition
+  - policy|parent
+  id: gen-rls-09
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  task: If I put RLS on a partitioned table, do the policies live on the parent only
+    or do I need to duplicate them everywhere?
+- correctness_checks:
+  - Does the response mention security_invoker views or the equivalent caller-rights
+    behavior?
+  - Does it connect that feature to preserving the caller's RLS semantics through
+    a view layer?
+  - Does it avoid saying that ordinary views always respect RLS in the same way regardless
+    of ownership?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - security_invoker
+  - view|RLS
+  id: gen-rls-10
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  task: PostgreSQL 15 added security_invoker views. Can I use that to keep a reporting
+    view from bypassing the caller's RLS policies?
+- correctness_checks:
+  - Does the response mention testing with the effective role context or role inheritance
+    in mind?
+  - Does it explain that role membership can change which policies apply?
+  - Does it keep the investigation grounded in PostgreSQL authorization behavior?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - role membership|SET ROLE
+  - RLS|policy
+  id: gen-rls-11
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  task: Users belong to two tenant groups and now they can see more rows than expected
+    through inherited role grants. How do I debug RLS with role membership in mind?
+- anti_patterns:
+  - CREATE POLICY|ROW LEVEL SECURITY|WITH CHECK
+  correctness_checks:
+  - Does the response explain that this is primarily a column-privilege or view-masking
+    problem rather than row-level security?
+  - Does it avoid pretending RLS alone hides individual columns?
+  - Does it redirect toward column GRANTs, views, or masking patterns instead of only
+    CREATE POLICY?
+  difficulty: hard
+  expected_activation: false
+  expected_patterns: []
+  id: gen-rls-12
+  notes: 'Negative case: column masking should not activate row-level security as
+    the primary skill.'
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  task: I need to hide the salary column from some analysts but they can still see
+    all rows. Is row-level security the right feature?
+- correctness_checks:
+  - Does the response mention logical-replication row filters in CREATE PUBLICATION
+    when supported?
+  - Does it explain that selective row replication is possible only in certain PostgreSQL
+    versions or modes?
+  - Does it keep the answer on logical replication rather than batch ETL only?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - row filter|WHERE
+  - CREATE PUBLICATION
+  id: gen-repl-03
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-replication
+  task: Can logical replication publish only rows where tenant_id = 42 from a hot
+    orders table, or do I need a trigger-based workaround?
+- correctness_checks:
+  - Does the response mention column-list publishing for logical replication when
+    available?
+  - Does it explain any version caveat instead of assuming all releases support it?
+  - Does it stay grounded in publication/subscription features?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - column list|publication
+  - CREATE PUBLICATION
+  id: gen-repl-04
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-replication
+  task: I only need id, status, and updated_at on the subscriber, not the entire 40-column
+    table. Can PostgreSQL replicate a subset of columns?
+- correctness_checks:
+  - Does the response explain cross-version expectations for logical replication?
+  - Does it mention that schema compatibility still matters even when versions differ?
+  - Does it avoid saying versions must always be identical?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - publisher|subscriber
+  - version|logical replication
+  id: gen-repl-05
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-replication
+  task: I need to replicate from PostgreSQL 14 to PostgreSQL 16. Are cross-version
+    logical replication setups supported, or do versions have to match exactly?
+- correctness_checks:
+  - Does the response explain that PostgreSQL logical replication does not automatically
+    replicate arbitrary DDL?
+  - Does it tell the user to manage schema changes separately on subscriber and publisher?
+  - Does it keep the answer focused on replication semantics?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - DDL
+  - schema|manual
+  id: gen-repl-06
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-replication
+  task: My logical subscriber has the tables, but schema changes on the publisher
+    are not showing up automatically. Did I misconfigure something?
+- correctness_checks:
+  - Does the response explain that sequence state is a special case and not fully
+    mirrored like ordinary row changes?
+  - Does it suggest a separate sequence sync or identity strategy when this matters?
+  - Does it avoid claiming logical replication keeps nextval perfectly aligned automatically?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - sequence
+  - logical replication|not replicated
+  id: gen-repl-07
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-replication
+  task: Sequence-backed IDs drift after failover to a logical subscriber. Why didn't
+    the nextval values stay in sync?
+- correctness_checks:
+  - Does the response mention REPLICA IDENTITY when UPDATE or DELETE replication lacks
+    a key?
+  - Does it explain the overhead tradeoff of REPLICA IDENTITY FULL?
+  - Does it stay within PostgreSQL replication behavior?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - REPLICA IDENTITY FULL
+  - UPDATE|DELETE
+  id: gen-repl-08
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-replication
+  task: We want zero-downtime cutover, but one replicated table has no primary key
+    and updates fail. What's the setting I need?
+- correctness_checks:
+  - Does the response point the user to pg_stat_subscription or equivalent replication
+    monitoring views?
+  - Does it discuss subscriber lag or worker state rather than only replication-slot
+    storage?
+  - Does the answer stay practical for diagnosing subscription health?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - pg_stat_subscription
+  - apply|lag
+  id: gen-repl-09
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-replication
+  task: How do I see whether my subscription is behind and whether the apply worker
+    is actually running?
+- correctness_checks:
+  - Does the response mention controlling or bypassing the initial copy for logical
+    replication when seeding data separately?
+  - Does it explain that schema and key consistency still matter before catch-up begins?
+  - Does it avoid pretending the initial copy is mandatory in every migration design?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - copy_data|copy_data = false|initial copy
+  - subscription
+  id: gen-repl-10
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-replication
+  task: The initial copy for a 500GB table is taking forever. Can I seed the subscriber
+    manually first and then let logical replication catch up?
+- correctness_checks:
+  - Does the response treat logical slot failover as a nuanced, version-specific topic
+    rather than guaranteed automation?
+  - Does it warn the user to verify slot behavior during HA or failover design?
+  - Does it avoid oversimplifying logical slots as magically portable in all setups?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - replication slot|logical
+  - failover|slot
+  id: gen-repl-11
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-replication
+  task: We failed over a primary, and now the logical replication slot story is messy.
+    Are failover-safe logical slots automatic?
+- anti_patterns:
+  - CREATE PUBLICATION|CREATE SUBSCRIPTION|pg_replication_slots
+  correctness_checks:
+  - Does the response identify this as backup/restore rather than a replication activation?
+  - Does it avoid making publications, subscriptions, or replication slots the main
+    answer?
+  - Does it redirect toward restore tooling instead of logical replication setup?
+  difficulty: hard
+  expected_activation: false
+  expected_patterns: []
+  id: gen-repl-12
+  notes: 'Negative case: one-time restore should not activate replication as the primary
+    skill.'
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-replication
+  task: How do I restore a PostgreSQL backup from S3 into a new server? I don't need
+    replication, just one-time recovery.
+- correctness_checks:
+  - Does the response recommend pg_trgm-based indexing for leading-wildcard LIKE patterns?
+  - Does it explain why a normal B-tree index cannot help with %term% searches?
+  - Is the indexing advice specific to PostgreSQL?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - pg_trgm|trigram
+  - GIN|GiST
+  id: gen-idx-07
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
+  task: My LIKE '%searchterm%' query on a 2M-row customers table still does a seq
+    scan. Is there an index type for this pattern?
+- correctness_checks:
+  - Does the response mention an expression index on lower(email) or an equivalent
+    case-insensitive strategy?
+  - Does it explain why the plain email index is not enough for lower(email) predicates?
+  - Does it avoid generic query-performance advice without index design specifics?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - expression index
+  - lower\(email\)
+  id: gen-idx-08
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
+  task: I already have an index on email, but WHERE lower(email) = lower($1) still
+    scans. Do I need a different index?
+- correctness_checks:
+  - Does the response explain INCLUDE columns or covering-index behavior?
+  - Does it connect INCLUDE to reducing heap fetches for the selected columns?
+  - Does it stay within PostgreSQL indexing features?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - INCLUDE
+  - covering|index-only
+  id: gen-idx-09
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
+  task: Should I use INCLUDE columns so my order-history query can avoid heap lookups
+    for status and total?
+- correctness_checks:
+  - Does the response explain that the query predicate must match the partial-index
+    predicate closely enough for the planner to prove it?
+  - Does it mention parameterization or expression mismatch as a reason the index
+    might not be chosen?
+  - Does it avoid pretending all partial indexes are used automatically?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - partial index
+  - predicate|planner
+  id: gen-idx-10
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
+  task: I built a partial index on active = true, but EXPLAIN only uses it sometimes
+    even though the query filters active = true. What subtle thing should I verify?
+- correctness_checks:
+  - Does the response discuss equality-versus-range selectivity when choosing multicolumn
+    index order?
+  - Does it explain why column order influences how much of the index can be searched
+    efficiently?
+  - Does it stay focused on index design, not only EXPLAIN usage?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - column order
+  - equality|range
+  id: gen-idx-11
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
+  task: I have a multicolumn index on (status, created_at), but my query filters created_at
+    >= now()-interval '7 days' and status = 'open'. Is that column order right?
+- correctness_checks:
+  - Does the response mention PostgreSQL bitmap index combination as a possibility?
+  - Does it compare that with the benefits of a purpose-built composite index?
+  - Does it avoid claiming one design always wins without workload context?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - bitmap
+  - composite|BitmapAnd
+  id: gen-idx-12
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
+  task: Would two single-column indexes on customer_id and created_at ever beat one
+    composite index for a reporting query?
+- correctness_checks:
+  - Does the response recommend BRIN when physical order correlates strongly with
+    the filter column?
+  - Does it explain the space-versus-precision tradeoff relative to B-tree?
+  - Does it keep the answer in PostgreSQL advanced indexing terms?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - BRIN
+  - correlation|pages_per_range
+  id: gen-idx-13
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
+  task: My append-only metrics table has 900M rows on disk in timestamp order. Should
+    I consider BRIN instead of another huge B-tree?
+- correctness_checks:
+  - Does the response mention PostgreSQL 15's NULLS NOT DISTINCT support for unique
+    indexes or constraints?
+  - Does it explain the difference from traditional UNIQUE behavior with NULLs?
+  - Does it avoid suggesting a trigger as the only option when the built-in feature
+    exists?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - NULLS NOT DISTINCT
+  - UNIQUE
+  id: gen-idx-14
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
+  task: I need a uniqueness rule where two NULLs in sku should count as duplicates
+    on PostgreSQL 15. Is there an index feature for that?
+- correctness_checks:
+  - Does the response mention the GIN pending list or fastupdate behavior on write-heavy
+    tables?
+  - Does it explain why write bursts can affect subsequent query performance?
+  - Does it keep the answer on advanced indexing internals rather than generic vacuum
+    advice only?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - GIN
+  - pending list|fastupdate
+  id: gen-idx-15
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
+  task: Our GIN index on a high-write tags column keeps getting slower to query until
+    autovacuum catches up. What internal GIN behavior should I check?
+- correctness_checks:
+  - Does the response distinguish missing-key checks from explicit null-value checks?
+  - Does it avoid using only ->> 'deleted_at' IS NULL, which conflates the two cases?
+  - Is the guidance expressed in valid PostgreSQL JSONB terms?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - \?
+  - IS NULL|jsonb_typeof
+  id: gen-json-03
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
+  task: How do I tell the difference between metadata->'deleted_at' being JSON null
+    versus the key not existing at all?
+- correctness_checks:
+  - Does the response mention jsonb_array_elements or a related set-returning function?
+  - Does it explain the need to expand the array before aggregating child fields?
+  - Does it stay focused on PostgreSQL JSONB querying?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - jsonb_array_elements
+  - LATERAL|FROM
+  id: gen-json-04
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
+  task: I need one row per item inside a JSONB array column named line_items so I
+    can sum quantities. What's the usual PostgreSQL pattern?
+- correctness_checks:
+  - Does the response explain JSONB containment with @>?
+  - Does it compare containment versus extracting text from a specific key?
+  - Does it keep the answer on JSONB operator choice and indexing implications?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - '@>'
+  - containment|jsonb
+  id: gen-json-05
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
+  task: For a filter like metadata @> '{"status":"paid"}', is containment usually
+    better than extracting metadata->>'status'?
+- correctness_checks:
+  - Does the response use jsonb_set or an equivalent JSONB update approach with an
+    explicit path?
+  - Does it explain how array indexing works in the update path?
+  - Does it avoid pretending PostgreSQL mutates JSONB in place without rebuilding
+    the value?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - jsonb_set
+  - path|array index
+  id: gen-json-06
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
+  task: I need to update the second element inside a nested JSONB array. Is jsonb_set
+    still the normal approach?
+- correctness_checks:
+  - Does the response compare jsonb_path_ops and jsonb_ops in the context of the user's
+    operators?
+  - Does it mention that operator support and index size tradeoffs differ between
+    the two?
+  - Does it stay centered on JSONB indexing strategy?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - jsonb_path_ops|jsonb_ops
+  - GIN
+  id: gen-json-07
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
+  task: I have a 5M-row JSONB column and mostly query with @> containment, not key
+    existence. Which GIN operator class should I evaluate?
+- correctness_checks:
+  - Does the response mention JSONB subscripting support in modern PostgreSQL?
+  - Does it clarify when subscripting syntax is available versus when jsonb_set is
+    still needed?
+  - Does it remain PostgreSQL-version aware?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - subscript|\['customer'\]
+  - jsonb_set|update
+  id: gen-json-08
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
+  task: On PostgreSQL 14, can I write metadata['customer']['tier'] = 'gold' style
+    JSONB updates, or do I still need jsonb_set everywhere?
+- correctness_checks:
+  - Does the response compare indexing the JSONB expression directly versus projecting
+    it into a generated column?
+  - Does it connect the choice to frequent filtering and typed access?
+  - Does it keep the discussion in JSONB-pattern terms?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - generated column|stored
+  - index|jsonb
+  id: gen-json-09
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
+  task: Should I materialize metadata->>'country' into a generated column if we filter
+    on it all the time, or is JSONB indexing enough?
+- correctness_checks:
+  - Does the response mention jsonpath support such as @? or jsonb_path_exists?
+  - Does it show that the predicate can be pushed into a JSON path expression rather
+    than only array unnesting?
+  - Does it keep the answer PostgreSQL JSONB specific?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - '@\?|jsonpath|jsonb_path_exists'
+  - price|category
+  id: gen-json-10
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
+  task: I need a SQL/JSON path filter that finds documents where any item has price
+    > 100 and category = 'electronics'. Which operator should I use?
+- correctness_checks:
+  - Does the response choose a containment or existence operator pattern appropriate
+    for array membership checks?
+  - Does it stay within PostgreSQL JSONB operators rather than string matching the
+    JSON text?
+  - Does it avoid suggesting a relational redesign as the only immediate answer when
+    the user asked about JSONB querying?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - '@>|\?|\?\|'
+  - jsonb array|containment
+  id: gen-json-11
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
+  task: Our payload stores numeric IDs inside JSONB arrays, and we need to test whether
+    an array contains all requested IDs. What's the cleanest operator pattern?
+- correctness_checks:
+  - Does the response explain why idle-in-transaction sessions hold resources longer
+    than ordinary idle sessions?
+  - Does it mention lock retention, vacuum interference, or bloat risk?
+  - Does it stay centered on connection management rather than only query tuning?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - idle in transaction
+  - VACUUM|locks|bloat
+  id: gen-conn-03
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
+  task: I see lots of sessions in 'idle in transaction' for 45 minutes. Why is that
+    worse than plain idle connections?
+- correctness_checks:
+  - Does the response identify idle_in_transaction_session_timeout correctly?
+  - Does it explain that this is different from statement_timeout?
+  - Does it keep the answer on PostgreSQL connection/session management?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - idle_in_transaction_session_timeout
+  - timeout
+  id: gen-conn-04
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
+  task: What's the server-side timeout that automatically closes sessions left idle
+    in transaction too long?
+- correctness_checks:
+  - Does the response explain that each PostgreSQL backend consumes memory and scheduling
+    overhead?
+  - Does it recommend considering pooling instead of unbounded connection-count growth?
+  - Does it avoid presenting max_connections increases as free?
+  difficulty: easy
+  expected_activation: true
+  expected_patterns:
+  - max_connections
+  - memory|backend process|pool
+  id: gen-conn-05
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
+  task: How much memory does max_connections really cost? Our team wants to raise
+    it from 300 to 1500 instead of using a pooler.
+- correctness_checks:
+  - Does the response recommend exponential backoff, jitter, or staggered reconnects?
+  - Does it explain the connection-storm risk after restart or failover?
+  - Does it stay within operational connection-management advice?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - backoff|jitter|stagger
+  - reconnect|storm
+  id: gen-conn-06
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
+  task: After a restart, every app instance reconnects at once and the database thrashes
+    for a minute. How do people usually dampen that?
+- correctness_checks:
+  - Does the response distinguish query cancellation from full session termination?
+  - Does it explain the safer first step when the goal is to stop work but preserve
+    the connection if possible?
+  - Does it keep the answer in PostgreSQL administrative semantics?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - pg_cancel_backend
+  - pg_terminate_backend
+  id: gen-conn-07
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
+  task: When should I use pg_cancel_backend versus pg_terminate_backend while cleaning
+    up bad sessions?
+- correctness_checks:
+  - Does the response multiply out total possible connections across pods or app instances?
+  - Does it recommend budgeting pool sizes against server capacity?
+  - Does it keep the discussion on connection management rather than only SQL tuning?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - pool size
+  - 40|pods|max_connections
+  id: gen-conn-08
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
+  task: We have 40 app pods and each pod's ORM pool is set to 20. How should I think
+    about total server demand before touching max_connections?
+- correctness_checks:
+  - Does the response point to pg_stat_activity and/or pg_blocking_pids for blocker
+    analysis?
+  - Does it explain that the issue may be session blocking rather than too many total
+    connections?
+  - Does it remain grounded in PostgreSQL operational views?
+  difficulty: medium
+  expected_activation: true
+  expected_patterns:
+  - pg_stat_activity
+  - wait_event|blocking|pg_blocking_pids
+  id: gen-conn-09
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
+  task: How do I spot blocked sessions and the blocker from pg_stat_activity when
+    the app says the database is hung?
+- correctness_checks:
+  - Does the response connect prepared-statement errors to transaction pooling and
+    backend reuse?
+  - Does it suggest connection-management remedies such as session mode or client-side
+    prep?
+  - Does it avoid dismissing the issue as only an ORM bug?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - prepared statement
+  - PgBouncer|transaction mode
+  id: gen-conn-10
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
+  task: My app uses PgBouncer transaction mode and sometimes gets prepared statement
+    errors. Is that a database connection-management issue or just an ORM bug?
+- correctness_checks:
+  - Does the response identify idle_session_timeout or explain the relevant server-side
+    mechanism?
+  - Does it distinguish that from idle_in_transaction_session_timeout?
+  - Does it keep the answer on connection lifecycle management?
+  difficulty: hard
+  expected_activation: true
+  expected_patterns:
+  - idle_session_timeout
+  - timeout|idle
+  id: gen-conn-11
+  platform_scope: generic
+  target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
+  task: What timeout closes totally idle sessions that sit around forever but are
+    not in a transaction?

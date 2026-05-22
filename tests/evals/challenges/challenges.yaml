@@ -12,7 +12,7 @@ challenges:
   - id: gen-idx-01
     task: "My query on users table filters by email and sorts by created_at. It's doing a sequential scan on 10M rows. Help me add the right index."
     difficulty: medium
-    target_skill: skills/references/postgresql-advanced-indexing
+    target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -29,7 +29,7 @@ challenges:
   - id: gen-idx-02
     task: "I need to search a JSONB column for documents containing a specific nested key. The table has 5M rows."
     difficulty: medium
-    target_skill: skills/references/postgresql-advanced-indexing
+    target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -43,20 +43,20 @@ challenges:
   - id: gen-idx-03
     task: "How do I set up DiskANN vector indexing on my PostgreSQL server?"
     difficulty: easy
-    target_skill: skills/references/postgresql-advanced-indexing
+    target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: false
     correctness_checks:
       - "Does the response state that DiskANN is not a standard generic PostgreSQL index type?"
       - "Does the response redirect the user to Azure PostgreSQL DiskANN or pgvector-specific guidance instead of generic indexing advice?"
       - "Does the response avoid claiming that CREATE INDEX USING diskann is available on vanilla PostgreSQL?"
-    notes: "Should NOT activate advanced-indexing; this is skills/references/azure-postgresql-vector-diskann territory"
+    notes: "Should NOT activate advanced-indexing; this is skills/postgresql-best-practices/references/azure-postgresql-vector-diskann territory"
 
   # query-performance
   - id: gen-perf-01
     task: "My SELECT query takes 30 seconds. Here's the query: SELECT * FROM orders JOIN customers ON orders.customer_id = customers.id WHERE orders.total > 1000 ORDER BY orders.created_at DESC LIMIT 100"
     difficulty: medium
-    target_skill: skills/references/postgresql-query-performance
+    target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -70,7 +70,7 @@ challenges:
   - id: gen-perf-02
     task: "How do I read the output of EXPLAIN ANALYZE? I see 'loops=100' but I'm not sure what it means."
     difficulty: easy
-    target_skill: skills/references/postgresql-query-performance
+    target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -85,7 +85,7 @@ challenges:
   - id: gen-json-01
     task: "I have a settings JSONB column. How do I query for users where settings.notifications.email is true?"
     difficulty: easy
-    target_skill: skills/references/postgresql-jsonb-patterns
+    target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -99,7 +99,7 @@ challenges:
   - id: gen-json-02
     task: "What's the difference between -> and ->> operators in PostgreSQL?"
     difficulty: easy
-    target_skill: skills/references/postgresql-jsonb-patterns
+    target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -114,7 +114,7 @@ challenges:
   - id: gen-part-01
     task: "My events table has 500M rows and queries always filter by event_date. Should I partition it?"
     difficulty: medium
-    target_skill: skills/references/postgresql-table-partitioning
+    target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -128,7 +128,7 @@ challenges:
   - id: gen-part-02
     task: "How do I detach a partition without locking the parent table?"
     difficulty: hard
-    target_skill: skills/references/postgresql-table-partitioning
+    target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -142,7 +142,7 @@ challenges:
   - id: gen-rls-01
     task: "I need each tenant in my multi-tenant app to only see their own data. How do I enforce this at the database level?"
     difficulty: medium
-    target_skill: skills/references/postgresql-row-level-security
+    target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -156,7 +156,7 @@ challenges:
   - id: gen-rls-02
     task: "I enabled RLS but my admin user can still see all rows. Why?"
     difficulty: medium
-    target_skill: skills/references/postgresql-row-level-security
+    target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -171,7 +171,7 @@ challenges:
   - id: gen-fts-01
     task: "I need to add search functionality to my blog. Users should be able to search posts by title and body with relevance ranking."
     difficulty: medium
-    target_skill: skills/references/postgresql-full-text-search
+    target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -185,7 +185,7 @@ challenges:
   - id: gen-fts-02
     task: "How do I implement autocomplete/prefix search in PostgreSQL?"
     difficulty: medium
-    target_skill: skills/references/postgresql-full-text-search
+    target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -199,7 +199,7 @@ challenges:
   - id: gen-conn-01
     task: "My app is throwing 'too many connections' errors. I have 200 app servers each opening their own connection."
     difficulty: medium
-    target_skill: skills/references/postgresql-connection-management
+    target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -213,7 +213,7 @@ challenges:
   - id: gen-conn-02
     task: "How do I find and kill idle connections that have been open for more than 1 hour?"
     difficulty: easy
-    target_skill: skills/references/postgresql-connection-management
+    target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -228,7 +228,7 @@ challenges:
   - id: gen-repl-01
     task: "I need to replicate specific tables from my production database to an analytics database in real-time."
     difficulty: hard
-    target_skill: skills/references/postgresql-replication
+    target_skill: skills/postgresql-best-practices/references/postgresql-replication
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -242,7 +242,7 @@ challenges:
   - id: gen-repl-02
     task: "My replication slot is growing and WAL is filling up disk. What do I do?"
     difficulty: hard
-    target_skill: skills/references/postgresql-replication
+    target_skill: skills/postgresql-best-practices/references/postgresql-replication
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -257,7 +257,7 @@ challenges:
   - id: gen-neg-01
     task: "How do I deploy a PostgreSQL Flexible Server on Azure?"
     difficulty: easy
-    target_skill: skills/references/postgresql-query-performance
+    target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: false
     correctness_checks:
@@ -269,7 +269,7 @@ challenges:
   - id: gen-neg-02
     task: "Set up Entra ID authentication for my PostgreSQL database"
     difficulty: easy
-    target_skill: skills/references/postgresql-connection-management
+    target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: false
     correctness_checks:
@@ -284,7 +284,7 @@ challenges:
   - id: az-ext-01
     task: "I want to install the pgvector extension on my Azure PostgreSQL Flexible Server. How do I do it?"
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -301,7 +301,7 @@ challenges:
   - id: az-ext-02
     task: "I'm getting 'permission denied to create extension' on Azure PostgreSQL. I'm using the admin user."
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -316,7 +316,7 @@ challenges:
   - id: az-prov-01
     task: "Create a Terraform configuration for a production Azure PostgreSQL Flexible Server with HA enabled."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-provisioning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-provisioning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -331,7 +331,7 @@ challenges:
   - id: az-ha-01
     task: "My Azure PostgreSQL server went down. I need to restore it to 2 hours ago using PITR."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -347,7 +347,7 @@ challenges:
   - id: az-ha-02
     task: "What's the difference between zone-redundant HA and same-zone HA in Azure PostgreSQL?"
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -362,7 +362,7 @@ challenges:
   - id: az-auth-01
     task: "I want my Azure Function to connect to PostgreSQL using managed identity instead of username/password."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-entra-id-auth
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -376,7 +376,7 @@ challenges:
   - id: az-auth-02
     task: "My token-based connection to Azure PostgreSQL keeps expiring after 1 hour. How do I handle refresh?"
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-entra-id-auth
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -391,7 +391,7 @@ challenges:
   - id: az-net-01
     task: "I need to restrict access to my Azure PostgreSQL server so only my VNet can reach it."
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-networking-ssl
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -406,7 +406,7 @@ challenges:
   - id: az-pool-01
     task: "Should I use the built-in PgBouncer on Azure PostgreSQL or deploy my own? My app has 500 concurrent connections."
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-connection-pooling
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -421,7 +421,7 @@ challenges:
   - id: az-tune-01
     task: "How do I see which indexes Azure PostgreSQL recommends for my workload?"
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -436,7 +436,7 @@ challenges:
   - id: az-upg-01
     task: "I need to upgrade my Azure PostgreSQL server from version 14 to 16. What's the process?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -446,7 +446,7 @@ challenges:
   - id: az-upg-02
     task: "How do I set a custom maintenance window so upgrades don't happen during business hours?"
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -456,7 +456,7 @@ challenges:
   - id: az-vec-01
     task: "I have 10 million document embeddings. Should I use HNSW or DiskANN for my vector index on Azure PostgreSQL?"
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-vector-diskann
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -466,7 +466,7 @@ challenges:
   - id: az-vec-02
     task: "How do I do filtered vector search — find similar documents but only within a specific category?"
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-vector-diskann
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -477,7 +477,7 @@ challenges:
   - id: az-emb-01
     task: "I want to generate embeddings for my existing table data without leaving the database. I'm on Azure PostgreSQL."
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-genai-patterns
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -487,7 +487,7 @@ challenges:
   - id: az-emb-02
     task: "I need to batch-embed 1 million rows. How do I avoid rate limits?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-patterns
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -498,7 +498,7 @@ challenges:
   - id: az-rag-01
     task: "Build me a RAG system that combines vector similarity search with keyword search for my knowledge base on Azure PostgreSQL."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-patterns
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -508,7 +508,7 @@ challenges:
   - id: az-rag-02
     task: "My RAG system returns irrelevant results when users ask specific technical questions. How do I improve retrieval quality?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-patterns
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -519,7 +519,7 @@ challenges:
   - id: az-aiext-01
     task: "How do I connect my Azure PostgreSQL to Azure OpenAI so I can call AI functions from SQL?"
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-azure-ai
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-azure-ai
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -529,7 +529,7 @@ challenges:
   - id: az-aiext-02
     task: "I want to use managed identity instead of API keys for my azure_ai extension connection."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-azure-ai
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-azure-ai
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -540,7 +540,7 @@ challenges:
   - id: az-aifn-01
     task: "I want to classify support tickets as billing/technical/general using AI directly in a SQL query."
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-azure-ai
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-azure-ai
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -550,7 +550,7 @@ challenges:
   - id: az-aifn-02
     task: "How do I use PostgreSQL's EXTRACT function to get the year from a timestamp?"
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-azure-ai
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-azure-ai
     platform_scope: azure-postgresql
     expected_activation: false
     notes: "PostgreSQL EXTRACT (date/time), NOT azure_ai.extract(). Should NOT activate azure-ai."
@@ -559,7 +559,7 @@ challenges:
   - id: az-neg-01
     task: "How do I change max_connections on my Azure PostgreSQL server?"
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-provisioning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-provisioning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -571,7 +571,7 @@ challenges:
   - id: az-neg-02
     task: "Grant superuser privileges to my application user on Azure PostgreSQL."
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
     platform_scope: azure-postgresql
     expected_activation: false
     anti_patterns:
@@ -582,7 +582,7 @@ challenges:
   - id: edge-01
     task: "My pgvector extension is version 0.4.0 and I need to use HNSW indexes."
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-vector-diskann
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -592,7 +592,7 @@ challenges:
   - id: edge-02
     task: "I ran a PITR restore but my app still connects to the old server. What happened?"
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -602,7 +602,7 @@ challenges:
   - id: edge-03
     task: "I want to scale down my Azure PostgreSQL storage from 512GB to 256GB."
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-provisioning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-provisioning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -612,7 +612,7 @@ challenges:
   - id: edge-04
     task: "Help me set up vector search. My table is empty, no data yet."
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-vector-diskann
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
     platform_scope: azure-postgresql
     expected_activation: true
     notes: "Edge case: empty table. Index creation works but ANALYZE won't help."
@@ -623,7 +623,7 @@ challenges:
   - id: enrich-idx-01
     task: "I need to rebuild a corrupted index on a 200GB table in production without locking writes. How?"
     difficulty: hard
-    target_skill: skills/references/postgresql-advanced-indexing
+    target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -634,7 +634,7 @@ challenges:
   - id: enrich-idx-02
     task: "I have a time-series table with 500M rows inserted in order. Range queries on timestamp are slow even with B-tree. What index type is better?"
     difficulty: hard
-    target_skill: skills/references/postgresql-advanced-indexing
+    target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -645,7 +645,7 @@ challenges:
   - id: enrich-qp-01
     task: "My OLTP queries that return 1-5 rows are taking 50ms instead of 2ms. EXPLAIN shows JIT compilation time dominating. How do I fix this?"
     difficulty: hard
-    target_skill: skills/references/postgresql-query-performance
+    target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -655,7 +655,7 @@ challenges:
   - id: enrich-qp-02
     task: "I upgraded from PostgreSQL 11 to 16. Some CTEs that used to be fast are now slow because the planner inlines them. How do I control this?"
     difficulty: hard
-    target_skill: skills/references/postgresql-query-performance
+    target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -666,7 +666,7 @@ challenges:
   - id: enrich-json-01
     task: "I need to query a JSONB column using SQL/JSON path expressions to find items where price > 100 and category is 'electronics'. PostgreSQL 12+."
     difficulty: hard
-    target_skill: skills/references/postgresql-jsonb-patterns
+    target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -675,7 +675,7 @@ challenges:
   - id: enrich-json-02
     task: "On PostgreSQL 14, how can I update a nested JSONB field using subscript assignment syntax instead of jsonb_set?"
     difficulty: hard
-    target_skill: skills/references/postgresql-jsonb-patterns
+    target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -685,7 +685,7 @@ challenges:
   - id: enrich-part-01
     task: "I have a partitioned table and some rows are landing in the default partition because new date ranges weren't created in time. How do I fix this?"
     difficulty: hard
-    target_skill: skills/references/postgresql-table-partitioning
+    target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -695,7 +695,7 @@ challenges:
   - id: enrich-part-02
     task: "I want to automate monthly partition creation and retention (drop partitions older than 12 months). What's the standard approach?"
     difficulty: medium
-    target_skill: skills/references/postgresql-table-partitioning
+    target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -705,7 +705,7 @@ challenges:
   - id: enrich-rls-01
     task: "My RLS policy uses current_setting('app.tenant_id') but it stops working when I switch to PgBouncer transaction mode. How do I fix this?"
     difficulty: hard
-    target_skill: skills/references/postgresql-row-level-security
+    target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -714,7 +714,7 @@ challenges:
   - id: enrich-rls-02
     task: "I have RLS on a table but discovered users can leak row existence through function side-effects in WHERE clauses. How do I prevent this?"
     difficulty: hard
-    target_skill: skills/references/postgresql-row-level-security
+    target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -724,7 +724,7 @@ challenges:
   - id: enrich-fts-01
     task: "I want to let users type natural search queries like 'quick brown -fox' (with negation and implicit AND). Which tsquery function handles this?"
     difficulty: medium
-    target_skill: skills/references/postgresql-full-text-search
+    target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -733,7 +733,7 @@ challenges:
   - id: enrich-fts-02
     task: "I need to find documents where 'machine' and 'learning' appear within 2 words of each other. How do I do proximity search in PostgreSQL FTS?"
     difficulty: hard
-    target_skill: skills/references/postgresql-full-text-search
+    target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -743,7 +743,7 @@ challenges:
   - id: enrich-conn-01
     task: "After enabling PgBouncer in transaction mode, my app throws 'prepared statement does not exist' errors. What's wrong and how do I fix it?"
     difficulty: hard
-    target_skill: skills/references/postgresql-connection-management
+    target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -753,7 +753,7 @@ challenges:
   - id: enrich-conn-02
     task: "After a PostgreSQL restart, all 200 app pods reconnect simultaneously causing a connection storm. How do I prevent this?"
     difficulty: hard
-    target_skill: skills/references/postgresql-connection-management
+    target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -763,7 +763,7 @@ challenges:
   - id: enrich-lr-01
     task: "My WAL disk usage keeps growing. I suspect a replication slot is not being consumed. How do I diagnose and fix slot bloat?"
     difficulty: hard
-    target_skill: skills/references/postgresql-replication
+    target_skill: skills/postgresql-best-practices/references/postgresql-replication
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -773,7 +773,7 @@ challenges:
   - id: enrich-lr-02
     task: "Logical replication is stopped due to a conflict - a row was updated on both publisher and subscriber. How do I resolve this and continue?"
     difficulty: hard
-    target_skill: skills/references/postgresql-replication
+    target_skill: skills/postgresql-best-practices/references/postgresql-replication
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -785,7 +785,7 @@ challenges:
   - id: enrich-az-pool-01
     task: "I'm using Azure PostgreSQL built-in PgBouncer. My app uses prepared statements but they break in transaction mode. What settings should I change?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-connection-pooling
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -795,7 +795,7 @@ challenges:
   - id: enrich-az-tune-01
     task: "Azure PostgreSQL recommended an index but I want to understand the workload analysis behind it. How do I see the query patterns that triggered the recommendation?"
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -805,7 +805,7 @@ challenges:
   - id: enrich-az-net-01
     task: "What's the difference between Private Endpoint and VNet Integration for Azure PostgreSQL? My app is in a different VNet than the database."
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-networking-ssl
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -820,7 +820,7 @@ challenges:
   - id: enrich-az-diskann-02
     task: "I created a DiskANN index on Azure PostgreSQL but my filtered queries (WHERE tenant_id = X ORDER BY embedding <=> query LIMIT 5) are slow. How do I configure DiskANN for filtered search?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-vector-diskann
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -831,7 +831,7 @@ challenges:
   - id: enrich-az-tune-02
     task: "My Azure PostgreSQL is slow but CPU and memory look fine. How do I use the wait statistics feature to find what the queries are actually waiting on?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -842,7 +842,7 @@ challenges:
   - id: enrich-az-auth-03
     task: "I need a one-liner to connect to my Azure PostgreSQL server from the command line using my Entra ID identity — no stored password. What's the psql command?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-entra-id-auth
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -853,7 +853,7 @@ challenges:
   - id: enrich-az-aiext-03
     task: "My azure_ai extension calls are failing intermittently. How do I verify the extension is working and handle rate limiting (429) errors gracefully?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-azure-ai
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-azure-ai
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -864,7 +864,7 @@ challenges:
   - id: enrich-az-pool-02
     task: "I enabled the built-in PgBouncer on Azure PostgreSQL but my Entra ID token-based connections keep failing. I'm using transaction pooling mode. What's wrong?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-connection-pooling
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -875,7 +875,7 @@ challenges:
   - id: enrich-az-emb-03
     task: "Show me the exact SQL to generate embeddings for a text column using azure_openai in Azure PostgreSQL and store them as a vector(1536) column."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-patterns
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -886,7 +886,7 @@ challenges:
   - id: enrich-az-aifn-03
     task: "I have a support_tickets table with a description column. I want to classify each ticket into categories using GPT-4 directly in SQL on Azure PostgreSQL. Show me the pattern."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-azure-ai
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-azure-ai
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -897,7 +897,7 @@ challenges:
   - id: enrich-az-net-02
     task: "I set up a Private Endpoint for my Azure PostgreSQL Flexible Server but DNS resolution isn't working from my VNet. What's the Private DNS zone I need to create?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-networking-ssl
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -908,7 +908,7 @@ challenges:
   - id: enrich-az-prov-02
     task: "I provisioned my Azure PostgreSQL with 128GB storage but now I only need 64GB. Can I shrink it? Also, what's the correct SKU format for the az CLI vs Terraform?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-provisioning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-provisioning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -919,7 +919,7 @@ challenges:
   - id: enrich-az-ha-03
     task: "I need to restore my Azure PostgreSQL to 2 hours ago. Will PITR restore in-place or do I get a new server? What happens to my connection strings and firewall rules?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -930,7 +930,7 @@ challenges:
   - id: enrich-az-ext-03
     task: "I want to add pg_cron to my Azure PostgreSQL extensions. I already have vector and postgis enabled. What's the safe way to update the azure.extensions parameter without breaking existing extensions?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -941,7 +941,7 @@ challenges:
   - id: enrich-az-rag-03
     task: "In my RAG pipeline on Azure PostgreSQL, I want to embed the user's search query directly in SQL instead of calling an external API. How do I combine embedding + vector search in one query?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-patterns
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -952,7 +952,7 @@ challenges:
   - id: enrich-az-upg-03
     task: "Before upgrading my production Azure PostgreSQL from v14 to v16, how do I do a dry-run validation? And what's the critical step I must take immediately after the upgrade completes?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -965,7 +965,7 @@ challenges:
   - id: az-vec-enr-01
     task: "I'm building a DiskANN vector index on Azure PostgreSQL for 50M embeddings. How do I tune search_type and max_neighbors for my filtered queries? I need to balance recall vs latency."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-vector-diskann
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -977,7 +977,7 @@ challenges:
   - id: az-tune-enr-01
     task: "I want to analyze wait events on my Azure PostgreSQL Flexible Server to find what's blocking my queries. How do I query the wait sampling view and interpret event types?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -989,7 +989,7 @@ challenges:
   - id: az-auth-enr-01
     task: "I need a one-liner to connect to my Azure PostgreSQL server via psql using my Entra ID token from the Azure CLI. Also, how do I set up token refresh in a Python app?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-entra-id-auth
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1000,7 +1000,7 @@ challenges:
   - id: az-aiext-enr-01
     task: "After deploying the azure_ai extension, how do I verify it's working? Also, my calls are returning 429 errors intermittently. How do I handle rate limiting gracefully?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-azure-ai
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-azure-ai
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1011,7 +1011,7 @@ challenges:
   - id: az-pool-enr-01
     task: "I'm using the built-in PgBouncer on Azure PostgreSQL with Entra ID authentication. Connections keep failing. My app connects on port 5432. What am I doing wrong?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-connection-pooling
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1023,7 +1023,7 @@ challenges:
   - id: az-emb-enr-01
     task: "Show me the exact SQL to generate embeddings using azure_openai.create_embeddings on Azure PostgreSQL and store them in a vector column. I'm using text-embedding-ada-002 with 1536 dimensions."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-patterns
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1035,7 +1035,7 @@ challenges:
   - id: az-aifn-enr-01
     task: "I want to classify 10,000 product descriptions into categories using GPT-4o directly in SQL on Azure PostgreSQL. Show me the batch pattern with azure_openai.create()."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-azure-ai
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-azure-ai
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1047,7 +1047,7 @@ challenges:
   - id: az-net-enr-01
     task: "I'm setting up Private Link for my Azure PostgreSQL server. What are the Private DNS zone naming requirements, and what happens to my firewall rules when I enable VNet integration?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-networking-ssl
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1058,7 +1058,7 @@ challenges:
   - id: az-prov-enr-01
     task: "I provisioned an Azure PostgreSQL Flexible Server with 256GB storage but now I only need 128GB. Can I shrink it? Also, the SKU format seems different between az CLI and Terraform — what are the correct formats?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-provisioning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-provisioning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1069,7 +1069,7 @@ challenges:
   - id: az-ha-enr-01
     task: "My Azure PostgreSQL server had a data corruption issue. I need to do a point-in-time restore to 2 hours ago. Will my existing connection strings still work after the restore?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1080,7 +1080,7 @@ challenges:
   - id: az-ext-enr-01
     task: "I need to add the pg_cron extension to my Azure PostgreSQL server that already has vector and postgis enabled. How do I update the allowlist without breaking the existing extensions?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1092,7 +1092,7 @@ challenges:
   - id: az-rag-enr-01
     task: "I want to do the entire RAG pipeline inside Azure PostgreSQL — embed the user's query, search similar documents, and generate a response, all in SQL using the azure_ai extension. Show me the pattern."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-patterns
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1104,7 +1104,7 @@ challenges:
   - id: az-upg-enr-01
     task: "I want to upgrade my Azure PostgreSQL from version 14 to 16. How do I do a dry run first to check for issues? And what's the full post-upgrade checklist I need to follow?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1118,7 +1118,7 @@ challenges:
   - id: neg-mysql-json-01
     task: "How do I use JSON_TABLE in MySQL 8.0 to extract nested array elements?"
     difficulty: easy
-    target_skill: skills/references/postgresql-jsonb-patterns
+    target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
     platform_scope: generic
     expected_activation: false
 
@@ -1126,7 +1126,7 @@ challenges:
   - id: neg-python-pool-01
     task: "How do I implement a thread pool in Python using concurrent.futures for CPU-bound tasks?"
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-connection-pooling
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
     platform_scope: azure-postgresql
     expected_activation: false
 
@@ -1134,7 +1134,7 @@ challenges:
   - id: neg-basic-sql-01
     task: "Write a SQL query to find duplicate rows in a table based on email column."
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-genai-patterns
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: false
 
@@ -1142,7 +1142,7 @@ challenges:
   - id: neg-aws-rds-01
     task: "How do I set up a Multi-AZ deployment for Amazon RDS PostgreSQL with read replicas?"
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-provisioning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-provisioning
     platform_scope: azure-postgresql
     expected_activation: false
 
@@ -1150,7 +1150,7 @@ challenges:
   - id: neg-linux-net-01
     task: "How do I configure iptables rules to allow only SSH and HTTP traffic on my Ubuntu server?"
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-networking-ssl
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
     platform_scope: azure-postgresql
     expected_activation: false
 
@@ -1160,7 +1160,7 @@ challenges:
   - id: root-pg-01
     task: "I'm getting 'relation does not exist' when querying my table. I've tried the query 3 times and it keeps failing."
     difficulty: easy
-    target_skill: skills/references
+    target_skill: skills/postgresql-best-practices/references
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1171,7 +1171,7 @@ challenges:
   - id: root-pg-02
     task: "I want to use MERGE to do an upsert on my PostgreSQL database. Can you write the SQL?"
     difficulty: medium
-    target_skill: skills/references
+    target_skill: skills/postgresql-best-practices/references
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1182,7 +1182,7 @@ challenges:
   - id: root-pg-03
     task: "I need to optimize queries on a table with 50M rows that gets filtered by date range and status. Which skill or approach should I use?"
     difficulty: easy
-    target_skill: skills/references
+    target_skill: skills/postgresql-best-practices/references
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1192,7 +1192,7 @@ challenges:
   - id: root-pg-04
     task: "I created an index but I'm not sure it's being used. How do I verify?"
     difficulty: easy
-    target_skill: skills/references
+    target_skill: skills/postgresql-best-practices/references
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1202,7 +1202,7 @@ challenges:
   - id: root-pg-05
     task: "Help me set up logical replication between two PostgreSQL servers for CDC."
     difficulty: easy
-    target_skill: skills/references
+    target_skill: skills/postgresql-best-practices/references
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1213,7 +1213,7 @@ challenges:
   - id: root-az-01
     task: "I need to install the pgvector extension on my Azure Database for PostgreSQL Flexible Server."
     difficulty: easy
-    target_skill: skills/references
+    target_skill: skills/postgresql-best-practices/references
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1223,7 +1223,7 @@ challenges:
   - id: root-az-02
     task: "I changed shared_preload_libraries on my Azure PostgreSQL server but the extension still won't load."
     difficulty: medium
-    target_skill: skills/references
+    target_skill: skills/postgresql-best-practices/references
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1234,7 +1234,7 @@ challenges:
   - id: root-az-03
     task: "My application can't connect to my Azure PostgreSQL server. It says 'could not connect'."
     difficulty: easy
-    target_skill: skills/references
+    target_skill: skills/postgresql-best-practices/references
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1244,7 +1244,7 @@ challenges:
   - id: root-az-04
     task: "What CLI command do I use to create an Azure PostgreSQL Flexible Server with a General Purpose tier?"
     difficulty: easy
-    target_skill: skills/references
+    target_skill: skills/postgresql-best-practices/references
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1255,7 +1255,7 @@ challenges:
   - id: root-az-05
     task: "I want to build a RAG application with semantic search on my Azure PostgreSQL database. Where do I start?"
     difficulty: easy
-    target_skill: skills/references
+    target_skill: skills/postgresql-best-practices/references
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1267,7 +1267,7 @@ challenges:
   - id: az-constraint-01
     task: "I want to switch my Azure PostgreSQL server from public access to VNet integration. How do I do this?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-networking-ssl
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1278,7 +1278,7 @@ challenges:
   - id: az-constraint-02
     task: "How do I downgrade my Azure PostgreSQL server from version 16 back to 15?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1289,7 +1289,7 @@ challenges:
   - id: az-constraint-03
     task: "I need to shrink the storage on my Azure PostgreSQL Flexible Server from 256GB to 128GB to save costs."
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-provisioning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-provisioning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1300,7 +1300,7 @@ challenges:
   - id: az-constraint-04
     task: "I want to use DiskANN indexing on my self-hosted PostgreSQL 16 server. How do I install pg_diskann?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-vector-diskann
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1311,7 +1311,7 @@ challenges:
   - id: az-constraint-05
     task: "Can azure_openai.create_embeddings process a batch of 100 texts in a single call for better performance?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-patterns
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1322,7 +1322,7 @@ challenges:
   - id: az-constraint-06
     task: "My Baltimore CyberTrust Root certificate is failing to connect to Azure PostgreSQL. What's wrong?"
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-networking-ssl
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1333,7 +1333,7 @@ challenges:
   - id: az-constraint-07
     task: "I want to skip from PostgreSQL 13 directly to 16 on my Azure Flexible Server. What's the upgrade command?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1344,7 +1344,7 @@ challenges:
   - id: az-constraint-08
     task: "I enabled 'Allow Azure services' on my server for security. Is my database now properly isolated to just my Azure resources?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-networking-ssl
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1358,7 +1358,7 @@ challenges:
   - id: gen-new-01
     task: "I need to find all rows where the JSONB column 'metadata' has a key 'deleted_at' that is explicitly null, but NOT rows where the key is missing entirely. How do I write this WHERE clause?"
     difficulty: hard
-    target_skill: skills/references/postgresql-jsonb-patterns
+    target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1372,7 +1372,7 @@ challenges:
   - id: gen-new-02
     task: "I'm partitioning my events table by day. We've been running for 3 years and now have over 1000 partitions. Query planning has gotten very slow. What's wrong and how do I fix it?"
     difficulty: hard
-    target_skill: skills/references/postgresql-table-partitioning
+    target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1383,7 +1383,7 @@ challenges:
   - id: gen-new-03
     task: "I set up RLS with CREATE POLICY tenant_policy ON orders USING (tenant_id = current_setting('app.tenant')). Users can SELECT their data but INSERT is being denied. What am I missing?"
     difficulty: medium
-    target_skill: skills/references/postgresql-row-level-security
+    target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1395,7 +1395,7 @@ challenges:
   - id: gen-new-04
     task: "My Node.js app using pg pool keeps hitting 'too many clients' errors even though max is set to 20. The connections seem to leak when requests throw errors. How do I fix this?"
     difficulty: medium
-    target_skill: skills/references/postgresql-connection-management
+    target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1406,7 +1406,7 @@ challenges:
   - id: gen-new-05
     task: "I set REPLICA IDENTITY FULL on my partitioned table but UPDATE and DELETE operations aren't replicating to the subscriber. What's wrong?"
     difficulty: hard
-    target_skill: skills/references/postgresql-replication
+    target_skill: skills/postgresql-best-practices/references/postgresql-replication
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1418,7 +1418,7 @@ challenges:
   - id: gen-new-06
     task: "I added a B-tree index on orders.status (values: 'pending', 'shipped', 'delivered', 'cancelled') but the planner still does a sequential scan. The table has 50M rows. Why?"
     difficulty: medium
-    target_skill: skills/references/postgresql-advanced-indexing
+    target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1430,7 +1430,7 @@ challenges:
   - id: az-new-01
     task: "My Azure PostgreSQL Flexible Server is on Burstable B1ms and it's running out of CPU. How do I scale up to General Purpose?"
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-provisioning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-provisioning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1443,7 +1443,7 @@ challenges:
   - id: az-new-02
     task: "I can't connect to my Azure PostgreSQL server from my application. I'm getting 'no pg_hba.conf entry for host' error. How do I fix this?"
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-networking-ssl
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1453,7 +1453,7 @@ challenges:
   - id: az-new-03
     task: "I want to call GPT-4 directly from a SQL query to classify customer support tickets stored in my Azure PostgreSQL database. How do I set this up?"
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-azure-ai
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-azure-ai
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1464,7 +1464,7 @@ challenges:
   - id: az-new-04
     task: "I currently have HNSW indexes on my Azure PostgreSQL for vector search. I want to switch to DiskANN for better performance at scale. How do I migrate without downtime?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-vector-diskann
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1475,7 +1475,7 @@ challenges:
   - id: az-new-05
     task: "I'm trying to CREATE EXTENSION vector on my Azure PostgreSQL server but getting 'extension is not available'. What's wrong and how do I fix it?"
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1486,7 +1486,7 @@ challenges:
   - id: az-new-06
     task: "My app uses Entra ID authentication with PgBouncer in transaction mode. After about an hour, connections start failing with authentication errors. What's happening?"
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-entra-id-auth
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1501,7 +1501,7 @@ challenges:
   - id: gen-fts-03
     task: Our docs search for 'running' misses rows containing 'run' and 'runs'. The posts table has 800k rows. How do I make stemming work correctly?
     difficulty: easy
-    target_skill: skills/references/postgresql-full-text-search
+    target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1517,7 +1517,7 @@ challenges:
   - id: gen-fts-04
     task: I need exact phrase search for an issue tracker. Searching for "disk full" should match that phrase, not rows where disk and full are far apart.
     difficulty: easy
-    target_skill: skills/references/postgresql-full-text-search
+    target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1531,7 +1531,7 @@ challenges:
   - id: gen-fts-05
     task: Users want Google-style snippets with the matched words highlighted in the result page. Can PostgreSQL do that from the article body column?
     difficulty: easy
-    target_skill: skills/references/postgresql-full-text-search
+    target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1545,7 +1545,7 @@ challenges:
   - id: gen-fts-06
     task: My knowledge base search should rank title matches above tags, and tags above the long body text. What's the usual pattern?
     difficulty: medium
-    target_skill: skills/references/postgresql-full-text-search
+    target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1559,7 +1559,7 @@ challenges:
   - id: gen-fts-07
     task: My search index on a generated tsvector column works, but inserts got slower after I added a trigger that rebuilds it. Is there a cleaner approach on PostgreSQL 15?
     difficulty: medium
-    target_skill: skills/references/postgresql-full-text-search
+    target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1573,7 +1573,7 @@ challenges:
   - id: gen-fts-08
     task: Searching for café should also find cafe in my product catalog. How do I make accent-insensitive search work with PostgreSQL full-text search?
     difficulty: medium
-    target_skill: skills/references/postgresql-full-text-search
+    target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1587,7 +1587,7 @@ challenges:
   - id: gen-fts-09
     task: My search for 'the office' returns noisy matches because common words disappear. How do I debug stop-word behavior and decide when to use the simple config instead?
     difficulty: medium
-    target_skill: skills/references/postgresql-full-text-search
+    target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1601,7 +1601,7 @@ challenges:
   - id: gen-fts-10
     task: Product managers paste searches like quick brown -fox or "memory leak" into our app. Which tsquery function is closest to web search syntax?
     difficulty: medium
-    target_skill: skills/references/postgresql-full-text-search
+    target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1615,7 +1615,7 @@ challenges:
   - id: gen-fts-11
     task: Our legal search should prioritize shorter documents that match many terms, not giant PDFs that happen to contain the words once. How do I tune ranking normalization?
     difficulty: hard
-    target_skill: skills/references/postgresql-full-text-search
+    target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1629,7 +1629,7 @@ challenges:
   - id: gen-fts-12
     task: We changed dictionaries for our FTS config and now old rows search badly until they are updated. How do I refresh the indexed lexemes without rewriting application logic?
     difficulty: hard
-    target_skill: skills/references/postgresql-full-text-search
+    target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1643,7 +1643,7 @@ challenges:
   - id: gen-fts-13
     task: My orders table has 2 million rows and I need LIKE '%SKU123%' to be fast. Should I use PostgreSQL full-text search for that?
     difficulty: hard
-    target_skill: skills/references/postgresql-full-text-search
+    target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
     platform_scope: generic
     expected_activation: false
     expected_patterns: []
@@ -1660,7 +1660,7 @@ challenges:
   - id: az-tune-02
     task: I inherited an Azure PostgreSQL server and need a quick list of the top 20 slowest queries by total time, including the SQL text. What's the Query Store query?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1674,7 +1674,7 @@ challenges:
   - id: az-tune-03
     task: CPU looks normal but the app still times out. How do I use Azure PostgreSQL wait sampling to see whether queries are blocked on locks or storage waits?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1688,7 +1688,7 @@ challenges:
   - id: az-tune-04
     task: Azure recommended a new index yesterday, but today the recommendation is gone. Should I still create it?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1702,7 +1702,7 @@ challenges:
   - id: az-tune-05
     task: Where do I check Query Store capture mode on Flexible Server? We suspect it's set too narrowly and missing our fastest queries.
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1716,7 +1716,7 @@ challenges:
   - id: az-tune-06
     task: I can see index recommendations in Azure, but this workload is write-heavy. How do I decide whether the read gain is worth the insert/update overhead?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1730,7 +1730,7 @@ challenges:
   - id: az-tune-07
     task: I need to shorten how long Query Store data is kept because this server is very busy. Which setting controls retention and what tradeoff should I expect?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1744,7 +1744,7 @@ challenges:
   - id: az-tune-08
     task: How do I tell whether Azure intelligent tuning is pointing at a lock problem versus a missing-index problem for the same slow screen in my app?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1758,7 +1758,7 @@ challenges:
   - id: az-tune-09
     task: I want to keep Query Store but reduce overhead from storing every plan. Is there a server parameter for that?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1774,7 +1774,7 @@ challenges:
   - id: az-tune-10
     task: Azure says a single query family is expensive, but our parameter values vary a lot. How do I check whether this is just one bad parameter shape instead of a stable indexing issue?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1788,7 +1788,7 @@ challenges:
   - id: az-tune-11
     task: My Query Store looks empty right after we enabled it on Flexible Server. Does that mean the workload is healthy?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -1802,7 +1802,7 @@ challenges:
   - id: az-tune-12
     task: How should I tune autovacuum_naptime in postgresql.conf on my self-managed Ubuntu VM? I don't need Azure-specific features.
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-intelligent-tuning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
     platform_scope: azure-postgresql
     expected_activation: false
     expected_patterns: []
@@ -1819,7 +1819,7 @@ challenges:
   - id: gen-perf-03
     task: 'EXPLAIN ANALYZE shows ''Sort Method: external merge  Disk: 8192kB'' on a reporting query. What does that mean and what knob should I inspect?'
     difficulty: easy
-    target_skill: skills/references/postgresql-query-performance
+    target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1833,7 +1833,7 @@ challenges:
   - id: gen-perf-04
     task: My query filters on DATE(created_at) = current_date and ignores the index on created_at. Why is that happening?
     difficulty: easy
-    target_skill: skills/references/postgresql-query-performance
+    target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1847,7 +1847,7 @@ challenges:
   - id: gen-perf-05
     task: After a huge CSV load, the same dashboard query got slow even though the indexes are still there. What maintenance step did I probably skip?
     difficulty: easy
-    target_skill: skills/references/postgresql-query-performance
+    target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1861,7 +1861,7 @@ challenges:
   - id: gen-perf-06
     task: How do I find the highest-total-time queries across the whole server without logging every statement text?
     difficulty: medium
-    target_skill: skills/references/postgresql-query-performance
+    target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1875,7 +1875,7 @@ challenges:
   - id: gen-perf-07
     task: My prepared statement is fast for one customer and terrible for another because row counts differ wildly. Is PostgreSQL reusing a generic plan?
     difficulty: medium
-    target_skill: skills/references/postgresql-query-performance
+    target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1889,7 +1889,7 @@ challenges:
   - id: gen-perf-08
     task: Parallel query never kicks in on my 12-core analytics server even for a 40M-row aggregate. Which plan settings or query properties usually block it?
     difficulty: medium
-    target_skill: skills/references/postgresql-query-performance
+    target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1903,7 +1903,7 @@ challenges:
   - id: gen-perf-09
     task: I expected an index-only scan, but EXPLAIN still shows heap fetches on a table that barely changes. What extra condition does PostgreSQL need?
     difficulty: medium
-    target_skill: skills/references/postgresql-query-performance
+    target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1917,7 +1917,7 @@ challenges:
   - id: gen-perf-10
     task: Our API paginates with OFFSET 500000 LIMIT 50 and page 10000 is painfully slow. What's the usual PostgreSQL fix?
     difficulty: medium
-    target_skill: skills/references/postgresql-query-performance
+    target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1931,7 +1931,7 @@ challenges:
   - id: gen-perf-11
     task: A NOT IN subquery suddenly got slow and sometimes behaves oddly when NULLs are present. Should I rewrite it?
     difficulty: hard
-    target_skill: skills/references/postgresql-query-performance
+    target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1945,7 +1945,7 @@ challenges:
   - id: gen-perf-12
     task: My hash join spills to many batches on a 60M-row join and runtime exploded. How do I interpret that and what memory setting is involved?
     difficulty: hard
-    target_skill: skills/references/postgresql-query-performance
+    target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1961,7 +1961,7 @@ challenges:
   - id: gen-part-03
     task: I already have a 200GB historical table for January. How do I attach it as a partition under a new monthly-partitioned parent without rewriting all the rows?
     difficulty: easy
-    target_skill: skills/references/postgresql-table-partitioning
+    target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1975,7 +1975,7 @@ challenges:
   - id: gen-part-04
     task: Can I put a UNIQUE(email) constraint on a partitioned users table when the partitions are by signup_month?
     difficulty: easy
-    target_skill: skills/references/postgresql-table-partitioning
+    target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -1989,7 +1989,7 @@ challenges:
   - id: gen-part-05
     task: Deleting data older than 18 months takes hours on my partitioned audit table. Is there a faster retention pattern?
     difficulty: easy
-    target_skill: skills/references/postgresql-table-partitioning
+    target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2003,7 +2003,7 @@ challenges:
   - id: gen-part-06
     task: I partitioned by tenant_id but now I need to decide between LIST and HASH partitioning for 600 tenants with uneven traffic. What's the tradeoff?
     difficulty: medium
-    target_skill: skills/references/postgresql-table-partitioning
+    target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2017,7 +2017,7 @@ challenges:
   - id: gen-part-07
     task: Do I have to create indexes on every partition, or is one index on the parent enough for a PostgreSQL partitioned table?
     difficulty: medium
-    target_skill: skills/references/postgresql-table-partitioning
+    target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2031,7 +2031,7 @@ challenges:
   - id: gen-part-08
     task: I see 'Partitionwise Join' mentioned in plans on PostgreSQL 15. When does that optimization actually help?
     difficulty: medium
-    target_skill: skills/references/postgresql-table-partitioning
+    target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2045,7 +2045,7 @@ challenges:
   - id: gen-part-09
     task: Rows landed in my default partition last weekend because the next monthly partition wasn't created in time. What's the cleanup pattern after I add the missing partition?
     difficulty: medium
-    target_skill: skills/references/postgresql-table-partitioning
+    target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2059,7 +2059,7 @@ challenges:
   - id: gen-part-10
     task: The planner got slower after we crossed 1200 daily partitions on an events table. Should we coarsen the partition granularity?
     difficulty: hard
-    target_skill: skills/references/postgresql-table-partitioning
+    target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2073,7 +2073,7 @@ challenges:
   - id: gen-part-11
     task: A foreign key from invoices to a partitioned orders table behaves differently than I expected. Are there caveats I should know before using FKs with partitions?
     difficulty: hard
-    target_skill: skills/references/postgresql-table-partitioning
+    target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2087,7 +2087,7 @@ challenges:
   - id: gen-part-12
     task: We want to distribute one logical table across four PostgreSQL servers by region. Is table partitioning the right feature for that?
     difficulty: hard
-    target_skill: skills/references/postgresql-table-partitioning
+    target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
     platform_scope: generic
     expected_activation: false
     expected_patterns: []
@@ -2104,7 +2104,7 @@ challenges:
   - id: gen-rls-03
     task: My RLS policy lets tenants SELECT their rows, but INSERT fails even when tenant_id is correct. Do I need something besides USING?
     difficulty: easy
-    target_skill: skills/references/postgresql-row-level-security
+    target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2118,7 +2118,7 @@ challenges:
   - id: gen-rls-04
     task: I want support engineers to view every tenant's data read-only, while normal app users stay tenant-isolated. How do I model that with RLS?
     difficulty: easy
-    target_skill: skills/references/postgresql-row-level-security
+    target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2132,7 +2132,7 @@ challenges:
   - id: gen-rls-05
     task: The table owner still bypasses my policies in tests. What's the PostgreSQL switch that forces even the owner through RLS?
     difficulty: easy
-    target_skill: skills/references/postgresql-row-level-security
+    target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2146,7 +2146,7 @@ challenges:
   - id: gen-rls-06
     task: I use SECURITY DEFINER helper functions in my app. Can those accidentally bypass RLS, and how should I review that risk?
     difficulty: medium
-    target_skill: skills/references/postgresql-row-level-security
+    target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2160,7 +2160,7 @@ challenges:
   - id: gen-rls-07
     task: We're using RLS on a huge multi-tenant table. Should tenant_id also be indexed, or does the policy itself make PostgreSQL prune rows efficiently?
     difficulty: medium
-    target_skill: skills/references/postgresql-row-level-security
+    target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2174,7 +2174,7 @@ challenges:
   - id: gen-rls-08
     task: My RLS filter relies on current_setting('app.tenant_id'), but we're moving to PgBouncer transaction mode. How do I keep the tenant context safe?
     difficulty: medium
-    target_skill: skills/references/postgresql-row-level-security
+    target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2188,7 +2188,7 @@ challenges:
   - id: gen-rls-09
     task: If I put RLS on a partitioned table, do the policies live on the parent only or do I need to duplicate them everywhere?
     difficulty: medium
-    target_skill: skills/references/postgresql-row-level-security
+    target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2202,7 +2202,7 @@ challenges:
   - id: gen-rls-10
     task: PostgreSQL 15 added security_invoker views. Can I use that to keep a reporting view from bypassing the caller's RLS policies?
     difficulty: hard
-    target_skill: skills/references/postgresql-row-level-security
+    target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2216,7 +2216,7 @@ challenges:
   - id: gen-rls-11
     task: Users belong to two tenant groups and now they can see more rows than expected through inherited role grants. How do I debug RLS with role membership in mind?
     difficulty: hard
-    target_skill: skills/references/postgresql-row-level-security
+    target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2230,7 +2230,7 @@ challenges:
   - id: gen-rls-12
     task: I need to hide the salary column from some analysts but they can still see all rows. Is row-level security the right feature?
     difficulty: hard
-    target_skill: skills/references/postgresql-row-level-security
+    target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
     platform_scope: generic
     expected_activation: false
     expected_patterns: []
@@ -2247,7 +2247,7 @@ challenges:
   - id: gen-repl-03
     task: Can logical replication publish only rows where tenant_id = 42 from a hot orders table, or do I need a trigger-based workaround?
     difficulty: easy
-    target_skill: skills/references/postgresql-replication
+    target_skill: skills/postgresql-best-practices/references/postgresql-replication
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2261,7 +2261,7 @@ challenges:
   - id: gen-repl-04
     task: I only need id, status, and updated_at on the subscriber, not the entire 40-column table. Can PostgreSQL replicate a subset of columns?
     difficulty: easy
-    target_skill: skills/references/postgresql-replication
+    target_skill: skills/postgresql-best-practices/references/postgresql-replication
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2275,7 +2275,7 @@ challenges:
   - id: gen-repl-05
     task: I need to replicate from PostgreSQL 14 to PostgreSQL 16. Are cross-version logical replication setups supported, or do versions have to match exactly?
     difficulty: easy
-    target_skill: skills/references/postgresql-replication
+    target_skill: skills/postgresql-best-practices/references/postgresql-replication
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2289,7 +2289,7 @@ challenges:
   - id: gen-repl-06
     task: My logical subscriber has the tables, but schema changes on the publisher are not showing up automatically. Did I misconfigure something?
     difficulty: medium
-    target_skill: skills/references/postgresql-replication
+    target_skill: skills/postgresql-best-practices/references/postgresql-replication
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2303,7 +2303,7 @@ challenges:
   - id: gen-repl-07
     task: Sequence-backed IDs drift after failover to a logical subscriber. Why didn't the nextval values stay in sync?
     difficulty: medium
-    target_skill: skills/references/postgresql-replication
+    target_skill: skills/postgresql-best-practices/references/postgresql-replication
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2317,7 +2317,7 @@ challenges:
   - id: gen-repl-08
     task: We want zero-downtime cutover, but one replicated table has no primary key and updates fail. What's the setting I need?
     difficulty: medium
-    target_skill: skills/references/postgresql-replication
+    target_skill: skills/postgresql-best-practices/references/postgresql-replication
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2331,7 +2331,7 @@ challenges:
   - id: gen-repl-09
     task: How do I see whether my subscription is behind and whether the apply worker is actually running?
     difficulty: medium
-    target_skill: skills/references/postgresql-replication
+    target_skill: skills/postgresql-best-practices/references/postgresql-replication
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2345,7 +2345,7 @@ challenges:
   - id: gen-repl-10
     task: The initial copy for a 500GB table is taking forever. Can I seed the subscriber manually first and then let logical replication catch up?
     difficulty: hard
-    target_skill: skills/references/postgresql-replication
+    target_skill: skills/postgresql-best-practices/references/postgresql-replication
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2359,7 +2359,7 @@ challenges:
   - id: gen-repl-11
     task: We failed over a primary, and now the logical replication slot story is messy. Are failover-safe logical slots automatic?
     difficulty: hard
-    target_skill: skills/references/postgresql-replication
+    target_skill: skills/postgresql-best-practices/references/postgresql-replication
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2373,7 +2373,7 @@ challenges:
   - id: gen-repl-12
     task: How do I restore a PostgreSQL backup from S3 into a new server? I don't need replication, just one-time recovery.
     difficulty: hard
-    target_skill: skills/references/postgresql-replication
+    target_skill: skills/postgresql-best-practices/references/postgresql-replication
     platform_scope: generic
     expected_activation: false
     expected_patterns: []
@@ -2390,7 +2390,7 @@ challenges:
   - id: az-ha-03
     task: If I trigger a planned failover on an HA Flexible Server, what should the app team expect at the connection layer?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2404,7 +2404,7 @@ challenges:
   - id: az-ha-04
     task: I'm deciding between a read replica and HA for a production Azure PostgreSQL server. I need higher availability, not read scaling. Which one actually solves that?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2418,7 +2418,7 @@ challenges:
   - id: az-ha-05
     task: Does geo-redundant backup let me restore to another region after a regional outage, or do I need a separate replica strategy?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2432,7 +2432,7 @@ challenges:
   - id: az-ha-06
     task: After PITR to a new server, do private DNS links and firewall rules come over automatically or do I have to recreate them?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2446,7 +2446,7 @@ challenges:
   - id: az-ha-07
     task: What backup retention setting should I pick if the business wants the option to recover from accidental deletes up to 28 days later?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2460,7 +2460,7 @@ challenges:
   - id: az-ha-08
     task: Zone-redundant HA isn't offered in my region for this SKU. What's the practical fallback and what risk remains?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2474,7 +2474,7 @@ challenges:
   - id: az-ha-09
     task: Our app uses a single connection string and no retry logic. Is that good enough for Azure PostgreSQL failover, or do we need client changes?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2488,7 +2488,7 @@ challenges:
   - id: az-ha-10
     task: How is downtime different for same-zone HA versus zone-redundant HA during a major failover event?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2502,7 +2502,7 @@ challenges:
   - id: az-ha-11
     task: A teammate said we can delete the old production server right after a PITR test because the restore is basically in-place. That sounds wrong. Why?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2516,7 +2516,7 @@ challenges:
   - id: az-ha-12
     task: What's the right pg_basebackup command to seed a standby for my self-hosted PostgreSQL cluster across two VMs?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-ha-disaster-recovery
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
     platform_scope: azure-postgresql
     expected_activation: false
     expected_patterns: []
@@ -2533,7 +2533,7 @@ challenges:
   - id: az-auth-03
     task: How do I use a service principal from a GitHub Actions pipeline to connect to Azure PostgreSQL without storing a long-lived DB password?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-entra-id-auth
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2547,7 +2547,7 @@ challenges:
   - id: az-auth-04
     task: I'm using managed identity, but PostgreSQL still says 'password authentication failed for user'. What are the first Azure-specific things to check?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-entra-id-auth
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2561,7 +2561,7 @@ challenges:
   - id: az-auth-05
     task: I want one Entra group to map to a shared PostgreSQL role so I don't have to create every engineer one by one. Is that supported?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-entra-id-auth
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2575,7 +2575,7 @@ challenges:
   - id: az-auth-06
     task: What's the exact psql pattern to connect with my Entra token from Azure CLI on a jump box?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-entra-id-auth
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2589,7 +2589,7 @@ challenges:
   - id: az-auth-07
     task: We're on JDBC. How should a long-running Java service refresh Entra tokens before pooled connections start failing?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-entra-id-auth
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2603,7 +2603,7 @@ challenges:
   - id: az-auth-08
     task: My Azure Container App can get a token, but login still fails. Does the PostgreSQL username need to be the managed identity display name or something else?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-entra-id-auth
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2617,7 +2617,7 @@ challenges:
   - id: az-auth-09
     task: Can I keep both password auth and Entra auth enabled while I migrate apps gradually, or is it all-or-nothing?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-entra-id-auth
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2631,7 +2631,7 @@ challenges:
   - id: az-auth-10
     task: An Entra group grant worked for one teammate but not another. Could propagation delay really be that long?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-entra-id-auth
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2645,7 +2645,7 @@ challenges:
   - id: az-auth-11
     task: We're using token auth and PgBouncer in transaction mode. After an hour, checkouts start failing. Is that an auth bug or a pooling design issue?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-entra-id-auth
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2659,7 +2659,7 @@ challenges:
   - id: az-auth-12
     task: I forgot the postgres admin password on my local Docker PostgreSQL container. How do I reset it?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-entra-id-auth
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
     platform_scope: azure-postgresql
     expected_activation: false
     expected_patterns: []
@@ -2676,7 +2676,7 @@ challenges:
   - id: az-pool-02
     task: What's the practical difference between session mode and transaction mode on Azure's built-in PgBouncer? I'm deciding for a web API.
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-connection-pooling
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2690,7 +2690,7 @@ challenges:
   - id: az-pool-03
     task: I enabled built-in PgBouncer but my connection string still uses port 5432. Did I actually turn pooling on for the app?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-connection-pooling
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2704,7 +2704,7 @@ challenges:
   - id: az-pool-04
     task: Prepared statements started failing with 'prepared statement does not exist' after we switched the built-in PgBouncer to transaction mode. Why?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-connection-pooling
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2718,7 +2718,7 @@ challenges:
   - id: az-pool-05
     task: Our chat service uses LISTEN/NOTIFY and advisory locks. Will transaction pooling on Azure PgBouncer cause surprises?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-connection-pooling
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2732,7 +2732,7 @@ challenges:
   - id: az-pool-06
     task: How do I size pgbouncer.default_pool_size versus pgbouncer.max_client_conn for 12 app instances and two databases on the same server?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-connection-pooling
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2746,7 +2746,7 @@ challenges:
   - id: az-pool-07
     task: Can I run SHOW POOLS on Azure's built-in PgBouncer to see queue depth, or is there another way to monitor it?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-connection-pooling
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2760,7 +2760,7 @@ challenges:
   - id: az-pool-08
     task: We still hit queueing spikes after enabling the pooler because each request opens and closes ORM connections immediately. Is that expected?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-connection-pooling
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2774,7 +2774,7 @@ challenges:
   - id: az-pool-09
     task: After HA failover, pooled clients recover slowly even though the server name didn't change. What should I check?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-connection-pooling
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2788,7 +2788,7 @@ challenges:
   - id: az-pool-10
     task: My app sets statement_timeout per session, but random requests inherit the wrong value after we enabled transaction pooling. How do we make that safe?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-connection-pooling
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2802,7 +2802,7 @@ challenges:
   - id: az-pool-11
     task: We use Entra token auth through the built-in pooler and auth starts failing when tokens age out. Is there a pool-mode recommendation for that?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-connection-pooling
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -2818,7 +2818,7 @@ challenges:
   - id: gen-idx-07
     task: My LIKE '%searchterm%' query on a 2M-row customers table still does a seq scan. Is there an index type for this pattern?
     difficulty: easy
-    target_skill: skills/references/postgresql-advanced-indexing
+    target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2832,7 +2832,7 @@ challenges:
   - id: gen-idx-08
     task: I already have an index on email, but WHERE lower(email) = lower($1) still scans. Do I need a different index?
     difficulty: easy
-    target_skill: skills/references/postgresql-advanced-indexing
+    target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2846,7 +2846,7 @@ challenges:
   - id: gen-idx-09
     task: Should I use INCLUDE columns so my order-history query can avoid heap lookups for status and total?
     difficulty: easy
-    target_skill: skills/references/postgresql-advanced-indexing
+    target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2860,7 +2860,7 @@ challenges:
   - id: gen-idx-10
     task: I built a partial index on active = true, but EXPLAIN only uses it sometimes even though the query filters active = true. What subtle thing should I verify?
     difficulty: medium
-    target_skill: skills/references/postgresql-advanced-indexing
+    target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2874,7 +2874,7 @@ challenges:
   - id: gen-idx-11
     task: I have a multicolumn index on (status, created_at), but my query filters created_at >= now()-interval '7 days' and status = 'open'. Is that column order right?
     difficulty: medium
-    target_skill: skills/references/postgresql-advanced-indexing
+    target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2888,7 +2888,7 @@ challenges:
   - id: gen-idx-12
     task: Would two single-column indexes on customer_id and created_at ever beat one composite index for a reporting query?
     difficulty: medium
-    target_skill: skills/references/postgresql-advanced-indexing
+    target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2902,7 +2902,7 @@ challenges:
   - id: gen-idx-13
     task: My append-only metrics table has 900M rows on disk in timestamp order. Should I consider BRIN instead of another huge B-tree?
     difficulty: medium
-    target_skill: skills/references/postgresql-advanced-indexing
+    target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2916,7 +2916,7 @@ challenges:
   - id: gen-idx-14
     task: I need a uniqueness rule where two NULLs in sku should count as duplicates on PostgreSQL 15. Is there an index feature for that?
     difficulty: hard
-    target_skill: skills/references/postgresql-advanced-indexing
+    target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2930,7 +2930,7 @@ challenges:
   - id: gen-idx-15
     task: Our GIN index on a high-write tags column keeps getting slower to query until autovacuum catches up. What internal GIN behavior should I check?
     difficulty: hard
-    target_skill: skills/references/postgresql-advanced-indexing
+    target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2946,7 +2946,7 @@ challenges:
   - id: gen-json-03
     task: How do I tell the difference between metadata->'deleted_at' being JSON null versus the key not existing at all?
     difficulty: easy
-    target_skill: skills/references/postgresql-jsonb-patterns
+    target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2960,7 +2960,7 @@ challenges:
   - id: gen-json-04
     task: I need one row per item inside a JSONB array column named line_items so I can sum quantities. What's the usual PostgreSQL pattern?
     difficulty: easy
-    target_skill: skills/references/postgresql-jsonb-patterns
+    target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2974,7 +2974,7 @@ challenges:
   - id: gen-json-05
     task: For a filter like metadata @> '{"status":"paid"}', is containment usually better than extracting metadata->>'status'?
     difficulty: easy
-    target_skill: skills/references/postgresql-jsonb-patterns
+    target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -2988,7 +2988,7 @@ challenges:
   - id: gen-json-06
     task: I need to update the second element inside a nested JSONB array. Is jsonb_set still the normal approach?
     difficulty: medium
-    target_skill: skills/references/postgresql-jsonb-patterns
+    target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -3002,7 +3002,7 @@ challenges:
   - id: gen-json-07
     task: I have a 5M-row JSONB column and mostly query with @> containment, not key existence. Which GIN operator class should I evaluate?
     difficulty: medium
-    target_skill: skills/references/postgresql-jsonb-patterns
+    target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -3016,7 +3016,7 @@ challenges:
   - id: gen-json-08
     task: On PostgreSQL 14, can I write metadata['customer']['tier'] = 'gold' style JSONB updates, or do I still need jsonb_set everywhere?
     difficulty: medium
-    target_skill: skills/references/postgresql-jsonb-patterns
+    target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -3030,7 +3030,7 @@ challenges:
   - id: gen-json-09
     task: Should I materialize metadata->>'country' into a generated column if we filter on it all the time, or is JSONB indexing enough?
     difficulty: medium
-    target_skill: skills/references/postgresql-jsonb-patterns
+    target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -3044,7 +3044,7 @@ challenges:
   - id: gen-json-10
     task: I need a SQL/JSON path filter that finds documents where any item has price > 100 and category = 'electronics'. Which operator should I use?
     difficulty: hard
-    target_skill: skills/references/postgresql-jsonb-patterns
+    target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -3058,7 +3058,7 @@ challenges:
   - id: gen-json-11
     task: Our payload stores numeric IDs inside JSONB arrays, and we need to test whether an array contains all requested IDs. What's the cleanest operator pattern?
     difficulty: hard
-    target_skill: skills/references/postgresql-jsonb-patterns
+    target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -3074,7 +3074,7 @@ challenges:
   - id: gen-conn-03
     task: I see lots of sessions in 'idle in transaction' for 45 minutes. Why is that worse than plain idle connections?
     difficulty: easy
-    target_skill: skills/references/postgresql-connection-management
+    target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -3088,7 +3088,7 @@ challenges:
   - id: gen-conn-04
     task: What's the server-side timeout that automatically closes sessions left idle in transaction too long?
     difficulty: easy
-    target_skill: skills/references/postgresql-connection-management
+    target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -3102,7 +3102,7 @@ challenges:
   - id: gen-conn-05
     task: How much memory does max_connections really cost? Our team wants to raise it from 300 to 1500 instead of using a pooler.
     difficulty: easy
-    target_skill: skills/references/postgresql-connection-management
+    target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -3116,7 +3116,7 @@ challenges:
   - id: gen-conn-06
     task: After a restart, every app instance reconnects at once and the database thrashes for a minute. How do people usually dampen that?
     difficulty: medium
-    target_skill: skills/references/postgresql-connection-management
+    target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -3130,7 +3130,7 @@ challenges:
   - id: gen-conn-07
     task: When should I use pg_cancel_backend versus pg_terminate_backend while cleaning up bad sessions?
     difficulty: medium
-    target_skill: skills/references/postgresql-connection-management
+    target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -3144,7 +3144,7 @@ challenges:
   - id: gen-conn-08
     task: We have 40 app pods and each pod's ORM pool is set to 20. How should I think about total server demand before touching max_connections?
     difficulty: medium
-    target_skill: skills/references/postgresql-connection-management
+    target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -3158,7 +3158,7 @@ challenges:
   - id: gen-conn-09
     task: How do I spot blocked sessions and the blocker from pg_stat_activity when the app says the database is hung?
     difficulty: medium
-    target_skill: skills/references/postgresql-connection-management
+    target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -3172,7 +3172,7 @@ challenges:
   - id: gen-conn-10
     task: My app uses PgBouncer transaction mode and sometimes gets prepared statement errors. Is that a database connection-management issue or just an ORM bug?
     difficulty: hard
-    target_skill: skills/references/postgresql-connection-management
+    target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -3186,7 +3186,7 @@ challenges:
   - id: gen-conn-11
     task: What timeout closes totally idle sessions that sit around forever but are not in a transaction?
     difficulty: hard
-    target_skill: skills/references/postgresql-connection-management
+    target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
     platform_scope: generic
     expected_activation: true
     expected_patterns:
@@ -3202,7 +3202,7 @@ challenges:
   - id: az-ext-03
     task: I enabled pg_cron in azure.extensions, but CREATE EXTENSION pg_cron still errors until after a restart. Is that expected?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3218,7 +3218,7 @@ challenges:
   - id: az-ext-04
     task: How do I check whether an extension is actually supported on Azure Flexible Server before I script CREATE EXTENSION for it?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3232,7 +3232,7 @@ challenges:
   - id: az-ext-05
     task: Do I need to CREATE EXTENSION postgis separately in every database on the same Azure server, or is it a server-wide install?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3246,7 +3246,7 @@ challenges:
   - id: az-ext-06
     task: What's the safe pattern to update azure.extensions when I already have postgis and vector enabled and now need pg_cron too?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3260,7 +3260,7 @@ challenges:
   - id: az-ext-07
     task: After a major version upgrade, how do I check whether installed extensions need ALTER EXTENSION UPDATE?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3274,7 +3274,7 @@ challenges:
   - id: az-ext-08
     task: Can I install pg_stat_statements on Azure and start using it immediately, or are there extra server-parameter steps?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3288,7 +3288,7 @@ challenges:
   - id: az-ext-09
     task: If I DROP EXTENSION postgis on Azure, what happens to dependent spatial columns and functions in that database?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3302,7 +3302,7 @@ challenges:
   - id: az-ext-10
     task: We want extensions in a dedicated schema instead of public. Is CREATE EXTENSION ... WITH SCHEMA valid on Azure PostgreSQL?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3316,7 +3316,7 @@ challenges:
   - id: az-ext-11
     task: I'm trying to CREATE EXTENSION for a niche community package that's not on the Azure support list. Can I apt-get it onto Flexible Server myself?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-extension-lifecycle
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3334,7 +3334,7 @@ challenges:
   - id: az-upg-03
     task: What should I check before a major version upgrade if my server uses postgis and pg_partman?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3348,7 +3348,7 @@ challenges:
   - id: az-upg-04
     task: Can I jump from PostgreSQL 14 straight to 17 on Azure Flexible Server, or do I have to stop at each major release?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3362,7 +3362,7 @@ challenges:
   - id: az-upg-05
     task: Does the maintenance window control when a major version upgrade runs, or only routine patches?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3376,7 +3376,7 @@ challenges:
   - id: az-upg-06
     task: What's the Azure CLI dry-run command to validate a production upgrade before the real cutover?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3390,7 +3390,7 @@ challenges:
   - id: az-upg-07
     task: What is the single most important database task immediately after a successful major version upgrade on Azure PostgreSQL?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3404,7 +3404,7 @@ challenges:
   - id: az-upg-08
     task: If my primary has read replicas, do they upgrade automatically when I upgrade the primary server?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3418,7 +3418,7 @@ challenges:
   - id: az-upg-09
     task: How much free disk space should I leave before kicking off a major version upgrade?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3432,7 +3432,7 @@ challenges:
   - id: az-upg-10
     task: Downtime for in-place MVU is too risky for us. Is a replica-based blue-green cutover a valid Azure pattern?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3446,7 +3446,7 @@ challenges:
   - id: az-upg-11
     task: How do I raise work_mem on my existing Azure PostgreSQL server to speed up a big sort?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-upgrades-maintenance
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
     platform_scope: azure-postgresql
     expected_activation: false
     expected_patterns: []
@@ -3463,7 +3463,7 @@ challenges:
   - id: az-prov-02
     task: I'm starting greenfield. Should I decide public versus private networking before I write Terraform, or can I flip that later if security requirements change?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-provisioning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-provisioning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3477,7 +3477,7 @@ challenges:
   - id: az-prov-03
     task: Show me the Bicep skeleton for a Flexible Server in General Purpose with zone-redundant HA and 256GB storage.
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-provisioning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-provisioning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3491,7 +3491,7 @@ challenges:
   - id: az-prov-04
     task: We picked 128GB storage, but the workload grows unpredictably. Should I enable auto-grow at creation time?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-provisioning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-provisioning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3505,7 +3505,7 @@ challenges:
   - id: az-prov-05
     task: How do SKU names differ between az CLI and Terraform for the same General Purpose machine size?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-provisioning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-provisioning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3519,7 +3519,7 @@ challenges:
   - id: az-prov-06
     task: I need a read replica in another region for analytics. Is that a provisioning workflow or something I bolt on much later?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-provisioning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-provisioning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3533,7 +3533,7 @@ challenges:
   - id: az-prov-07
     task: We're cost-sensitive. Is Burstable a safe starting point if we expect to move to General Purpose once traffic grows?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-provisioning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-provisioning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3547,7 +3547,7 @@ challenges:
   - id: az-prov-08
     task: What should I baseline right after az postgres flexible-server create finishes so the server is production-ready?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-provisioning
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-provisioning
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3563,7 +3563,7 @@ challenges:
   - id: az-vec-03
     task: I forgot to allowlist pg_diskann and now CREATE INDEX USING diskann fails. What are the exact Azure prerequisites before the index DDL works?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-vector-diskann
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3577,7 +3577,7 @@ challenges:
   - id: az-vec-04
     task: My embeddings are 1536 dimensions but I accidentally declared the column as vector(768). Why does index creation fail later?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-vector-diskann
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3591,7 +3591,7 @@ challenges:
   - id: az-vec-05
     task: For a 300k-row dataset, should I still reach for DiskANN or is HNSW the better default?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-vector-diskann
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3605,7 +3605,7 @@ challenges:
   - id: az-vec-06
     task: I need cosine similarity, but my DDL used vector_l2_ops and my query orders by <=>. Could that mismatch keep the index from being used?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-vector-diskann
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3619,7 +3619,7 @@ challenges:
   - id: az-vec-07
     task: Is CREATE INDEX CONCURRENTLY a good idea when migrating from HNSW to DiskANN on a live Azure PostgreSQL workload?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-vector-diskann
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3633,7 +3633,7 @@ challenges:
   - id: az-vec-08
     task: My filtered query is WHERE tenant_id = 7 ORDER BY embedding <=> $1 LIMIT 20. What DiskANN knobs matter most for recall versus latency?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-vector-diskann
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3647,7 +3647,7 @@ challenges:
   - id: az-vec-09
     task: How do I install pg_diskann on my self-hosted PostgreSQL 16 cluster running in Kubernetes?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-vector-diskann
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
     platform_scope: azure-postgresql
     expected_activation: false
     expected_patterns: []
@@ -3664,7 +3664,7 @@ challenges:
   - id: az-net-02
     task: Should I use sslmode=require or verify-full for production Azure PostgreSQL clients, and what extra file do I need for verify-full?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-networking-ssl
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3678,7 +3678,7 @@ challenges:
   - id: az-net-03
     task: I switched to Private Endpoint and now nslookup still returns a public IP from one VNet. What DNS object is probably missing?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-networking-ssl
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3692,7 +3692,7 @@ challenges:
   - id: az-net-04
     task: My public-access server says 'no pg_hba.conf entry for host'. On Azure, what does that usually really mean?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-networking-ssl
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3708,7 +3708,7 @@ challenges:
   - id: az-net-05
     task: A security review said 'Allow Azure services' is fine because it only opens my own subscription. Is that true?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-networking-ssl
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3722,7 +3722,7 @@ challenges:
   - id: az-net-06
     task: Can I convert a public-access Flexible Server into delegated-subnet/VNet mode later with az postgres flexible-server update?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-networking-ssl
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3736,7 +3736,7 @@ challenges:
   - id: az-net-07
     task: Our Windows client still trusts BaltimoreCyberTrustRoot.crt.pem from an old setup. Is that still the right CA for Azure PostgreSQL?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-networking-ssl
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3752,7 +3752,7 @@ challenges:
   - id: az-ai-01
     task: I keep mixing up azure_ai and azure_openai. Which schema actually contains the SQL functions that call Azure OpenAI?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-azure-ai
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-azure-ai
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3766,7 +3766,7 @@ challenges:
   - id: az-ai-02
     task: The docs say to pass a deployment name, but my team keeps supplying 'gpt-4o' directly in SQL. Why does that fail?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-azure-ai
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-azure-ai
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3780,7 +3780,7 @@ challenges:
   - id: az-ai-03
     task: How should I configure the endpoint string for azure_ai.set_setting? Do I include /openai/ or a trailing slash?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-azure-ai
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-azure-ai
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3794,7 +3794,7 @@ challenges:
   - id: az-ai-04
     task: I want to classify support tickets inside SQL and keep the output deterministic. Is there a model parameter I should pin for that?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-azure-ai
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-azure-ai
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3808,7 +3808,7 @@ challenges:
   - id: az-ai-05
     task: We're seeing intermittent 429s when running AI enrichment in batches. What's a safe SQL-side batching pattern?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-azure-ai
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-azure-ai
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3822,7 +3822,7 @@ challenges:
   - id: az-ai-06
     task: Can azure_openai.create process an array of 100 texts in one function call, or is it one row at a time?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-azure-ai
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-azure-ai
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3838,7 +3838,7 @@ challenges:
   - id: az-genai-01
     task: What's a good chunk size strategy before storing embeddings for long PDF pages in Azure PostgreSQL? We care about retrieval quality more than raw throughput.
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-genai-patterns
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3852,7 +3852,7 @@ challenges:
   - id: az-genai-02
     task: Should I pre-filter by tenant_id before vector ranking in a multi-tenant RAG workload, or rank globally and filter after?
     difficulty: easy
-    target_skill: skills/references/azure-postgresql-genai-patterns
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3866,7 +3866,7 @@ challenges:
   - id: az-genai-03
     task: 'We want hybrid retrieval over docs: vector similarity plus keyword matches. How should I combine the two score streams?'
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-genai-patterns
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3880,7 +3880,7 @@ challenges:
   - id: az-genai-04
     task: My ingestion job needs embeddings for 2 million rows. Since create_embeddings works on one text per call, what's the usual SQL batching loop?
     difficulty: medium
-    target_skill: skills/references/azure-postgresql-genai-patterns
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3894,7 +3894,7 @@ challenges:
   - id: az-genai-05
     task: After retrieval, I want to generate the final answer in SQL using the top chunks as context. What's the end-to-end pattern inside Azure PostgreSQL?
     difficulty: hard
-    target_skill: skills/references/azure-postgresql-genai-patterns
+    target_skill: skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
@@ -3910,7 +3910,7 @@ challenges:
   - id: root-06
     task: I'm on PostgreSQL 14 and want to use MERGE for upserts. Before you write SQL, what should you verify?
     difficulty: easy
-    target_skill: skills/references
+    target_skill: skills/postgresql-best-practices/references
     platform_scope: any
     expected_activation: true
     expected_patterns:
@@ -3924,7 +3924,7 @@ challenges:
   - id: root-07
     task: I need to isolate tenants in the database and also handle pooled connections safely. Which PostgreSQL sub-skills are most relevant?
     difficulty: easy
-    target_skill: skills/references
+    target_skill: skills/postgresql-best-practices/references
     platform_scope: any
     expected_activation: true
     expected_patterns:
@@ -3938,7 +3938,7 @@ challenges:
   - id: root-08
     task: I'm on Azure Flexible Server and a teammate suggested ALTER SYSTEM to change a parameter. What's the first managed-service reality check you would give?
     difficulty: medium
-    target_skill: skills/references
+    target_skill: skills/postgresql-best-practices/references
     platform_scope: any
     expected_activation: true
     expected_patterns:
@@ -3952,7 +3952,7 @@ challenges:
   - id: root-09
     task: My app says 'could not connect' to Azure PostgreSQL. Before guessing, what high-level buckets should I check first?
     difficulty: medium
-    target_skill: skills/references
+    target_skill: skills/postgresql-best-practices/references
     platform_scope: any
     expected_activation: true
     expected_patterns:
@@ -3966,7 +3966,7 @@ challenges:
   - id: root-10
     task: Write me a docker-compose.yml for a local Postgres + Redis dev stack.
     difficulty: hard
-    target_skill: skills/references
+    target_skill: skills/postgresql-best-practices/references
     platform_scope: any
     expected_activation: false
     expected_patterns: []

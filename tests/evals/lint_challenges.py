@@ -2,7 +2,7 @@
 """Lint challenges.yaml for schema correctness.
 
 Checks:
-- Every target_skill resolves to a real file under skills/references/
+- Every target_skill resolves to a real file under skills/postgresql-best-practices/references/
 - No duplicate challenge IDs
 - Valid difficulty enum values
 - Valid platform_scope values
@@ -31,8 +31,8 @@ def resolve_skill_path(target_skill: str) -> bool:
     skill_md = SKILLS_ROOT / target_skill / "SKILL.md"
     if skill_md.exists():
         return True
-    # Also allow the bare "skills/references" catch-all
-    if target_skill in ("skills/references", "skills"):
+    # Also allow the bare "skills/postgresql-best-practices/references" catch-all
+    if target_skill in ("skills/postgresql-best-practices/references", "skills/postgresql-best-practices", "skills/references", "skills"):
         return True
     return False
 
