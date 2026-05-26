@@ -109,18 +109,19 @@ These references are gated by `pgsql_get_server_capabilities` → `isAzure: true
 
 ## Eval-tested quality
 
-Every skill is continuously evaluated against 300 test challenges across generic PostgreSQL and Azure-specific scenarios. CI runs the eval pipeline on every push to main.
+Every skill is continuously evaluated against 300 test challenges across generic PostgreSQL and Azure-specific scenarios. CI runs on manual trigger (`workflow_dispatch`).
 
 | Metric | What it measures | Latest |
 |--------|-----------------|--------|
-| **F1 Score** | Overall activation accuracy | 94.4% |
-| **Precision** | Skills fire only when relevant | 92.9% |
-| **Recall** | Skills fire when needed | 95.8% |
-| **Win Rate (Generic)** | Skills beat no-skill baseline (paired judge) | 55.2% wins / 31.2% losses |
-| **Win Rate (Weighted)** | Hard=3x, Medium=2x, Easy=1x | 55.4% wins / 33.9% losses |
-| **Correctness** | Factual accuracy (test vs control) | 99.7% vs 97.6% |
-| **Hallucination Rate** | Facts fabricated | 5/300 (1.7%) |
-| **Wilcoxon p-value** | Statistical significance | p=0.0001 |
+| **F1 Score** | Overall activation accuracy | 92.6% |
+| **Precision** | Skills fire only when relevant | 93.1% |
+| **Recall** | Skills fire when needed | 92.1% |
+| **Win Rate (Overall)** | Skills beat no-skill baseline (paired judge) | 60.4% wins / 33.6% losses |
+| **Win Rate (Generic)** | Generic PostgreSQL challenges | 61.5% wins / 29.1% losses |
+| **Win Rate (Azure)** | Azure-specific challenges | 60.4% wins / 37.1% losses |
+| **Correctness** | Factual accuracy (test vs control) | 98.8% vs 91.7% |
+| **Hallucination Rate** | Managed-service confusion detected | 14/300 (4.7%) |
+| **Wilcoxon p-value** | Statistical significance | p=0.0 |
 
 ```bash
 # Run evals (requires Azure OpenAI key)
