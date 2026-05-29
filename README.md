@@ -3,7 +3,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Skills: 22](https://img.shields.io/badge/Skills-22-green.svg)](#skill-catalog)
 [![Platforms: 4](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex_|_Cursor-purple.svg)](#get-started-in-60-seconds)
-[![CI](https://github.com/aditivgupta/postgresql-agent-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/aditivgupta/postgresql-agent-skills/actions)
 
 **Ship production PostgreSQL faster.** These 22 expert-curated agent skills give your AI coding assistant deep PostgreSQL and Azure Database for PostgreSQL knowledge it doesn't have out of the box, so you get safe, version-aware, production-ready answers instead of Stack Overflow snippets.
 
