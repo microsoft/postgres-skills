@@ -40,7 +40,7 @@ User question → SKILL.md routing table → specific reference file (1500-2500 
 Clone this repo and your AI coding agent discovers the plugin automatically via the root manifest:
 
 ```bash
-git clone https://github.com/aditivgupta/postgresql-agent-skills.git
+git clone https://github.com/microsoft/postgresql-agent-skills.git
 ```
 
 All four supported platforms auto-detect from root-level manifests:
