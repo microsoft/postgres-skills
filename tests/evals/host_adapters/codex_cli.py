@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT license.
+
 """Codex CLI routing simulation."""
 
 from __future__ import annotations

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 #!/usr/bin/env node
 // test_mcp.js — Automated MCP protocol test for pgsql-tools MCP server.
 // Sends JSON-RPC messages over stdio and validates responses.

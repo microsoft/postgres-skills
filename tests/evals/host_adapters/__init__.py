@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT license.
+
 """
 Host adapters simulate how different AI coding agents load and route skills.
 Each adapter implements the same interface but with host-specific loading logic.

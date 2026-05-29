@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT license.
+
 """
 Pattern Matchers for PostgreSQL Agent Skills Evals
 Validates skill output against expected patterns and anti-patterns.

@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT license.
+
 #!/usr/bin/env python3
 """Extract SQL blocks from SKILL.md files and validate SQL parseability."""
 

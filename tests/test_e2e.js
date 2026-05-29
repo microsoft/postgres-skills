@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 #!/usr/bin/env node
 // test_e2e.js — End-to-end MCP integration test.
 // Starts the MCP server, connects to a real PostgreSQL database,

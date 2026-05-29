@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 #!/usr/bin/env node
 // test_ai_app.js — AI Application Dogfood Test
 //

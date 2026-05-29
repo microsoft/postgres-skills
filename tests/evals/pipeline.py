@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT license.
+
 """
 PostgreSQL Agent Skills Evaluation Pipeline
 Measures skill quality via control vs test group comparison.

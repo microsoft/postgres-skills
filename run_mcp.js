@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 #!/usr/bin/env node
 // run_mcp.js — Downloads pgsql-tools CLI from GitHub Releases and runs `pgsql-tools mcp run`.
 // Used by MCP server configs so AI coding agents can launch the PostgreSQL MCP server

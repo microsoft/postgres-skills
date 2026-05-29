@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT license.
+
 """
 LLM-as-Judge for PostgreSQL Agent Skills Evals
 Semantic evaluation of agent outputs using structured prompts.

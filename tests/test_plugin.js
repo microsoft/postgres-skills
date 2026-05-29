@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 #!/usr/bin/env node
 // test_plugin.js — Plugin integration test.
 // Simulates how an AI platform uses the plugin: skill routing + MCP tools together.
