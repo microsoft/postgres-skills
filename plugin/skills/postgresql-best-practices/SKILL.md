@@ -1,5 +1,5 @@
 ---
-name: postgresql-agent-skills
+name: postgresql-best-practices
 description: "Expert PostgreSQL skills with intelligent routing. Covers both generic PostgreSQL and Azure Database for PostgreSQL."
 tags: [postgresql, azure, database, skills, routing]
 activation:

@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Skills: 22](https://img.shields.io/badge/Skills-22-green.svg)](#skill-catalog)
-[![Platforms: 4](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex_|_Cursor-purple.svg)](#get-started-in-60-seconds)
+[![Platforms: 3](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex-purple.svg)](#get-started-in-60-seconds)
 
 **Ship production PostgreSQL faster.** These 22 expert-curated agent skills give your AI coding assistant deep PostgreSQL and Azure Database for PostgreSQL knowledge it doesn't have out of the box, so you get safe, version-aware, production-ready answers instead of Stack Overflow snippets.
 
@@ -23,7 +23,7 @@ Skills activate automatically based on what you're working on. No manual switchi
 
 ## Architecture: Single plugin with intelligent routing
 
-This repo IS the plugin. A lightweight routing table (`skills/postgresql-best-practices/SKILL.md`, ~2000 tokens) loads first and directs to the relevant reference file based on your question and connection context.
+This repo IS the plugin. A lightweight routing table (`plugin/skills/postgresql-best-practices/SKILL.md`, ~2000 tokens) loads first and directs to the relevant reference file based on your question and connection context.
 
 ```
 User question → SKILL.md routing table → specific reference file (1500-2500 tokens)
@@ -35,24 +35,32 @@ User question → SKILL.md routing table → specific reference file (1500-2500 
 - **Azure PostgreSQL?** Routing table sends to `azure-postgresql-*` references (gated by connection check)
 - **Token efficient:** Only the routing table + one reference file loads per interaction (~4000 tokens max)
 
-## Get started in 60 seconds
+## Get started in 30 seconds
 
-Clone this repo and your AI coding agent discovers the plugin automatically via the root manifest:
+Installation differs by host. Each host registers the marketplace, then installs the plugin.
+
+### GitHub Copilot CLI
 
 ```bash
-git clone https://github.com/microsoft/postgresql-agent-skills.git
+copilot plugin marketplace add microsoft/postgresql-agent-skills
+copilot plugin install postgresql-agent-skills@postgresql-agent-skills
 ```
 
-All four supported platforms auto-detect from root-level manifests:
+### Claude Code
 
-| Platform | Manifest | Setup |
-|----------|----------|-------|
-| **GitHub Copilot** | `.skills.json` | Clone repo, Copilot auto-discovers |
-| **Claude Code** | `.skills.json` | Clone repo, Claude auto-discovers |
-| **Codex CLI** | `.skills.json` | Clone repo, Codex auto-discovers |
-| **Cursor** | `.skills.json` | Clone repo, add as workspace skill |
+```bash
+claude plugin marketplace add microsoft/postgresql-agent-skills
+claude plugin install postgresql-agent-skills@postgresql-agent-skills
+```
 
-That's it. Start asking your agent PostgreSQL questions and the right skill activates automatically.
+### Codex CLI
+
+```bash
+codex plugin marketplace add microsoft/postgresql-agent-skills
+codex plugin install postgresql-agent-skills@postgresql-agent-skills
+```
+
+That's it. Start your AI agent, ask PostgreSQL questions and the right skill activates automatically.
 
 ## Skill Catalog
 
@@ -121,51 +129,6 @@ Every skill is continuously evaluated against 300 test challenges across generic
 | **Correctness** | Factual accuracy (test vs control) | 98.8% vs 91.7% |
 | **Hallucination Rate** | Managed-service confusion detected | 14/300 (4.7%) |
 | **Wilcoxon p-value** | Statistical significance | p=0.0 |
-
-```bash
-# Run evals (requires Azure OpenAI key)
-cd tests/evals
-python pipeline.py --provider azure --model gpt-5.4 --concurrency 3
-
-# Run generic-only subset
-python pipeline.py --provider azure --model gpt-5.4 --concurrency 3 --challenges challenges/generic_only.yaml
-
-# Dry run (no API calls, validates structure)
-python pipeline.py --dry-run
-```
-
-## Repository layout
-
-```
-postgresql-agent-skills/
-├── .skills.json                         # Root manifest (platform discovery)
-├── skills/
-│   ├── SKILL.md                         # Routing table + principles (~2000 tokens)
-│   └── references/                      # 22 detailed reference files
-│       ├── postgresql-vector-search.md
-│       ├── postgresql-genai-rag.md
-│       ├── azure-postgresql-vector-diskann.md
-│       ├── azure-postgresql-genai-patterns.md
-│       └── ...                          # 18 more references
-├── tests/
-│   ├── checks/                          # CI checks (routing precision, size, security)
-│   ├── evals/                           # Eval pipeline (300 challenges, LLM-as-judge)
-│   │   ├── pipeline.py                  # Main eval orchestrator
-│   │   ├── challenges/challenges.yaml   # 300 test challenges
-│   │   └── results/latest.json          # Auto-committed eval results
-│   └── test_ai_app.js                   # 90-check dogfood test
-├── .github/workflows/ci.yml             # 16-job CI pipeline
-├── run_mcp.js                           # MCP server entry point
-└── README.md
-```
-
-## How routing works
-
-1. Agent loads `skills/postgresql-best-practices/SKILL.md` (lightweight routing table)
-2. Routing table matches user's question to a reference file via keyword triggers
-3. Azure references are gated: `pgsql_get_server_capabilities` must confirm `isAzure: true`
-4. Agent loads the specific reference file and combines it with its own knowledge
-5. Reference provides Azure-specific constraints, decision guides, and anti-hallucination guardrails
 
 ## Contributing
 

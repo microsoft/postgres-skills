@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-#!/usr/bin/env node
 // test_ai_app.js — AI Application Dogfood Test
 //
 // Simulates a developer using the PostgreSQL Agent Skills plugin to build
@@ -70,7 +69,7 @@ const SCHEMA = `test_rag_app_${new Date().toISOString().slice(0, 10).replace(/-/
 // Skill routing engine (single-plugin model with reference routing)
 // ---------------------------------------------------------------------------
 function loadSkillsManifest() {
-  return JSON.parse(fs.readFileSync(join(ROOT, ".skills.json"), "utf8")).skills;
+  return JSON.parse(fs.readFileSync(join(__dirname, ".skills.json"), "utf8")).skills;
 }
 
 // Map legacy skill IDs (used in contracts) to reference file paths

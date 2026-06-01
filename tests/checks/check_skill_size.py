@@ -34,7 +34,7 @@ def main():
     root = Path(os.environ.get("REPO_ROOT", "."))
     skill_files = list(root.rglob("SKILL.md"))
     # Also include reference files
-    refs_dir = root / "skills" / "references"
+    refs_dir = root / "plugin" / "skills" / "postgresql-best-practices" / "references"
     if refs_dir.exists():
         skill_files.extend(refs_dir.glob("*.md"))
     print(f"Checking {len(skill_files)} skill/reference files for size limits...")

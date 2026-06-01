@@ -13,7 +13,7 @@ challenges:
   - btree|B-tree
   id: gen-idx-01
   platform_scope: generic
-  target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
+  target_skill: plugin/skills/postgresql-best-practices/references/postgresql-advanced-indexing
   task: My query on users table filters by email and sorts by created_at. It's doing
     a sequential scan on 10M rows. Help me add the right index.
 - correctness_checks:
@@ -28,7 +28,7 @@ challenges:
   - jsonb_path_ops|jsonb_ops
   id: gen-idx-02
   platform_scope: generic
-  target_skill: skills/postgresql-best-practices/references/postgresql-advanced-indexing
+  target_skill: plugin/skills/postgresql-best-practices/references/postgresql-advanced-indexing
   task: I need to search a JSONB column for documents containing a specific nested
     key. The table has 5M rows.
 - correctness_checks:
@@ -45,7 +45,7 @@ challenges:
   - ANALYZE|analyze
   id: gen-perf-01
   platform_scope: generic
-  target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
+  target_skill: plugin/skills/postgresql-best-practices/references/postgresql-query-performance
   task: 'My SELECT query takes 30 seconds. Here''s the query: SELECT * FROM orders
     JOIN customers ON orders.customer_id = customers.id WHERE orders.total > 1000
     ORDER BY orders.created_at DESC LIMIT 100'
@@ -60,7 +60,7 @@ challenges:
   notes: 'Agent must distinguish missing key from null value. Common failure: suggesting
     ->> IS NULL which matches BOTH cases.'
   platform_scope: generic
-  target_skill: skills/postgresql-best-practices/references/postgresql-jsonb-patterns
+  target_skill: plugin/skills/postgresql-best-practices/references/postgresql-jsonb-patterns
   task: I need to find all rows where the JSONB column 'metadata' has a key 'deleted_at'
     that is explicitly null, but NOT rows where the key is missing entirely. How do
     I write this WHERE clause?
@@ -72,7 +72,7 @@ challenges:
   - WITH CHECK
   id: gen-new-03
   platform_scope: generic
-  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  target_skill: plugin/skills/postgresql-best-practices/references/postgresql-row-level-security
   task: I set up RLS with CREATE POLICY tenant_policy ON orders USING (tenant_id =
     current_setting('app.tenant')). Users can SELECT their data but INSERT is being
     denied. What am I missing?
@@ -89,7 +89,7 @@ challenges:
   - tsquery|phrase
   id: gen-fts-04
   platform_scope: generic
-  target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
+  target_skill: plugin/skills/postgresql-best-practices/references/postgresql-full-text-search
   task: I need exact phrase search for an issue tracker. Searching for "disk full"
     should match that phrase, not rows where disk and full are far apart.
 - correctness_checks:
@@ -104,7 +104,7 @@ challenges:
   - normalization|rank
   id: gen-fts-11
   platform_scope: generic
-  target_skill: skills/postgresql-best-practices/references/postgresql-full-text-search
+  target_skill: plugin/skills/postgresql-best-practices/references/postgresql-full-text-search
   task: Our legal search should prioritize shorter documents that match many terms,
     not giant PDFs that happen to contain the words once. How do I tune ranking normalization?
 - correctness_checks:
@@ -119,7 +119,7 @@ challenges:
   - created_at >=|created_at <
   id: gen-perf-04
   platform_scope: generic
-  target_skill: skills/postgresql-best-practices/references/postgresql-query-performance
+  target_skill: plugin/skills/postgresql-best-practices/references/postgresql-query-performance
   task: My query filters on DATE(created_at) = current_date and ignores the index
     on created_at. Why is that happening?
 - correctness_checks:
@@ -133,7 +133,7 @@ challenges:
   - tenant_id|skew
   id: gen-part-06
   platform_scope: generic
-  target_skill: skills/postgresql-best-practices/references/postgresql-table-partitioning
+  target_skill: plugin/skills/postgresql-best-practices/references/postgresql-table-partitioning
   task: I partitioned by tenant_id but now I need to decide between LIST and HASH
     partitioning for 600 tenants with uneven traffic. What's the tradeoff?
 - correctness_checks:
@@ -148,7 +148,7 @@ challenges:
   - policy|parent
   id: gen-rls-09
   platform_scope: generic
-  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  target_skill: plugin/skills/postgresql-best-practices/references/postgresql-row-level-security
   task: If I put RLS on a partitioned table, do the policies live on the parent only
     or do I need to duplicate them everywhere?
 - correctness_checks:
@@ -163,7 +163,7 @@ challenges:
   - RLS|policy
   id: gen-rls-11
   platform_scope: generic
-  target_skill: skills/postgresql-best-practices/references/postgresql-row-level-security
+  target_skill: plugin/skills/postgresql-best-practices/references/postgresql-row-level-security
   task: Users belong to two tenant groups and now they can see more rows than expected
     through inherited role grants. How do I debug RLS with role membership in mind?
 - correctness_checks:
@@ -178,7 +178,7 @@ challenges:
   - failover|slot
   id: gen-repl-11
   platform_scope: generic
-  target_skill: skills/postgresql-best-practices/references/postgresql-replication
+  target_skill: plugin/skills/postgresql-best-practices/references/postgresql-replication
   task: We failed over a primary, and now the logical replication slot story is messy.
     Are failover-safe logical slots automatic?
 - correctness_checks:
@@ -194,6 +194,6 @@ challenges:
   - PgBouncer|transaction mode
   id: gen-conn-10
   platform_scope: generic
-  target_skill: skills/postgresql-best-practices/references/postgresql-connection-management
+  target_skill: plugin/skills/postgresql-best-practices/references/postgresql-connection-management
   task: My app uses PgBouncer transaction mode and sometimes gets prepared statement
     errors. Is that a database connection-management issue or just an ORM bug?

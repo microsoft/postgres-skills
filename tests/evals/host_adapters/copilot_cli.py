@@ -28,7 +28,7 @@ class CopilotCLIAdapter(HostAdapter):
         return "copilot-cli"
 
     def route(self, query: str, skills_root: Path) -> RoutingResult:
-        manifest_path = self.skills_json_path or (skills_root / ".skills.json")
+        manifest_path = self.skills_json_path or (skills_root / "tests" / ".skills.json")
         matched_rules = collect_matching_rules(query, parse_skills_manifest(manifest_path))
         activated_skills = unique_paths(rule.skill_path for rule in matched_rules)
         loaded_content = build_loaded_content(skills_root, activated_skills)

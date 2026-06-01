@@ -103,7 +103,7 @@ def main():
 
     # Find all skill/reference markdown files
     skill_files = list(root.rglob("SKILL.md"))
-    skill_files.extend(list((root / "skills" / "references").glob("*.md")) if (root / "skills" / "references").exists() else [])
+    skill_files.extend(list((root / "plugin" / "skills" / "postgresql-best-practices" / "references").glob("*.md")) if (root / "plugin" / "skills" / "postgresql-best-practices" / "references").exists() else [])
     print(f"Scanning {len(skill_files)} skill/reference files...")
 
     all_blocks = []

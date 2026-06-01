@@ -69,7 +69,7 @@ def scan_unsafe_sql(root: Path) -> list[tuple[str, int, str]]:
     issues = []
 
     skill_files = list(root.rglob("SKILL.md"))
-    refs_dir = root / "skills" / "references"
+    refs_dir = root / "plugin" / "skills" / "postgresql-best-practices" / "references"
     if refs_dir.exists():
         skill_files.extend(refs_dir.glob("*.md"))
 
