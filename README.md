@@ -1,16 +1,16 @@
 # PostgreSQL Agent Skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Skills: 22](https://img.shields.io/badge/Skills-22-green.svg)](#skill-catalog)
+[![References: 22](https://img.shields.io/badge/References-22-green.svg)](#reference-catalog)
 [![Platforms: 3](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex-purple.svg)](#get-started-in-60-seconds)
 
-**Ship production PostgreSQL faster.** These 22 expert-curated agent skills give your AI coding assistant deep PostgreSQL and Azure Database for PostgreSQL knowledge it doesn't have out of the box, so you get safe, version-aware, production-ready answers instead of Stack Overflow snippets.
+**Ship production PostgreSQL faster.** This skill's 22 expert-curated references give your AI coding assistant deep PostgreSQL and Azure Database for PostgreSQL knowledge it doesn't have out of the box, so you get safe, version-aware, production-ready answers instead of Stack Overflow snippets.
 
 ## What you get
 
-Your AI agent already knows basic PostgreSQL syntax. These skills fill in the hard parts:
+Your AI agent already knows basic PostgreSQL syntax. These references fill in the hard parts:
 
-| Without skills | With skills |
+| Without the skill | With the skill |
 |----------------|-------------|
 | Generic `CREATE INDEX` advice | Knows when to use GIN vs GiST vs BRIN and warns about partial index invalidation |
 | `ALTER SYSTEM` suggestions that break managed databases | Blocks unsafe commands on Azure, recommends the correct server parameter workflow |
@@ -19,7 +19,7 @@ Your AI agent already knows basic PostgreSQL syntax. These skills fill in the ha
 | Copy-paste `pgvector` examples | Tunes DiskANN parameters for your data scale and knows streaming DiskANN (Preview) |
 | One-size-fits-all replication setup | Version-aware logical replication with PG15+ row filters and conflict resolution |
 
-Skills activate automatically based on what you're working on. No manual switching, no configuration.
+The skill activates automatically and routes to the right reference based on what you're working on. No manual switching, no configuration.
 
 ## Architecture: Single plugin with intelligent routing
 
@@ -62,11 +62,11 @@ codex plugin install postgresql-agent-skills@postgresql-agent-skills
 
 That's it. Start your AI agent, ask PostgreSQL questions and the right skill activates automatically.
 
-## Skill Catalog
+## Reference Catalog
 
 ### PostgreSQL Foundational (11 references)
 
-These skills work with any PostgreSQL deployment — self-hosted, RDS, Cloud SQL, Azure, or local.
+These references work with any PostgreSQL deployment — self-hosted, RDS, Cloud SQL, Azure, or local.
 
 | Reference | Helps you with | What the agent learns that LLMs get wrong |
 |-----------|---------------|------------------------------------------|
@@ -116,14 +116,14 @@ These references are gated by `pgsql_get_server_capabilities` → `isAzure: true
 
 ## Eval-tested quality
 
-Every skill is continuously evaluated against 300 test challenges across generic PostgreSQL and Azure-specific scenarios. CI runs on manual trigger (`workflow_dispatch`).
+The skill is continuously evaluated against 300 test challenges across generic PostgreSQL and Azure-specific scenarios. CI runs on manual trigger (`workflow_dispatch`).
 
 | Metric | What it measures | Latest |
 |--------|-----------------|--------|
 | **F1 Score** | Overall activation accuracy | 92.6% |
-| **Precision** | Skills fire only when relevant | 93.1% |
-| **Recall** | Skills fire when needed | 92.1% |
-| **Win Rate (Overall)** | Skills beat no-skill baseline (paired judge) | 60.4% wins / 33.6% losses |
+| **Precision** | Skill fires only when relevant | 93.1% |
+| **Recall** | Skill fires when needed | 92.1% |
+| **Win Rate (Overall)** | Skill beats no-skill baseline (paired judge) | 60.4% wins / 33.6% losses |
 | **Win Rate (Generic)** | Generic PostgreSQL challenges | 61.5% wins / 29.1% losses |
 | **Win Rate (Azure)** | Azure-specific challenges | 60.4% wins / 37.1% losses |
 | **Correctness** | Factual accuracy (test vs control) | 98.8% vs 91.7% |
@@ -132,7 +132,7 @@ Every skill is continuously evaluated against 300 test challenges across generic
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on adding or improving skills.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on adding or improving the skill and its references.
 
 ## License
 
