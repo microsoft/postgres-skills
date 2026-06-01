@@ -96,13 +96,13 @@ Validate your changes before submitting (run from the repo root):
 
 ```bash
 # Validate skills: token budgets, terminology, links, activation precision
-python3 tests/checks/check_skill_size.py
-python3 tests/checks/check_terminology.py
-python3 tests/checks/check_links.py
-python3 tests/checks/check_activation_precision.py
+python tests/checks/check_skill_size.py
+python tests/checks/check_terminology.py
+python tests/checks/check_links.py
+python tests/checks/check_activation_precision.py
 
 # Routing eval (no API key needed)
-python3 tests/evals/routing_eval.py --host all
+python tests/evals/routing_eval.py --host all
 
 # AI-application dogfood test
 node tests/test_ai_app.js
@@ -114,19 +114,19 @@ Install the plugin from your local checkout to test changes end-to-end before su
 
 ```bash
 # GitHub Copilot CLI
-copilot plugin marketplace remove postgresql-agent-skills --force \
-  && copilot plugin marketplace add "$(pwd)" \
-  && copilot plugin install postgresql-agent-skills@postgresql-agent-skills
+copilot plugin marketplace remove postgresql-agent-skills
+copilot plugin marketplace add "$(pwd)"
+copilot plugin install postgresql-agent-skills@postgresql-agent-skills
 
 # Claude Code CLI
-claude plugin marketplace remove postgresql-agent-skills --force \
-  && claude plugin marketplace add "$(pwd)" \
-  && claude plugin install postgresql-agent-skills@postgresql-agent-skills
+claude plugin marketplace remove postgresql-agent-skills
+claude plugin marketplace add "$(pwd)"
+claude plugin install postgresql-agent-skills@postgresql-agent-skills
 
 # Codex CLI
-codex plugin marketplace remove postgresql-agent-skills --force \
-  && codex plugin marketplace add "$(pwd)" \
-  && codex plugin install postgresql-agent-skills@postgresql-agent-skills
+codex plugin marketplace remove postgresql-agent-skills
+codex plugin marketplace add "$(pwd)"
+codex plugin add postgresql-agent-skills@postgresql-agent-skills
 ```
 
 ### Running the full eval pipeline
