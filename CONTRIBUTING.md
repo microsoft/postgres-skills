@@ -10,6 +10,37 @@ When you submit a pull request, a CLA bot will automatically determine whether y
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
 
+## Repository layout
+
+```
+postgresql-agent-skills/
+├── .github/plugin/marketplace.json     # Canonical marketplace manifest (Copilot)
+├── plugin/                             # Plugin root (MCP launcher + skills)
+│   ├── .mcp.json
+│   ├── run_mcp.js                      # MCP server entry point
+│   └── skills/
+│       ├── postgresql-best-practices/SKILL.md   # Routing table + principles
+│       └── postgresql-best-practices/references/ # 22 detailed reference files
+├── tests/
+│   ├── .skills.json                     # Routing fixture (used by tests + evals only)
+│   ├── checks/                          # CI checks (routing precision, size, security)
+│   ├── evals/                           # Eval pipeline (300 challenges, LLM-as-judge)
+│   │   ├── pipeline.py                  # Main eval orchestrator
+│   │   ├── challenges/challenges.yaml   # 300 test challenges
+│   │   └── results/latest.json          # Auto-committed eval results
+│   └── test_ai_app.js                   # 90-check dogfood test
+├── .github/workflows/ci.yml             # 16-job CI pipeline
+└── README.md
+```
+
+## How routing works
+
+1. Agent loads `plugin/skills/postgresql-best-practices/SKILL.md` (lightweight routing table)
+2. Routing table matches user's question to a reference file via keyword triggers
+3. Azure references are gated: `pgsql_get_server_capabilities` must confirm `isAzure: true`
+4. Agent loads the specific reference file and combines it with its own knowledge
+5. Reference provides Azure-specific constraints, decision guides, and anti-hallucination guardrails
+
 ## Skill Structure
 
 Every skill lives in its own folder with a `SKILL.md` file:
@@ -58,6 +89,22 @@ Run the eval suite before submitting:
 
 ```bash
 npm test
+```
+
+### Running the full eval pipeline
+
+Every skill is continuously evaluated against 300 test challenges across generic PostgreSQL and Azure-specific scenarios. CI runs on manual trigger (`workflow_dispatch`).
+
+```bash
+# Run evals (requires Azure OpenAI key)
+cd tests/evals
+python pipeline.py --provider azure --model gpt-5.4 --concurrency 3
+
+# Run generic-only subset
+python pipeline.py --provider azure --model gpt-5.4 --concurrency 3 --challenges challenges/generic_only.yaml
+
+# Dry run (no API calls, validates structure)
+python pipeline.py --dry-run
 ```
 
 ## Pull Request Process

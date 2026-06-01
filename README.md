@@ -35,23 +35,32 @@ User question → SKILL.md routing table → specific reference file (1500-2500 
 - **Azure PostgreSQL?** Routing table sends to `azure-postgresql-*` references (gated by connection check)
 - **Token efficient:** Only the routing table + one reference file loads per interaction (~4000 tokens max)
 
-## Get started in 60 seconds
+## Get started in 30 seconds
 
-Clone this repo and your AI coding agent discovers the plugin automatically via its marketplace manifest:
+Installation differs by host. Each host registers the marketplace, then installs the plugin.
+
+### GitHub Copilot CLI
 
 ```bash
-git clone https://github.com/microsoft/postgresql-agent-skills.git
+copilot plugin marketplace add microsoft/postgresql-agent-skills
+copilot plugin install postgresql-agent-skills@postgresql-agent-skills
 ```
 
-Each host discovers the plugin from its own marketplace manifest (all symlinked to the canonical `.github/plugin/marketplace.json`):
+### Claude Code
 
-| Platform | Marketplace manifest | Setup |
-|----------|----------------------|-------|
-| **GitHub Copilot** | `.github/plugin/marketplace.json` | Clone repo, Copilot auto-discovers |
-| **Claude Code** | `.claude-plugin/marketplace.json` | Clone repo, Claude auto-discovers |
-| **Codex CLI** | `.agents/plugins/marketplace.json` | Clone repo / `codex plugin marketplace add` |
+```bash
+claude plugin marketplace add microsoft/postgresql-agent-skills
+claude plugin install postgresql-agent-skills@postgresql-agent-skills
+```
 
-That's it. Start asking your agent PostgreSQL questions and the right skill activates automatically.
+### Codex CLI
+
+```bash
+codex plugin marketplace add microsoft/postgresql-agent-skills
+codex plugin install postgresql-agent-skills@postgresql-agent-skills
+```
+
+That's it. Start your AI agent, ask PostgreSQL questions and the right skill activates automatically.
 
 ## Skill Catalog
 
@@ -120,49 +129,6 @@ Every skill is continuously evaluated against 300 test challenges across generic
 | **Correctness** | Factual accuracy (test vs control) | 98.8% vs 91.7% |
 | **Hallucination Rate** | Managed-service confusion detected | 14/300 (4.7%) |
 | **Wilcoxon p-value** | Statistical significance | p=0.0 |
-
-```bash
-# Run evals (requires Azure OpenAI key)
-cd tests/evals
-python pipeline.py --provider azure --model gpt-5.4 --concurrency 3
-
-# Run generic-only subset
-python pipeline.py --provider azure --model gpt-5.4 --concurrency 3 --challenges challenges/generic_only.yaml
-
-# Dry run (no API calls, validates structure)
-python pipeline.py --dry-run
-```
-
-## Repository layout
-
-```
-postgresql-agent-skills/
-├── .github/plugin/marketplace.json     # Canonical marketplace manifest (Copilot)
-├── plugin/                             # Plugin root (MCP launcher + skills)
-│   ├── .mcp.json
-│   ├── run_mcp.js                      # MCP server entry point
-│   └── skills/
-│       ├── postgresql-best-practices/SKILL.md   # Routing table + principles
-│       └── postgresql-best-practices/references/ # 22 detailed reference files
-├── tests/
-│   ├── .skills.json                     # Routing fixture (used by tests + evals only)
-│   ├── checks/                          # CI checks (routing precision, size, security)
-│   ├── evals/                           # Eval pipeline (300 challenges, LLM-as-judge)
-│   │   ├── pipeline.py                  # Main eval orchestrator
-│   │   ├── challenges/challenges.yaml   # 300 test challenges
-│   │   └── results/latest.json          # Auto-committed eval results
-│   └── test_ai_app.js                   # 90-check dogfood test
-├── .github/workflows/ci.yml             # 16-job CI pipeline
-└── README.md
-```
-
-## How routing works
-
-1. Agent loads `plugin/skills/postgresql-best-practices/SKILL.md` (lightweight routing table)
-2. Routing table matches user's question to a reference file via keyword triggers
-3. Azure references are gated: `pgsql_get_server_capabilities` must confirm `isAzure: true`
-4. Agent loads the specific reference file and combines it with its own knowledge
-5. Reference provides Azure-specific constraints, decision guides, and anti-hallucination guardrails
 
 ## Contributing
 
