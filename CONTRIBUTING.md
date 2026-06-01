@@ -114,7 +114,7 @@ Install the plugin from your local checkout to test changes end-to-end before su
 
 ```bash
 # GitHub Copilot CLI
-copilot plugin marketplace remove postgresql-agent-skills
+copilot plugin marketplace remove postgresql-agent-skills --force
 copilot plugin marketplace add "$(pwd)"
 copilot plugin install postgresql-agent-skills@postgresql-agent-skills
 
