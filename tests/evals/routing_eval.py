@@ -25,7 +25,7 @@ import yaml
 EVALS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = EVALS_DIR.parents[1]
 DEFAULT_SKILLS_JSON = REPO_ROOT / "tests" / ".skills.json"
-DEFAULT_SKILL_MD = REPO_ROOT / "skills" / "postgresql-best-practices" / "SKILL.md"
+DEFAULT_SKILL_MD = REPO_ROOT / "plugin" / "skills" / "postgresql-best-practices" / "SKILL.md"
 DEFAULT_MARKETPLACE = REPO_ROOT / ".github" / "plugin" / "marketplace.json"
 DEFAULT_CHALLENGES = EVALS_DIR / "challenges" / "routing_challenges.yaml"
 DEFAULT_RESULTS = EVALS_DIR / "results" / "routing_latest.json"

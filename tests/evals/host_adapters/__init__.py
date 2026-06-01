@@ -56,7 +56,7 @@ def normalize_skill_path(path: str) -> str:
 
     normalized = path.replace("\\", "/").strip().lstrip("./")
     if normalized.startswith("references/"):
-        normalized = f"skills/{normalized}"
+        normalized = f"plugin/skills/postgresql-best-practices/{normalized}"
     if normalized.endswith(".md"):
         normalized = normalized[:-3]
     return normalized
@@ -93,7 +93,7 @@ def build_loaded_content(skills_root: Path, skill_paths: Iterable[str], include_
 
     parts: list[str] = []
     if include_root_skill:
-        root_content = load_skill_content(skills_root, "skills/postgresql-best-practices/SKILL")
+        root_content = load_skill_content(skills_root, "plugin/skills/postgresql-best-practices/SKILL")
         if root_content:
             parts.append(root_content)
     for skill_path in unique_paths(skill_paths):
@@ -130,7 +130,7 @@ def parse_skills_manifest(manifest_path: Path) -> list[RoutingRule]:
 
 
 def parse_skill_routing_table(skill_md_path: Path) -> list[RoutingRule]:
-    """Parse keyword triggers from skills/postgresql-best-practices/SKILL.md markdown tables."""
+    """Parse keyword triggers from plugin/skills/postgresql-best-practices/SKILL.md markdown tables."""
 
     content = skill_md_path.read_text(encoding="utf-8")
     pattern = re.compile(r"^\|\s*(.+?)\s*\|\s*\[[^\]]+\]\((references/[^)]+\.md)\)\s*\|", re.MULTILINE)
@@ -144,7 +144,7 @@ def parse_skill_routing_table(skill_md_path: Path) -> list[RoutingRule]:
             RoutingRule(
                 skill_path=normalize_skill_path(match.group(2)),
                 keywords=_split_keywords(keywords_cell),
-                source="skills/postgresql-best-practices/SKILL.md",
+                source="plugin/skills/postgresql-best-practices/SKILL.md",
             )
         )
     return rules

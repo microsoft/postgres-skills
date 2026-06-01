@@ -10,7 +10,7 @@
   "skills": [
     {
       "id": "postgresql-agent-skills",
-      "path": "skills/postgresql-best-practices/SKILL.md",
+      "path": "plugin/skills/postgresql-best-practices/SKILL.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
         "postgresql help",
@@ -20,11 +20,11 @@
         "postgresql flexible server help"
       ],
       "always_load": false,
-      "references_dir": "skills/postgresql-best-practices/references/"
+      "references_dir": "plugin/skills/postgresql-best-practices/references/"
     },
     {
       "id": "vector-search",
-      "path": "skills/postgresql-best-practices/references/postgresql-vector-search.md",
+      "path": "plugin/skills/postgresql-best-practices/references/postgresql-vector-search.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
         "vector column",
@@ -39,7 +39,7 @@
     },
     {
       "id": "genai-rag",
-      "path": "skills/postgresql-best-practices/references/postgresql-genai-rag.md",
+      "path": "plugin/skills/postgresql-best-practices/references/postgresql-genai-rag.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
         "rag app",
@@ -55,7 +55,7 @@
     },
     {
       "id": "extensions",
-      "path": "skills/postgresql-best-practices/references/postgresql-extensions.md",
+      "path": "plugin/skills/postgresql-best-practices/references/postgresql-extensions.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
         "pg_stat_statements",
@@ -68,7 +68,7 @@
     },
     {
       "id": "advanced-indexing",
-      "path": "skills/postgresql-best-practices/references/postgresql-advanced-indexing.md",
+      "path": "plugin/skills/postgresql-best-practices/references/postgresql-advanced-indexing.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
         "btree index",
@@ -87,7 +87,7 @@
     },
     {
       "id": "jsonb-patterns",
-      "path": "skills/postgresql-best-practices/references/postgresql-jsonb-patterns.md",
+      "path": "plugin/skills/postgresql-best-practices/references/postgresql-jsonb-patterns.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
         "jsonb",
@@ -103,7 +103,7 @@
     },
     {
       "id": "table-partitioning",
-      "path": "skills/postgresql-best-practices/references/postgresql-table-partitioning.md",
+      "path": "plugin/skills/postgresql-best-practices/references/postgresql-table-partitioning.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
         "table partition",
@@ -122,7 +122,7 @@
     },
     {
       "id": "row-level-security",
-      "path": "skills/postgresql-best-practices/references/postgresql-row-level-security.md",
+      "path": "plugin/skills/postgresql-best-practices/references/postgresql-row-level-security.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
         "row level security",
@@ -137,7 +137,7 @@
     },
     {
       "id": "full-text-search",
-      "path": "skills/postgresql-best-practices/references/postgresql-full-text-search.md",
+      "path": "plugin/skills/postgresql-best-practices/references/postgresql-full-text-search.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
         "tsvector",
@@ -156,7 +156,7 @@
     },
     {
       "id": "connection-management",
-      "path": "skills/postgresql-best-practices/references/postgresql-connection-management.md",
+      "path": "plugin/skills/postgresql-best-practices/references/postgresql-connection-management.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
         "max_connections",
@@ -169,7 +169,7 @@
     },
     {
       "id": "replication",
-      "path": "skills/postgresql-best-practices/references/postgresql-replication.md",
+      "path": "plugin/skills/postgresql-best-practices/references/postgresql-replication.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
         "logical replication",
@@ -186,7 +186,7 @@
     },
     {
       "id": "query-performance",
-      "path": "skills/postgresql-best-practices/references/postgresql-query-performance.md",
+      "path": "plugin/skills/postgresql-best-practices/references/postgresql-query-performance.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
         "slow query",
@@ -201,7 +201,7 @@
     },
     {
       "id": "vector-diskann",
-      "path": "skills/postgresql-best-practices/references/azure-postgresql-vector-diskann.md",
+      "path": "plugin/skills/postgresql-best-practices/references/azure-postgresql-vector-diskann.md",
       "platform_scope": "azure-postgresql",
       "activation_keywords": [
         "diskann",
@@ -216,7 +216,7 @@
     },
     {
       "id": "azure-ai",
-      "path": "skills/postgresql-best-practices/references/azure-postgresql-azure-ai.md",
+      "path": "plugin/skills/postgresql-best-practices/references/azure-postgresql-azure-ai.md",
       "platform_scope": "azure-postgresql",
       "activation_keywords": [
         "azure_ai",
@@ -239,7 +239,7 @@
     },
     {
       "id": "genai-patterns",
-      "path": "skills/postgresql-best-practices/references/azure-postgresql-genai-patterns.md",
+      "path": "plugin/skills/postgresql-best-practices/references/azure-postgresql-genai-patterns.md",
       "platform_scope": "azure-postgresql",
       "activation_keywords": [
         "azure_ai rag",
@@ -258,7 +258,7 @@
     },
     {
       "id": "extension-lifecycle",
-      "path": "skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle.md",
+      "path": "plugin/skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle.md",
       "platform_scope": "azure-postgresql",
       "activation_keywords": [
         "azure.extensions",
@@ -276,7 +276,7 @@
     },
     {
       "id": "entra-id-auth",
-      "path": "skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth.md",
+      "path": "plugin/skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth.md",
       "platform_scope": "azure-postgresql",
       "activation_keywords": [
         "entra id",
@@ -292,7 +292,7 @@
     },
     {
       "id": "connection-pooling",
-      "path": "skills/postgresql-best-practices/references/azure-postgresql-connection-pooling.md",
+      "path": "plugin/skills/postgresql-best-practices/references/azure-postgresql-connection-pooling.md",
       "platform_scope": "azure-postgresql",
       "activation_keywords": [
         "built-in pgbouncer",
@@ -306,7 +306,7 @@
     },
     {
       "id": "provisioning",
-      "path": "skills/postgresql-best-practices/references/azure-postgresql-provisioning.md",
+      "path": "plugin/skills/postgresql-best-practices/references/azure-postgresql-provisioning.md",
       "platform_scope": "azure-postgresql",
       "activation_keywords": [
         "provision flexible server",
@@ -329,7 +329,7 @@
     },
     {
       "id": "ha-disaster-recovery",
-      "path": "skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery.md",
+      "path": "plugin/skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery.md",
       "platform_scope": "azure-postgresql",
       "activation_keywords": [
         "zone redundant ha",
@@ -347,7 +347,7 @@
     },
     {
       "id": "networking-ssl",
-      "path": "skills/postgresql-best-practices/references/azure-postgresql-networking-ssl.md",
+      "path": "plugin/skills/postgresql-best-practices/references/azure-postgresql-networking-ssl.md",
       "platform_scope": "azure-postgresql",
       "activation_keywords": [
         "private link",
@@ -370,7 +370,7 @@
     },
     {
       "id": "intelligent-tuning",
-      "path": "skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning.md",
+      "path": "plugin/skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning.md",
       "platform_scope": "azure-postgresql",
       "activation_keywords": [
         "query store",
@@ -385,7 +385,7 @@
     },
     {
       "id": "upgrades-maintenance",
-      "path": "skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance.md",
+      "path": "plugin/skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance.md",
       "platform_scope": "azure-postgresql",
       "activation_keywords": [
         "major version upgrade",

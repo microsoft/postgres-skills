@@ -28,7 +28,7 @@ class ClaudeCodeAdapter(HostAdapter):
         return "claude-code"
 
     def route(self, query: str, skills_root: Path) -> RoutingResult:
-        skill_md_path = self.skill_md_path or (skills_root / "skills" / "SKILL.md")
+        skill_md_path = self.skill_md_path or (skills_root / "plugin" / "skills" / "postgresql-best-practices" / "SKILL.md")
         matched_rules = collect_matching_rules(query, parse_skill_routing_table(skill_md_path))
         activated_skills = unique_paths(rule.skill_path for rule in matched_rules)
         loaded_content = build_loaded_content(skills_root, activated_skills, include_root_skill=True)

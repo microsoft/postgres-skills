@@ -35,14 +35,14 @@ jobs:
       - name: Validate single-plugin structure
         run: |
           echo "Checking root plugin structure..."
-          for file in .mcp.json run_mcp.js tests/.skills.json README.md skills/postgresql-best-practices/SKILL.md; do
+          for file in .mcp.json run_mcp.js tests/.skills.json README.md plugin/skills/postgresql-best-practices/SKILL.md; do
             if [ ! -f "$file" ]; then
               echo "  ✗ Missing required file: $file"
               exit 1
             fi
             echo "  ✓ $file exists"
           done
-          ref_count=$(find skills/postgresql-best-practices/references -name "*.md" | wc -l)
+          ref_count=$(find plugin/skills/postgresql-best-practices/references -name "*.md" | wc -l)
           if [ "$ref_count" -lt 10 ]; then
             echo "  ✗ Expected at least 10 reference files, found $ref_count"
             exit 1

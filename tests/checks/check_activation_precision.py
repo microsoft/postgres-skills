@@ -13,8 +13,8 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-SKILL_MD = REPO_ROOT / "skills" / "SKILL.md"
-REFERENCES_DIR = REPO_ROOT / "skills" / "references"
+SKILL_MD = REPO_ROOT / "plugin" / "skills" / "postgresql-best-practices" / "SKILL.md"
+REFERENCES_DIR = REPO_ROOT / "plugin" / "skills" / "postgresql-best-practices" / "references"
 
 
 def parse_routing_table(skill_md_path):

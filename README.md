@@ -23,7 +23,7 @@ Skills activate automatically based on what you're working on. No manual switchi
 
 ## Architecture: Single plugin with intelligent routing
 
-This repo IS the plugin. A lightweight routing table (`skills/postgresql-best-practices/SKILL.md`, ~2000 tokens) loads first and directs to the relevant reference file based on your question and connection context.
+This repo IS the plugin. A lightweight routing table (`plugin/skills/postgresql-best-practices/SKILL.md`, ~2000 tokens) loads first and directs to the relevant reference file based on your question and connection context.
 
 ```
 User question → SKILL.md routing table → specific reference file (1500-2500 tokens)
@@ -158,7 +158,7 @@ postgresql-agent-skills/
 
 ## How routing works
 
-1. Agent loads `skills/postgresql-best-practices/SKILL.md` (lightweight routing table)
+1. Agent loads `plugin/skills/postgresql-best-practices/SKILL.md` (lightweight routing table)
 2. Routing table matches user's question to a reference file via keyword triggers
 3. Azure references are gated: `pgsql_get_server_capabilities` must confirm `isAzure: true`
 4. Agent loads the specific reference file and combines it with its own knowledge

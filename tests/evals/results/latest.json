@@ -95,7 +95,7 @@
     }
   },
   "per_skill": {
-    "skills/postgresql-best-practices/references/postgresql-advanced-indexing": {
+    "plugin/skills/postgresql-best-practices/references/postgresql-advanced-indexing": {
       "tp": 13,
       "fp": 1,
       "fn": 1,
@@ -104,7 +104,7 @@
       "avg_judge_score": 0.856,
       "hallucinations": 0
     },
-    "skills/postgresql-best-practices/references/postgresql-query-performance": {
+    "plugin/skills/postgresql-best-practices/references/postgresql-query-performance": {
       "tp": 14,
       "fp": 1,
       "fn": 0,
@@ -113,7 +113,7 @@
       "avg_judge_score": 0.867,
       "hallucinations": 0
     },
-    "skills/postgresql-best-practices/references/postgresql-jsonb-patterns": {
+    "plugin/skills/postgresql-best-practices/references/postgresql-jsonb-patterns": {
       "tp": 12,
       "fp": 1,
       "fn": 2,
@@ -122,7 +122,7 @@
       "avg_judge_score": 0.865,
       "hallucinations": 0
     },
-    "skills/postgresql-best-practices/references/postgresql-table-partitioning": {
+    "plugin/skills/postgresql-best-practices/references/postgresql-table-partitioning": {
       "tp": 13,
       "fp": 1,
       "fn": 1,
@@ -131,7 +131,7 @@
       "avg_judge_score": 0.832,
       "hallucinations": 0
     },
-    "skills/postgresql-best-practices/references/postgresql-row-level-security": {
+    "plugin/skills/postgresql-best-practices/references/postgresql-row-level-security": {
       "tp": 13,
       "fp": 1,
       "fn": 1,
@@ -140,7 +140,7 @@
       "avg_judge_score": 0.868,
       "hallucinations": 0
     },
-    "skills/postgresql-best-practices/references/postgresql-full-text-search": {
+    "plugin/skills/postgresql-best-practices/references/postgresql-full-text-search": {
       "tp": 14,
       "fp": 1,
       "fn": 0,
@@ -149,7 +149,7 @@
       "avg_judge_score": 0.874,
       "hallucinations": 0
     },
-    "skills/postgresql-best-practices/references/postgresql-connection-management": {
+    "plugin/skills/postgresql-best-practices/references/postgresql-connection-management": {
       "tp": 14,
       "fp": 1,
       "fn": 0,
@@ -158,7 +158,7 @@
       "avg_judge_score": 0.874,
       "hallucinations": 2
     },
-    "skills/postgresql-best-practices/references/postgresql-replication": {
+    "plugin/skills/postgresql-best-practices/references/postgresql-replication": {
       "tp": 14,
       "fp": 1,
       "fn": 0,
@@ -167,7 +167,7 @@
       "avg_judge_score": 0.79,
       "hallucinations": 0
     },
-    "skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle": {
+    "plugin/skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle": {
       "tp": 12,
       "fp": 0,
       "fn": 2,
@@ -176,7 +176,7 @@
       "avg_judge_score": 0.834,
       "hallucinations": 0
     },
-    "skills/postgresql-best-practices/references/azure-postgresql-provisioning": {
+    "plugin/skills/postgresql-best-practices/references/azure-postgresql-provisioning": {
       "tp": 11,
       "fp": 1,
       "fn": 3,
@@ -185,7 +185,7 @@
       "avg_judge_score": 0.787,
       "hallucinations": 0
     },
-    "skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery": {
+    "plugin/skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery": {
       "tp": 14,
       "fp": 1,
       "fn": 0,
@@ -194,7 +194,7 @@
       "avg_judge_score": 0.832,
       "hallucinations": 4
     },
-    "skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth": {
+    "plugin/skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth": {
       "tp": 13,
       "fp": 1,
       "fn": 1,
@@ -203,7 +203,7 @@
       "avg_judge_score": 0.805,
       "hallucinations": 1
     },
-    "skills/postgresql-best-practices/references/azure-postgresql-networking-ssl": {
+    "plugin/skills/postgresql-best-practices/references/azure-postgresql-networking-ssl": {
       "tp": 13,
       "fp": 1,
       "fn": 1,
@@ -212,7 +212,7 @@
       "avg_judge_score": 0.789,
       "hallucinations": 3
     },
-    "skills/postgresql-best-practices/references/azure-postgresql-connection-pooling": {
+    "plugin/skills/postgresql-best-practices/references/azure-postgresql-connection-pooling": {
       "tp": 13,
       "fp": 1,
       "fn": 1,
@@ -221,7 +221,7 @@
       "avg_judge_score": 0.879,
       "hallucinations": 0
     },
-    "skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning": {
+    "plugin/skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning": {
       "tp": 14,
       "fp": 1,
       "fn": 0,
@@ -230,7 +230,7 @@
       "avg_judge_score": 0.629,
       "hallucinations": 4
     },
-    "skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance": {
+    "plugin/skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance": {
       "tp": 13,
       "fp": 1,
       "fn": 1,
@@ -239,7 +239,7 @@
       "avg_judge_score": 0.691,
       "hallucinations": 0
     },
-    "skills/postgresql-best-practices/references/azure-postgresql-vector-diskann": {
+    "plugin/skills/postgresql-best-practices/references/azure-postgresql-vector-diskann": {
       "tp": 13,
       "fp": 1,
       "fn": 1,
@@ -248,7 +248,7 @@
       "avg_judge_score": 0.774,
       "hallucinations": 0
     },
-    "skills/postgresql-best-practices/references/azure-postgresql-genai-patterns": {
+    "plugin/skills/postgresql-best-practices/references/azure-postgresql-genai-patterns": {
       "tp": 13,
       "fp": 1,
       "fn": 1,
@@ -257,7 +257,7 @@
       "avg_judge_score": 0.702,
       "hallucinations": 0
     },
-    "skills/postgresql-best-practices/references/azure-postgresql-azure-ai": {
+    "plugin/skills/postgresql-best-practices/references/azure-postgresql-azure-ai": {
       "tp": 10,
       "fp": 1,
       "fn": 4,
@@ -266,7 +266,7 @@
       "avg_judge_score": 0.67,
       "hallucinations": 0
     },
-    "skills/postgresql-best-practices/references": {
+    "plugin/skills/postgresql-best-practices/references": {
       "tp": 12,
       "fp": 1,
       "fn": 2,
@@ -278,26 +278,26 @@
   },
   "statistical_power": {
     "n_per_skill": {
-      "skills/postgresql-best-practices/references/postgresql-advanced-indexing": 14,
-      "skills/postgresql-best-practices/references/postgresql-jsonb-patterns": 14,
-      "skills/postgresql-best-practices/references/postgresql-query-performance": 14,
-      "skills/postgresql-best-practices/references/postgresql-table-partitioning": 14,
-      "skills/postgresql-best-practices/references/postgresql-row-level-security": 14,
-      "skills/postgresql-best-practices/references/postgresql-full-text-search": 14,
-      "skills/postgresql-best-practices/references/postgresql-connection-management": 14,
-      "skills/postgresql-best-practices/references/postgresql-replication": 14,
-      "skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle": 14,
-      "skills/postgresql-best-practices/references/azure-postgresql-provisioning": 14,
-      "skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery": 14,
-      "skills/postgresql-best-practices/references/azure-postgresql-networking-ssl": 14,
-      "skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth": 14,
-      "skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning": 14,
-      "skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance": 14,
-      "skills/postgresql-best-practices/references/azure-postgresql-connection-pooling": 14,
-      "skills/postgresql-best-practices/references/azure-postgresql-vector-diskann": 14,
-      "skills/postgresql-best-practices/references/azure-postgresql-genai-patterns": 14,
-      "skills/postgresql-best-practices/references/azure-postgresql-azure-ai": 14,
-      "skills/postgresql-best-practices/references": 14
+      "plugin/skills/postgresql-best-practices/references/postgresql-advanced-indexing": 14,
+      "plugin/skills/postgresql-best-practices/references/postgresql-jsonb-patterns": 14,
+      "plugin/skills/postgresql-best-practices/references/postgresql-query-performance": 14,
+      "plugin/skills/postgresql-best-practices/references/postgresql-table-partitioning": 14,
+      "plugin/skills/postgresql-best-practices/references/postgresql-row-level-security": 14,
+      "plugin/skills/postgresql-best-practices/references/postgresql-full-text-search": 14,
+      "plugin/skills/postgresql-best-practices/references/postgresql-connection-management": 14,
+      "plugin/skills/postgresql-best-practices/references/postgresql-replication": 14,
+      "plugin/skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle": 14,
+      "plugin/skills/postgresql-best-practices/references/azure-postgresql-provisioning": 14,
+      "plugin/skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery": 14,
+      "plugin/skills/postgresql-best-practices/references/azure-postgresql-networking-ssl": 14,
+      "plugin/skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth": 14,
+      "plugin/skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning": 14,
+      "plugin/skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance": 14,
+      "plugin/skills/postgresql-best-practices/references/azure-postgresql-connection-pooling": 14,
+      "plugin/skills/postgresql-best-practices/references/azure-postgresql-vector-diskann": 14,
+      "plugin/skills/postgresql-best-practices/references/azure-postgresql-genai-patterns": 14,
+      "plugin/skills/postgresql-best-practices/references/azure-postgresql-azure-ai": 14,
+      "plugin/skills/postgresql-best-practices/references": 14
     },
     "min_challenges_per_skill": 14,
     "mdd": 0.267,
