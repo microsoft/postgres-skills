@@ -291,7 +291,7 @@ class EvalPipeline:
             challenges_sha = "unknown"
 
         # Skills manifest hash
-        manifest_path = self.skills_root / ".skills.json"
+        manifest_path = self.skills_root / "tests" / ".skills.json"
         try:
             manifest_sha = hashlib.sha256(manifest_path.read_bytes()).hexdigest()[:12]
         except Exception:

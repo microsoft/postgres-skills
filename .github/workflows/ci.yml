@@ -27,7 +27,7 @@ jobs:
       - name: Validate JSON manifests are parseable
         run: |
           echo "Checking marketplace manifests..."
-          for f in .claude-plugin/marketplace.json .skills.json; do
+          for f in .claude-plugin/marketplace.json tests/.skills.json; do
             echo "  ✓ $f"
             python3 -c "import json; json.load(open('$f'))"
           done
@@ -35,7 +35,7 @@ jobs:
       - name: Validate single-plugin structure
         run: |
           echo "Checking root plugin structure..."
-          for file in .mcp.json run_mcp.js .skills.json README.md skills/postgresql-best-practices/SKILL.md; do
+          for file in .mcp.json run_mcp.js tests/.skills.json README.md skills/postgresql-best-practices/SKILL.md; do
             if [ ! -f "$file" ]; then
               echo "  ✗ Missing required file: $file"
               exit 1
@@ -49,7 +49,7 @@ jobs:
           fi
           echo "  ✓ $ref_count reference files found"
           python3 -c "import json; json.load(open('.mcp.json'))"
-          python3 -c "import json; json.load(open('.skills.json'))"
+          python3 -c "import json; json.load(open('tests/.skills.json'))"
 
   skill-size-limits:
     name: "Content: Skill token budgets"
@@ -383,7 +383,7 @@ jobs:
         run: |
           python3 -c "
           import time, json
-          with open('.skills.json') as f:
+          with open('tests/.skills.json') as f:
               manifest = json.load(f)
           skills = manifest['skills']
           prompt = 'How do I create a DiskANN index for vector similarity search on Azure PostgreSQL?'

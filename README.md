@@ -37,19 +37,19 @@ User question → SKILL.md routing table → specific reference file (1500-2500 
 
 ## Get started in 60 seconds
 
-Clone this repo and your AI coding agent discovers the plugin automatically via the root manifest:
+Clone this repo and your AI coding agent discovers the plugin automatically via its marketplace manifest:
 
 ```bash
 git clone https://github.com/microsoft/postgresql-agent-skills.git
 ```
 
-All four supported platforms auto-detect from root-level manifests:
+Each host discovers the plugin from its own marketplace manifest (all symlinked to the canonical `.github/plugin/marketplace.json`):
 
-| Platform | Manifest | Setup |
-|----------|----------|-------|
-| **GitHub Copilot** | `.skills.json` | Clone repo, Copilot auto-discovers |
-| **Claude Code** | `.skills.json` | Clone repo, Claude auto-discovers |
-| **Codex CLI** | `.skills.json` | Clone repo, Codex auto-discovers |
+| Platform | Marketplace manifest | Setup |
+|----------|----------------------|-------|
+| **GitHub Copilot** | `.github/plugin/marketplace.json` | Clone repo, Copilot auto-discovers |
+| **Claude Code** | `.claude-plugin/marketplace.json` | Clone repo, Claude auto-discovers |
+| **Codex CLI** | `.agents/plugins/marketplace.json` | Clone repo / `codex plugin marketplace add` |
 
 That's it. Start asking your agent PostgreSQL questions and the right skill activates automatically.
 
@@ -137,16 +137,15 @@ python pipeline.py --dry-run
 
 ```
 postgresql-agent-skills/
-├── .skills.json                         # Root manifest (platform discovery)
-├── skills/
-│   ├── SKILL.md                         # Routing table + principles (~2000 tokens)
-│   └── references/                      # 22 detailed reference files
-│       ├── postgresql-vector-search.md
-│       ├── postgresql-genai-rag.md
-│       ├── azure-postgresql-vector-diskann.md
-│       ├── azure-postgresql-genai-patterns.md
-│       └── ...                          # 18 more references
+├── .github/plugin/marketplace.json     # Canonical marketplace manifest (Copilot)
+├── plugin/                             # Plugin root (MCP launcher + skills)
+│   ├── .mcp.json
+│   ├── run_mcp.js                      # MCP server entry point
+│   └── skills/
+│       ├── postgresql-best-practices/SKILL.md   # Routing table + principles
+│       └── postgresql-best-practices/references/ # 22 detailed reference files
 ├── tests/
+│   ├── .skills.json                     # Routing fixture (used by tests + evals only)
 │   ├── checks/                          # CI checks (routing precision, size, security)
 │   ├── evals/                           # Eval pipeline (300 challenges, LLM-as-judge)
 │   │   ├── pipeline.py                  # Main eval orchestrator
@@ -154,7 +153,6 @@ postgresql-agent-skills/
 │   │   └── results/latest.json          # Auto-committed eval results
 │   └── test_ai_app.js                   # 90-check dogfood test
 ├── .github/workflows/ci.yml             # 16-job CI pipeline
-├── run_mcp.js                           # MCP server entry point
 └── README.md
 ```
 
