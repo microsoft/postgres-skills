@@ -27,7 +27,7 @@ jobs:
       - name: Validate JSON manifests are parseable
         run: |
           echo "Checking marketplace manifests..."
-          for f in marketplace.json .claude-plugin/marketplace.json .cursor-plugin/marketplace.json .skills.json; do
+          for f in .claude-plugin/marketplace.json .skills.json; do
             echo "  ✓ $f"
             python3 -c "import json; json.load(open('$f'))"
           done

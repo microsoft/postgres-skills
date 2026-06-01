@@ -40,10 +40,9 @@ from host_adapters import (  # noqa: E402
 from host_adapters.claude_code import ClaudeCodeAdapter  # noqa: E402
 from host_adapters.codex_cli import CodexCLIAdapter  # noqa: E402
 from host_adapters.copilot_cli import CopilotCLIAdapter  # noqa: E402
-from host_adapters.cursor import CursorAdapter  # noqa: E402
 
 
-APPROXIMATE_HOSTS = {"claude-code", "cursor"}
+APPROXIMATE_HOSTS = {"claude-code"}
 
 
 @dataclass
@@ -117,8 +116,6 @@ def get_adapter(host: str, skills_json_path: Path, skill_md_path: Path, marketpl
         return ClaudeCodeAdapter(skill_md_path=skill_md_path)
     if host == "codex-cli":
         return CodexCLIAdapter(marketplace_path=marketplace_path, skills_json_path=skills_json_path)
-    if host == "cursor":
-        return CursorAdapter(skill_md_path=skill_md_path)
     raise ValueError(f"Unsupported host: {host}")
 
 
@@ -294,7 +291,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Evaluate routing accuracy across hosts.")
     parser.add_argument("--skills-json", type=Path, default=DEFAULT_SKILLS_JSON)
     parser.add_argument("--challenges", type=Path, default=DEFAULT_CHALLENGES)
-    parser.add_argument("--host", choices=["copilot-cli", "claude-code", "codex-cli", "cursor", "all"], default="all")
+    parser.add_argument("--host", choices=["copilot-cli", "claude-code", "codex-cli", "all"], default="all")
     parser.add_argument("--output", type=Path, default=DEFAULT_RESULTS)
     parser.add_argument("--skill-md", type=Path, default=DEFAULT_SKILL_MD)
     parser.add_argument("--marketplace", type=Path, default=DEFAULT_MARKETPLACE)
@@ -308,7 +305,7 @@ def main() -> int:
         print("No routing challenges found.", file=sys.stderr)
         return 1
 
-    hosts = [args.host] if args.host != "all" else ["copilot-cli", "claude-code", "codex-cli", "cursor"]
+    hosts = [args.host] if args.host != "all" else ["copilot-cli", "claude-code", "codex-cli"]
     metrics_by_host = {
         host: evaluate_host(
             host=host,

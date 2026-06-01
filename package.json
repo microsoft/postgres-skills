@@ -13,8 +13,7 @@
     "agent-skills",
     "claude-code",
     "copilot-cli",
-    "codex",
-    "cursor"
+    "codex"
   ],
   "author": "Microsoft Corporation",
   "license": "MIT",

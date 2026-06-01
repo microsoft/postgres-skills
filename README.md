@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Skills: 22](https://img.shields.io/badge/Skills-22-green.svg)](#skill-catalog)
-[![Platforms: 4](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex_|_Cursor-purple.svg)](#get-started-in-60-seconds)
+[![Platforms: 3](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex-purple.svg)](#get-started-in-60-seconds)
 
 **Ship production PostgreSQL faster.** These 22 expert-curated agent skills give your AI coding assistant deep PostgreSQL and Azure Database for PostgreSQL knowledge it doesn't have out of the box, so you get safe, version-aware, production-ready answers instead of Stack Overflow snippets.
 
@@ -50,7 +50,6 @@ All four supported platforms auto-detect from root-level manifests:
 | **GitHub Copilot** | `.skills.json` | Clone repo, Copilot auto-discovers |
 | **Claude Code** | `.skills.json` | Clone repo, Claude auto-discovers |
 | **Codex CLI** | `.skills.json` | Clone repo, Codex auto-discovers |
-| **Cursor** | `.skills.json` | Clone repo, add as workspace skill |
 
 That's it. Start asking your agent PostgreSQL questions and the right skill activates automatically.
 
