@@ -27,7 +27,7 @@ jobs:
       - name: Validate JSON manifests are parseable
         run: |
           echo "Checking marketplace manifests..."
-          for f in .claude-plugin/marketplace.json tests/.skills.json; do
+          for f in .github/plugin/marketplace.json .claude-plugin/marketplace.json .agents/plugins/marketplace.json; do
             echo "  ✓ $f"
             python3 -c "import json; json.load(open('$f'))"
           done
@@ -35,7 +35,7 @@ jobs:
       - name: Validate single-plugin structure
         run: |
           echo "Checking root plugin structure..."
-          for file in .mcp.json run_mcp.js tests/.skills.json README.md plugin/skills/postgresql-best-practices/SKILL.md; do
+          for file in README.md plugin/.mcp.json plugin/run_mcp.js plugin/PGSQL_TOOLS_CLI_VERSION plugin/skills/postgresql-best-practices/SKILL.md; do
             if [ ! -f "$file" ]; then
               echo "  ✗ Missing required file: $file"
               exit 1
@@ -48,7 +48,7 @@ jobs:
             exit 1
           fi
           echo "  ✓ $ref_count reference files found"
-          python3 -c "import json; json.load(open('.mcp.json'))"
+          python3 -c "import json; json.load(open('plugin/.mcp.json'))"
           python3 -c "import json; json.load(open('tests/.skills.json'))"
 
   skill-size-limits:
@@ -110,21 +110,6 @@ jobs:
       - uses: actions/checkout@v4
       - run: python3 tests/checks/check_licenses.py
 
-  dependency-audit:
-    name: "Security: Dependency audit"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Check for known vulnerabilities
-        run: |
-          if [ -f package.json ]; then
-            npm audit --production --audit-level=high || true
-          fi
-          echo "✓ Dependency audit complete"
-
   # ═══════════════════════════════════════════════════════════════════════════════
   # COMPATIBILITY
   # ═══════════════════════════════════════════════════════════════════════════════
@@ -139,23 +124,20 @@ jobs:
           - cli: copilot-cli
             os: ubuntu-latest
             install_cmd: npm install -g @github/copilot@latest
-            add_marketplace_cmd: copilot plugin marketplace list
-            add_plugin_cmd: copilot mcp add postgresql-agent-skills -- node ./run_mcp.js
-            verify_cmd: copilot mcp list
+            add_marketplace_cmd: copilot plugin marketplace add "$(pwd)"
+            add_plugin_cmd: copilot plugin install postgresql-agent-skills@postgresql-agent-skills
 
           - cli: claude-code
             os: ubuntu-latest
             install_cmd: npm install -g @anthropic-ai/claude-code@latest
-            add_marketplace_cmd: claude plugin marketplace list
-            add_plugin_cmd: claude mcp add postgresql-agent-skills -- node ./run_mcp.js
-            verify_cmd: claude mcp list
+            add_marketplace_cmd: claude plugin marketplace add "$(pwd)"
+            add_plugin_cmd: claude plugin install postgresql-agent-skills@postgresql-agent-skills
 
           - cli: codex-cli
             os: ubuntu-latest
             install_cmd: npm install -g @openai/codex@latest
-            add_marketplace_cmd: codex plugin marketplace add .
-            add_plugin_cmd: codex mcp add postgresql-agent-skills -- node ./run_mcp.js
-            verify_cmd: codex mcp list
+            add_marketplace_cmd: codex plugin marketplace add "$(pwd)"
+            add_plugin_cmd: codex plugin add postgresql-agent-skills@postgresql-agent-skills
 
     steps:
       - uses: actions/checkout@v4
@@ -168,18 +150,26 @@ jobs:
         continue-on-error: false
 
       - name: Add marketplace (discover plugins)
-        run: ${{ matrix.add_marketplace_cmd }}
-
-      - name: Add plugin directly
-        run: ${{ matrix.add_plugin_cmd }}
-
-      - name: Verify plugin is registered
-        run: ${{ matrix.verify_cmd }}
-
-      - name: Verify MCP server can start
         run: |
-          timeout 30 node run_mcp.js < /dev/null 2>&1 | head -20 || true
-          echo "✓ MCP runner executed without crash"
+          set +e
+          OUTPUT=$(${{ matrix.add_marketplace_cmd }} 2>&1)
+          CODE=$?
+          set -e
+          echo "$OUTPUT"
+          if [ "$CODE" -ne 0 ]; then echo "✗ marketplace add exited $CODE"; exit 1; fi
+          if echo "$OUTPUT" | grep -qi "error"; then echo "✗ marketplace add reported an error"; exit 1; fi
+          echo "✓ marketplace added"
+
+      - name: Install plugin
+        run: |
+          set +e
+          OUTPUT=$(${{ matrix.add_plugin_cmd }} 2>&1)
+          CODE=$?
+          set -e
+          echo "$OUTPUT"
+          if [ "$CODE" -ne 0 ]; then echo "✗ plugin install exited $CODE"; exit 1; fi
+          if echo "$OUTPUT" | grep -qi "error"; then echo "✗ plugin install reported an error"; exit 1; fi
+          echo "✓ plugin installed"
 
   mcp-conformance:
     name: "Compat: MCP protocol conformance"
@@ -206,7 +196,7 @@ jobs:
         with:
           node-version: "20"
       - name: Download and verify binary
-        run: node run_mcp.js --version 2>&1 || true
+        run: node plugin/run_mcp.js --version 2>&1 || true
         timeout-minutes: 3
       - name: Verify binary exists in cache
         shell: bash
@@ -369,7 +359,7 @@ jobs:
       - name: Measure MCP cold-start time
         run: |
           START=$(date +%s%N)
-          timeout 15 node run_mcp.js < /dev/null 2>&1 || true
+          timeout 15 node plugin/run_mcp.js < /dev/null 2>&1 || true
           END=$(date +%s%N)
           ELAPSED=$(( (END - START) / 1000000 ))
           echo "Cold-start time: ${ELAPSED}ms"
