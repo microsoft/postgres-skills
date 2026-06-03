@@ -116,7 +116,8 @@
         "500m rows",
         "large table time-series",
         "detach a partition",
-        "partition my"
+        "partition my table",
+        "partition my events table"
       ],
       "always_load": false
     },
