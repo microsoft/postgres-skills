@@ -1,14 +1,13 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-#!/usr/bin/env node
 // test_mcp.js — Automated MCP protocol test for pgsql-tools MCP server.
 // Sends JSON-RPC messages over stdio and validates responses.
 
 const { spawn } = require("child_process");
 const { join } = require("path");
 
-const SCRIPT = join(__dirname, "run_mcp.js");
+const SCRIPT = join(__dirname, "..", "plugin", "run_mcp.js");
 const TIMEOUT_MS = 60_000; // 60s total test timeout
 const MSG_TIMEOUT_MS = 15_000; // 15s per message
 

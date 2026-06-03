@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-#!/usr/bin/env node
 /**
  * MCP Protocol Conformance Test
  * Validates that the MCP server starts, responds to initialize, and lists tools correctly.
@@ -12,7 +11,7 @@ const path = require("path");
 const readline = require("readline");
 
 const TIMEOUT_MS = 30000;
-const PLUGIN_DIR = process.env.PLUGIN_DIR || path.join(__dirname, "..", "..");
+const PLUGIN_DIR = process.env.PLUGIN_DIR || path.join(__dirname, "..", "..", "plugin");
 
 let msgId = 0;
 function makeRequest(method, params = {}) {

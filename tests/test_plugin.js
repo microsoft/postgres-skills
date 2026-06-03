@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-#!/usr/bin/env node
 // test_plugin.js — Plugin integration test.
 // Simulates how an AI platform uses the plugin: skill routing + MCP tools together.
 //
@@ -18,8 +17,8 @@ const { spawn } = require("child_process");
 const { join, resolve } = require("path");
 const fs = require("fs");
 
-const ROOT = __dirname;
-const SCRIPT = join(ROOT, "run_mcp.js");
+const ROOT = join(__dirname, "..");
+const SCRIPT = join(ROOT, "plugin", "run_mcp.js");
 const TIMEOUT_MS = 180_000;
 const MSG_TIMEOUT_MS = 30_000;
 
@@ -37,7 +36,7 @@ const CONN_STRING =
 // ---------------------------------------------------------------------------
 
 function loadSkillsManifest() {
-  const root = JSON.parse(fs.readFileSync(join(ROOT, ".skills.json"), "utf8"));
+  const root = JSON.parse(fs.readFileSync(join(__dirname, ".skills.json"), "utf8"));
   return root.skills;
 }
 

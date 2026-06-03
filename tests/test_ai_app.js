@@ -26,7 +26,7 @@ const { join } = require("path");
 const fs = require("fs");
 
 const ROOT = join(__dirname, "..");
-const SCRIPT = join(ROOT, "run_mcp.js");
+const SCRIPT = join(ROOT, "plugin", "run_mcp.js");
 const TIMEOUT_MS = 300_000;
 const MSG_TIMEOUT_MS = 90_000;
 

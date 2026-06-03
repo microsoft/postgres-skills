@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-#!/usr/bin/env node
 // test_e2e.js — End-to-end MCP integration test.
 // Starts the MCP server, connects to a real PostgreSQL database,
 // executes queries via MCP tools, and validates results.
@@ -15,7 +14,7 @@
 const { spawn } = require("child_process");
 const { join } = require("path");
 
-const SCRIPT = join(__dirname, "run_mcp.js");
+const SCRIPT = join(__dirname, "..", "plugin", "run_mcp.js");
 const TIMEOUT_MS = 120_000; // 2 min total
 const MSG_TIMEOUT_MS = 30_000; // 30s per tool call
 

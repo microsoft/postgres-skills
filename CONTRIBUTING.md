@@ -95,17 +95,33 @@ References are supplemental context, so focus on what LLMs get wrong. Common sec
 Validate your changes before submitting (run from the repo root):
 
 ```bash
-# Validate skills: token budgets, terminology, links, activation precision
-python tests/checks/check_skill_size.py
-python tests/checks/check_terminology.py
-python tests/checks/check_links.py
-python tests/checks/check_activation_precision.py
+# Static checks — no database or API key needed (all run in CI)
+python tests/checks/check_skill_size.py           # token budgets
+python tests/checks/check_terminology.py          # terminology
+python tests/checks/check_links.py                # reference links
+python tests/checks/check_activation_precision.py # activation-keyword precision
+python tests/checks/check_licenses.py             # license headers
+python tests/checks/check_security.py             # security guardrails
+python tests/checks/check_sql_syntax.py           # SQL in reference fences
 
 # Routing eval (no API key needed)
 python tests/evals/routing_eval.py --host all
 
-# AI-application dogfood test
-node tests/test_ai_app.js
+# MCP server protocol conformance (no database needed)
+node tests/checks/check_mcp_conformance.js
+node tests/test_mcp.js
+```
+
+The following integration tests require a live PostgreSQL database, supplied via the
+`PGSQL_TEST_CONNECTION_STRING` env var (libpq format). They are skipped in CI unless the
+`PGSQL_TEST_CONNECTION_STRING` secret is configured:
+
+```bash
+export PGSQL_TEST_CONNECTION_STRING="host=... port=5432 dbname=... user=... password=... sslmode=require"
+
+node tests/test_e2e.js     # end-to-end MCP queries against a real database
+node tests/test_plugin.js  # skill routing + MCP tools together
+node tests/test_ai_app.js  # AI-application dogfood (90 checks)
 ```
 
 ### Manual testing (local install)
