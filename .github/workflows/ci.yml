@@ -179,9 +179,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Test MCP protocol
-        run: node tests/checks/check_mcp_conformance.js
-        timeout-minutes: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install -r tests/requirements.txt
+      - name: Test MCP protocol and skill routing
+        run: python -m pytest tests/test_mcp_protocol.py tests/test_skill_routing.py -v
+        timeout-minutes: 3
 
   cross-platform-binary:
     name: "Compat: Binary ${{ matrix.os }}"
@@ -249,7 +254,7 @@ jobs:
         run: python3 tests/checks/check_sql_syntax.py
 
   dogfood-test:
-    name: "Regression: Dogfood (90 checks)"
+    name: "Regression: Dogfood"
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'run-dogfood')
     steps:
@@ -257,7 +262,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Run dogfood test
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install -r tests/requirements.txt
+      - name: Run dogfood and e2e integration tests
         env:
           PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
         run: |
@@ -265,7 +275,7 @@ jobs:
             echo "⚠ PGSQL_TEST_CONNECTION_STRING secret not set — skipping"
             exit 0
           fi
-          node tests/test_ai_app.js
+          python -m pytest tests/test_ai_app.py tests/test_mcp_e2e.py -v -m integration
 
   eval-pipeline:
     name: "Regression: Eval delta tracking"

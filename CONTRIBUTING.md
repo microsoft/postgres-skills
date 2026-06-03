@@ -28,7 +28,11 @@ postgresql-agent-skills/
 │   │   ├── pipeline.py                  # Main eval orchestrator
 │   │   ├── challenges/challenges.yaml   # 300 test challenges
 │   │   └── results/latest.json          # Auto-committed eval results
-│   └── test_ai_app.js                   # 90-check dogfood test
+│   ├── conftest.py                      # pytest fixtures + MCP client + routing engine
+│   ├── test_mcp_protocol.py             # MCP protocol conformance (no DB)
+│   ├── test_skill_routing.py            # Skill routing + content contracts (no DB)
+│   ├── test_mcp_e2e.py                  # End-to-end MCP queries (integration)
+│   └── test_ai_app.py                   # AI-application dogfood (integration)
 ├── .github/workflows/ci.yml             # 16-job CI pipeline
 └── README.md
 ```
@@ -92,7 +96,8 @@ References are supplemental context, so focus on what LLMs get wrong. Common sec
 
 ## Testing
 
-Validate your changes before submitting (run from the repo root):
+The pytest suite lives in `tests/` and shares fixtures via `tests/conftest.py`.
+Install dependencies once with `pip install -r tests/requirements.txt`, then run from the repo root.
 
 ```bash
 # Static checks — no database or API key needed (all run in CI)
@@ -107,21 +112,21 @@ python tests/checks/check_sql_syntax.py           # SQL in reference fences
 # Routing eval (no API key needed)
 python tests/evals/routing_eval.py --host all
 
-# MCP server protocol conformance (no database needed)
-node tests/checks/check_mcp_conformance.js
-node tests/test_mcp.js
+# pytest suite — no database needed (MCP protocol + skill routing)
+python -m pytest -m "not integration"
 ```
 
-The following integration tests require a live PostgreSQL database, supplied via the
-`PGSQL_TEST_CONNECTION_STRING` env var (libpq format). They are skipped in CI unless the
-`PGSQL_TEST_CONNECTION_STRING` secret is configured:
+The integration tests require a live PostgreSQL database, supplied via the
+`PGSQL_TEST_CONNECTION_STRING` env var (libpq or postgres URL). They are skipped automatically
+when the variable is unset (and in CI unless the matching secret is configured):
 
 ```bash
 export PGSQL_TEST_CONNECTION_STRING="host=... port=5432 dbname=... user=... password=... sslmode=require"
 
-node tests/test_e2e.js     # end-to-end MCP queries against a real database
-node tests/test_plugin.js  # skill routing + MCP tools together
-node tests/test_ai_app.js  # AI-application dogfood (90 checks)
+python -m pytest -m integration        # end-to-end MCP queries + AI-application dogfood
+# Or target a single file:
+python -m pytest tests/test_mcp_e2e.py # end-to-end MCP queries against a real database
+python -m pytest tests/test_ai_app.py  # AI-application dogfood
 ```
 
 ### Manual testing (local install)

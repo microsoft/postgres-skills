@@ -1,0 +1,3 @@
+# Test dependencies for the PostgreSQL Agent Skills test suite.
+# The MCP server itself runs under Node; these are for the pytest harness.
+pytest>=7.4
