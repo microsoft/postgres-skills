@@ -37,19 +37,25 @@ hardcoded default connection string so a DB is always expected to be present.
 3. **Default connection string** hardcoded in test config (conftest), matching the
    compose service and the existing `sql-validation` lane:
    `host=localhost user=testuser password=testpass dbname=testdb`.
-4. The existing `sql-validation` (pg) lane keeps its PG 14–17 service-container
-   matrix (preserves version coverage); it is not folded into compose.
+4. **Unify the PG 14–17 matrix onto Docker/compose** via a `PG_VERSION` build arg
+   over the `pgvector/pgvector:pg{14,15,16,17}` images. This replaces the current
+   `sql-validation` setup, which installs `postgresql-N-pgvector` on the runner
+   host (not inside the service container) with `|| true` — so `vector` is
+   effectively unavailable there today and failures are masked. Docker gives real
+   pgvector across all versions, a single mechanism, and local reproducibility of
+   any version.
 
 ## Components
 
 ### 1. `tests/Dockerfile`
-- `FROM pgvector/pgvector:pg16`.
+- `ARG PG_VERSION=16` → `FROM pgvector/pgvector:pg${PG_VERSION}`.
 - Copy an init script into `/docker-entrypoint-initdb.d/` that runs
   `CREATE EXTENSION IF NOT EXISTS vector;` against `testdb`.
 
 ### 2. `tests/docker-compose.yml`
 - Service `postgres`:
-  - build context `.` (uses `tests/Dockerfile`).
+  - build context `.` (uses `tests/Dockerfile`), with
+    `args: PG_VERSION: ${PG_VERSION:-16}` so the version is selectable.
   - env `POSTGRES_USER=testuser`, `POSTGRES_PASSWORD=testpass`,
     `POSTGRES_DB=testdb`.
   - ports `5432:5432`.
@@ -74,10 +80,19 @@ hardcoded default connection string so a DB is always expected to be present.
   `AZURE_OPENAI_DEPLOYMENT`): if any is absent, **fail** with a clear message — no
   skip, locally or in CI.
 
-### 6. `.github/workflows/ci.yml` — `integration` lane
-- Add a step: `docker compose -f tests/docker-compose.yml up -d --wait`.
-- Set `PGSQL_TEST_CONNECTION_STRING` to the default (or rely on the conftest
-  default), keep `AZURE_OPENAI_*` from secrets, and remove the soft-warning branch.
+### 6. `.github/workflows/ci.yml`
+**`sql-validation` (pg) lane:**
+- Drop the `services.postgres` block and the host `apt-get ... pgvector || true`
+  step.
+- Per matrix cell, run `PG_VERSION=${{ matrix.pg_version }} docker compose
+  -f tests/docker-compose.yml up -d --wait`, then `pytest -m pg`.
+- Tear down compose in a final `always()` step.
+
+**`integration` lane:**
+- Add a step: `docker compose -f tests/docker-compose.yml up -d --wait` (defaults
+  to PG 16).
+- Rely on the conftest default connection string; keep `AZURE_OPENAI_*` from
+  secrets, and remove the soft-warning branch.
 - Tear down compose in a final `always()` step.
 
 ### 7. Docs (`CONTRIBUTING.md`, `README.md`)
