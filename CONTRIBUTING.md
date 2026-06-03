@@ -113,18 +113,7 @@ python -m pytest -m "not integration"
 The pytest suite wraps the standalone check scripts (token budgets, terminology,
 links, activation precision, licenses, security) and the routing eval, plus native
 tests for manifests/structure, MCP protocol, skill routing, performance budget,
-binary integrity, and eval regression. The check scripts are still runnable
-directly when you want a focused report:
-
-```bash
-python tests/checks/check_skill_size.py           # token budgets
-python tests/checks/check_terminology.py          # terminology
-python tests/checks/check_links.py                # reference links
-python tests/checks/check_activation_precision.py # activation-keyword precision
-python tests/checks/check_licenses.py             # license headers
-python tests/checks/check_security.py             # security guardrails
-python tests/evals/routing_eval.py --host all     # routing eval
-```
+binary integrity, and eval regression.
 
 The integration tests and the SQL fence validation require a live PostgreSQL
 database, supplied via the `PGSQL_TEST_CONNECTION_STRING` env var (libpq or
