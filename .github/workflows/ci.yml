@@ -20,9 +20,9 @@ jobs:
   #
   # Covers content quality (manifests, structure, skill size, terminology, links,
   # activation precision, routing eval), security (secrets, licenses), MCP protocol
-  # & skill routing, performance budget, binary integrity, and eval regression.
-  # Azure-backed integration tests (dogfood/e2e) self-skip unless the connection
-  # secret is available.
+  # & skill routing, performance budget, binary integrity, eval regression, and the
+  # no-DB structural SQL fence lint. Database-backed lanes run in dedicated jobs:
+  # `sql-validation` (marker: pg) and `integration` (marker: integration).
 
   tests:
     name: "Tests: pytest suite"
@@ -38,9 +38,7 @@ jobs:
       - name: Install test dependencies
         run: pip install -r tests/requirements.txt
       - name: Run pytest
-        env:
-          PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
-        run: python -m pytest tests/ -v -m "not pg"
+        run: python -m pytest tests/ -v -m "not pg and not integration"
         timeout-minutes: 10
 
   # ═══════════════════════════════════════════════════════════════════════════════
@@ -173,6 +171,29 @@ jobs:
           PGSQL_TEST_CONNECTION_STRING: "host=localhost user=testuser password=testpass dbname=testdb"
           PG_VERSION: ${{ matrix.pg_version }}
         run: python -m pytest tests/test_sql_syntax.py -v -m pg
+
+  integration:
+    name: "Regression: Integration (MCP e2e + AI dogfood)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install -r tests/requirements.txt
+      - name: Run integration tests
+        env:
+          PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
+        run: |
+          if [ -z "$PGSQL_TEST_CONNECTION_STRING" ]; then
+            echo "⚠ PGSQL_TEST_CONNECTION_STRING not set — integration tests will self-skip"
+          fi
+          python -m pytest tests/ -v -m integration
+        timeout-minutes: 15
 
   eval-pipeline:
     name: "Regression: Eval delta tracking"

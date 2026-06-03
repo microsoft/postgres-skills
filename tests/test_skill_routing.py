@@ -49,9 +49,6 @@ def test_prompt_routes_to_expected_skill(skills, prompt, expected_id):
 
 # ---------------------------------------------------------------------------
 # Negative routing — non-PostgreSQL prompts must not activate any skill.
-# The "partition my React app" case is intentionally omitted: the manifest
-# keyword "partition my" currently matches it. Activation-keyword precision is
-# enforced separately by tests/checks/check_activation_precision.py.
 # ---------------------------------------------------------------------------
 NEGATIVE_ROUTING = [
     "How do I iterate over an array index in JavaScript?",
@@ -70,6 +67,26 @@ NEGATIVE_ROUTING = [
 def test_prompt_does_not_falsely_activate(skills, prompt):
     ids = route_ids(prompt, skills)
     assert ids == [], f"{prompt!r} falsely activated {ids}"
+
+
+# Known false-activation carried over from the legacy ``test_ai_app.js`` Phase C
+# negative-routing set. The ``table-partitioning`` skill declares the broad
+# activation keyword ``"partition my"`` (needed so substring-only host adapters
+# still route the legitimate eval prompt "Should I partition my events table…");
+# that same substring also matches this non-PostgreSQL prompt. The naive
+# substring/all-words routing engine (mirrored in both ``conftest.route_prompt``
+# and the eval host adapters) cannot distinguish the two without a smarter
+# matcher, so this case is asserted as a documented ``xfail`` rather than
+# silently dropped. Tightening the keyword or the matcher should flip this to
+# ``xpass`` — at which point the strict assertion can be promoted.
+@pytest.mark.xfail(
+    reason="'partition my' keyword is substring-over-broad; load-bearing for the "
+    "eval prompt under substring-only host adapters. Known routing-precision limit.",
+    strict=False,
+)
+def test_react_partition_does_not_falsely_activate(skills):
+    ids = route_ids("I want to partition my React app into micro-frontends", skills)
+    assert ids == [], f"React prompt falsely activated {ids}"
 
 
 # ---------------------------------------------------------------------------

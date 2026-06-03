@@ -23,17 +23,19 @@ postgresql-agent-skills/
 │       └── postgresql-best-practices/references/ # 22 detailed reference files
 ├── tests/
 │   ├── .skills.json                     # Routing fixture (used by tests + evals only)
-│   ├── checks/                          # CI checks (routing precision, size, security)
+│   ├── conftest.py                      # pytest fixtures + MCP client + routing engine
+│   ├── pytest.ini                       # marker registration (integration, pg)
 │   ├── evals/                           # Eval pipeline (300 challenges, LLM-as-judge)
 │   │   ├── pipeline.py                  # Main eval orchestrator
 │   │   ├── challenges/challenges.yaml   # 300 test challenges
-│   │   └── results/latest.json          # Auto-committed eval results
-│   ├── conftest.py                      # pytest fixtures + MCP client + routing engine
-│   ├── test_mcp_protocol.py             # MCP protocol conformance (no DB)
+│   │   └── results/latest.json          # Eval results (results/ is gitignored)
 │   ├── test_skill_routing.py            # Skill routing + content contracts (no DB)
-│   ├── test_mcp_e2e.py                  # End-to-end MCP queries (integration)
-│   └── test_ai_app.py                   # AI-application dogfood (integration)
-├── .github/workflows/ci.yml             # 16-job CI pipeline
+│   ├── test_activation_precision.py     # SKILL.md routing-table precision (no DB)
+│   ├── test_mcp_protocol.py             # MCP protocol conformance (no DB)
+│   ├── test_sql_syntax.py              # SQL fence validation: structural (no DB) + parse (marker: pg)
+│   ├── test_mcp_e2e.py                  # End-to-end MCP queries (marker: integration)
+│   └── test_ai_app.py                   # AI-application dogfood (marker: integration)
+├── .github/workflows/ci.yml             # CI pipeline (single pytest lane + pg/integration/eval jobs)
 └── README.md
 ```
 
@@ -103,28 +105,39 @@ from the repo root.
 
 ```bash
 # Run the whole suite. Integration tests self-skip without a database; the SQL
-# fence checks (marker: pg) self-skip without PGSQL_TEST_CONNECTION_STRING.
+# fence parse check (marker: pg) self-skips without PGSQL_TEST_CONNECTION_STRING.
 python -m pytest
 
-# Fast loop — skip the database-backed integration tests:
-python -m pytest -m "not integration"
+# Fast loop — what CI runs by default: skip both DB-backed lanes.
+python -m pytest -m "not pg and not integration"
 ```
 
-The pytest suite wraps the standalone check scripts (token budgets, terminology,
-links, activation precision, licenses, security) and the routing eval, plus native
-tests for manifests/structure, MCP protocol, skill routing, performance budget,
-binary integrity, and eval regression.
+Tests are grouped by three lanes via pytest markers:
 
-The integration tests and the SQL fence validation require a live PostgreSQL
-database, supplied via the `PGSQL_TEST_CONNECTION_STRING` env var (libpq or
-postgres URL). They are skipped automatically when the variable is unset (and in
-CI unless the matching secret/service is configured):
+- **default (unmarked)** — no database required; runs on every CI push. Covers
+  token budgets, terminology, links, activation precision, licenses, security,
+  manifests/structure, MCP protocol, skill routing, performance budget, binary
+  integrity, eval regression, the routing eval, and the no-DB structural SQL
+  fence lint.
+- **`pg`** — SQL fence validation that executes fences against a live
+  PostgreSQL (`tests/test_sql_syntax.py::test_sql_blocks_parse`).
+- **`integration`** — end-to-end MCP queries and the AI-application dogfood
+  (`tests/test_mcp_e2e.py`, `tests/test_ai_app.py`).
+
+These native pytest modules replace the former standalone `tests/checks/*.py`
+scripts and the standalone routing eval; there is no longer a separate check
+runner — everything is collected by `python -m pytest`.
+
+The `pg` and `integration` lanes require a live PostgreSQL database, supplied
+via the `PGSQL_TEST_CONNECTION_STRING` env var (libpq or postgres URL). They are
+skipped automatically when the variable is unset (and in CI unless the matching
+secret/service is configured):
 
 ```bash
 export PGSQL_TEST_CONNECTION_STRING="host=... port=5432 dbname=... user=... password=... sslmode=require"
 
 python -m pytest -m integration        # end-to-end MCP queries + AI-application dogfood
-python -m pytest tests/test_sql_syntax.py -m pg   # SQL in reference fences against a real database
+python -m pytest -m pg                 # SQL in reference fences against a real database
 # Or target a single file:
 python -m pytest tests/test_mcp_e2e.py # end-to-end MCP queries against a real database
 python -m pytest tests/test_ai_app.py  # AI-application dogfood

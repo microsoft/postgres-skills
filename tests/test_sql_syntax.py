@@ -21,8 +21,6 @@ import pytest
 
 from conftest import ROOT
 
-pytestmark = pytest.mark.pg
-
 SQL_BLOCK_PATTERN = re.compile(r"```(?:sql|pgsql)\s*\n(.*?)```", re.DOTALL)
 
 SKIP_PATTERNS = [
@@ -107,6 +105,7 @@ def _collect_blocks():
     return blocks
 
 
+@pytest.mark.pg
 @pytest.mark.skipif(not CONN_STRING, reason="PGSQL_TEST_CONNECTION_STRING not set")
 def test_sql_blocks_parse():
     blocks = _collect_blocks()
@@ -120,4 +119,26 @@ def test_sql_blocks_parse():
     assert ratio <= 0.3, (
         f"{len(failures)}/{len(blocks)} SQL blocks failed syntax validation "
         f"({ratio:.0%} > 30%):\n" + "\n".join(failures[:20])
+    )
+
+
+def test_sql_blocks_structural():
+    """No-database structural lint of SQL fences.
+
+    Ports the database-independent ``syntax-only`` path of the former
+    ``tests/checks/check_sql_syntax.py`` so obvious authoring mistakes are caught
+    in the default (no ``pg``) lane without a live PostgreSQL. Flags balanced-
+    parenthesis violations and accidental empty statements (``;;``).
+    """
+    blocks = _collect_blocks()
+    assert blocks, "no executable SQL blocks extracted"
+    failures = []
+    for sql in blocks:
+        if sql.count("(") != sql.count(")"):
+            failures.append(f"unbalanced parentheses: {sql[:80]}")
+        if re.search(r";;", sql):
+            failures.append(f"double semicolon (empty statement): {sql[:80]}")
+    assert not failures, (
+        f"{len(failures)} SQL blocks failed structural validation:\n"
+        + "\n".join(failures[:20])
     )
