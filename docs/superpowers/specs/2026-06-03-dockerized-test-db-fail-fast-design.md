@@ -32,36 +32,34 @@ hardcoded default connection string so a DB is always expected to be present.
 1. **No skip anywhere.** DB-backed tests fail if the DB is unreachable. Integration
    / AI dogfood tests fail if Azure OpenAI credentials are absent — locally **and**
    in CI.
-2. **Docker mechanism:** `tests/Dockerfile` + `tests/docker-compose.yml`, started
-   with `docker compose up -d --wait` in CI and locally.
+2. **Docker mechanism:** `tests/docker-compose.yml` (no Dockerfile — the
+   `pgvector/pgvector` image is referenced directly), started with
+   `docker compose up -d --wait` in CI and locally.
 3. **Default connection string** hardcoded in test config (conftest), matching the
    compose service and the existing `sql-validation` lane:
    `host=localhost user=testuser password=testpass dbname=testdb`.
-4. **Unify the PG 14–17 matrix onto Docker/compose** via a `PG_VERSION` build arg
-   over the `pgvector/pgvector:pg{14,15,16,17}` images. This replaces the current
-   `sql-validation` setup, which installs `postgresql-N-pgvector` on the runner
-   host (not inside the service container) with `|| true` — so `vector` is
+4. **Unify the PG 14–17 matrix onto Docker/compose** by selecting the
+   `pgvector/pgvector:pg${PG_VERSION}` image tag (14, 15, 16, 17). This replaces the
+   current `sql-validation` setup, which installs `postgresql-N-pgvector` on the
+   runner host (not inside the service container) with `|| true` — so `vector` is
    effectively unavailable there today and failures are masked. Docker gives real
    pgvector across all versions, a single mechanism, and local reproducibility of
    any version.
 
 ## Components
 
-### 1. `tests/Dockerfile`
-- `ARG PG_VERSION=16` → `FROM pgvector/pgvector:pg${PG_VERSION}`.
-- Copy an init script into `/docker-entrypoint-initdb.d/` that runs
-  `CREATE EXTENSION IF NOT EXISTS vector;` against `testdb`.
-
-### 2. `tests/docker-compose.yml`
+### 1. `tests/docker-compose.yml` + `tests/init-vector.sql`
+- `tests/init-vector.sql`: a single statement — `CREATE EXTENSION IF NOT EXISTS vector;`.
 - Service `postgres`:
-  - build context `.` (uses `tests/Dockerfile`), with
-    `args: PG_VERSION: ${PG_VERSION:-16}` so the version is selectable.
+  - `image: pgvector/pgvector:pg${PG_VERSION:-16}` (no build step).
   - env `POSTGRES_USER=testuser`, `POSTGRES_PASSWORD=testpass`,
     `POSTGRES_DB=testdb`.
   - ports `5432:5432`.
+  - volume `./init-vector.sql:/docker-entrypoint-initdb.d/init.sql:ro` so the
+    extension is created on first boot.
   - healthcheck `pg_isready -U testuser -d testdb`.
 
-### 3. `tests/conftest.py`
+### 2. `tests/conftest.py`
 - Add `DEFAULT_CONN_STRING = "host=localhost user=testuser password=testpass dbname=testdb"`.
 - `_require_conn_string()` returns `PGSQL_TEST_CONNECTION_STRING` if set, else
   `DEFAULT_CONN_STRING`. Remove `pytest.skip`. Connection failure surfaces as a
@@ -69,18 +67,18 @@ hardcoded default connection string so a DB is always expected to be present.
 - Update the collection-time skip annotations (lines ~40–48) so they no longer
   advertise "skipped unless ... set".
 
-### 4. `tests/test_sql_syntax.py`
+### 3. `tests/test_sql_syntax.py`
 - Replace `CONN_STRING = os.environ.get(..., "")` + `skipif(not CONN_STRING)` with
   the shared default; `pg`-marked tests fail (not skip) when no DB is reachable.
 
-### 5. `tests/test_ai_app.py` (AI dogfood)
+### 4. `tests/test_ai_app.py` (AI dogfood)
 - DB operations target the Docker DB (pgvector is native, removing the
   `azure.extensions=vector` allowlist blocker that kept the PR in draft).
 - Require Azure OpenAI credentials (`AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`,
   `AZURE_OPENAI_DEPLOYMENT`): if any is absent, **fail** with a clear message — no
   skip, locally or in CI.
 
-### 6. `.github/workflows/ci.yml`
+### 5. `.github/workflows/ci.yml`
 **`sql-validation` (pg) lane:**
 - Drop the `services.postgres` block and the host `apt-get ... pgvector || true`
   step.
@@ -95,7 +93,7 @@ hardcoded default connection string so a DB is always expected to be present.
   secrets, and remove the soft-warning branch.
 - Tear down compose in a final `always()` step.
 
-### 7. Docs (`CONTRIBUTING.md`, `README.md`)
+### 6. Docs (`CONTRIBUTING.md`, `README.md`)
 - Local flow: `docker compose -f tests/docker-compose.yml up -d --wait` then
   `python -m pytest`. Note that `-m integration` additionally requires
   `AZURE_OPENAI_*` env vars.
