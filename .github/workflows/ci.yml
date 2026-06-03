@@ -201,7 +201,7 @@ jobs:
       - name: Verify binary exists in cache
         shell: bash
         run: |
-          CACHE_DIR="$HOME/.pgsql-tools"
+          CACHE_DIR="$HOME/.pgsql-tools-cli"
           if [ -d "$CACHE_DIR" ]; then
             echo "✓ Binary cache created at $CACHE_DIR"
             find "$CACHE_DIR" -type f | sed -n '1,10p'
@@ -397,39 +397,44 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify hash consistency across plugin copies
+      - name: Verify runtime checksum verification across plugin copies
         run: |
           python3 -c "
-          import json, sys
+          import sys
           from pathlib import Path
 
-          # Load both run_mcp.js files and extract hashes
-          files = list(Path('.').rglob('run_mcp.js'))
+          # The CLI binary is downloaded at runtime and verified against the
+          # per-release manifest.json. Assert every run_mcp.js copy performs
+          # that verification and stays byte-identical across plugin copies.
+          files = [f for f in Path('.').rglob('run_mcp.js') if 'node_modules' not in f.parts]
           print(f'Found {len(files)} run_mcp.js files')
+          if not files:
+              print('✗ No run_mcp.js found')
+              sys.exit(1)
 
-          all_hashes = {}
+          expected_platforms = ['linux-x64', 'linux-arm64', 'osx-arm64', 'osx-x86', 'win-x64']
+          required_markers = ['\"manifest.json\"', 'sha256', 'verifyChecksum', 'actual !== expected']
+
+          contents = {}
           for f in files:
               content = f.read_text()
-              import re
-              hashes = dict(re.findall(r'\"(pgsql-tools-cli-[^\"]+)\":\s*\"([a-f0-9]{64})\"', content))
-              all_hashes[str(f)] = hashes
-              print(f'  {f}: {len(hashes)} hashes')
+              contents[str(f)] = content
+              for marker in required_markers:
+                  if marker not in content:
+                      print(f'✗ {f}: missing verification marker: {marker}')
+                      sys.exit(1)
+              for platform in expected_platforms:
+                  if platform not in content:
+                      print(f'✗ {f}: missing platform: {platform}')
+                      sys.exit(1)
+              print(f'  ✓ {f}: manifest verification + all platforms present')
 
-          # Verify all copies have same hashes
-          hash_sets = list(all_hashes.values())
-          for i in range(1, len(hash_sets)):
-              if hash_sets[i] != hash_sets[0]:
-                  print(f'✗ Hash mismatch between run_mcp.js copies')
+          # All copies must be byte-identical
+          baseline = next(iter(contents.values()))
+          for path, content in contents.items():
+              if content != baseline:
+                  print(f'✗ {path} differs from other run_mcp.js copies')
                   sys.exit(1)
 
-          # Verify all 5 platforms have hashes
-          expected = ['linux-x64', 'linux-arm64', 'osx-arm64', 'osx-x86', 'win-x64']
-          for platform in expected:
-              found = any(platform in k for k in hash_sets[0].keys())
-              if not found:
-                  print(f'✗ Missing hash for platform: {platform}')
-                  sys.exit(1)
-              print(f'  ✓ {platform} hash present')
-
-          print(f'✓ All binary hashes consistent and complete')
+          print('✓ Runtime checksum verification consistent and complete')
           "

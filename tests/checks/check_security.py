@@ -84,25 +84,43 @@ def scan_unsafe_sql(root: Path) -> list[tuple[str, int, str]]:
 
     return issues
 
-def check_sha256_hashes(root: Path) -> list[str]:
-    """Verify that run_mcp.js files have SHA-256 hashes for all platforms."""
+def check_binary_verification(root: Path) -> list[str]:
+    """Verify run_mcp.js performs runtime SHA-256 verification of the binary.
+
+    The CLI binary is downloaded at runtime and verified against the
+    per-release manifest.json (not against hashes embedded in this file),
+    so we assert the verification mechanism is present and covers every
+    supported platform rather than checking for committed hashes.
+    """
     issues = []
     expected_platforms = [
         "linux-x64", "linux-arm64", "osx-arm64", "osx-x86", "win-x64"
     ]
+    required_markers = [
+        ('"manifest.json"', "release checksum manifest reference"),
+        ("sha256", "SHA-256 algorithm"),
+        ("verifyChecksum", "checksum verification routine"),
+        ("actual !== expected", "checksum mismatch rejection"),
+    ]
 
-    for mcp_file in root.rglob("run_mcp.js"):
+    mcp_files = [
+        f for f in root.rglob("run_mcp.js") if "node_modules" not in f.parts
+    ]
+    if not mcp_files:
+        issues.append("No run_mcp.js found to verify")
+        return issues
+
+    for mcp_file in mcp_files:
         content = mcp_file.read_text(encoding="utf-8")
         rel_path = str(mcp_file.relative_to(root))
 
         for platform in expected_platforms:
             if platform not in content:
-                issues.append(f"{rel_path}: Missing hash for platform {platform}")
+                issues.append(f"{rel_path}: missing supported platform {platform}")
 
-        # Check hash format (64 hex chars)
-        hashes = re.findall(r'"([a-f0-9]{64})"', content)
-        if len(hashes) < len(expected_platforms):
-            issues.append(f"{rel_path}: Only {len(hashes)}/{len(expected_platforms)} SHA-256 hashes found")
+        for marker, desc in required_markers:
+            if marker not in content:
+                issues.append(f"{rel_path}: missing {desc} ({marker})")
 
     return issues
 
@@ -132,14 +150,14 @@ def main():
         print(f"   ✓ All SQL patterns have appropriate safety warnings")
 
     # 3. Binary integrity
-    print("3. Verifying binary hash coverage...")
-    hash_issues = check_sha256_hashes(root)
+    print("3. Verifying binary checksum verification...")
+    hash_issues = check_binary_verification(root)
     if hash_issues:
-        print(f"   ✗ {len(hash_issues)} hash integrity issues:")
+        print(f"   ✗ {len(hash_issues)} binary verification issues:")
         for issue in hash_issues:
             print(f"     {issue}")
         sys.exit(1)
-    print(f"   ✓ SHA-256 hashes present for all platforms")
+    print(f"   ✓ Runtime SHA-256 manifest verification present for all platforms")
 
     # Final
     if sql_issues:
