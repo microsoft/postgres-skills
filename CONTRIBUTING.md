@@ -87,7 +87,7 @@ References are supplemental context, so focus on what LLMs get wrong. Common sec
 ## Quality Standards
 
 - Token budget: keep each reference under ~3,000 tokens (CI warns above this)
-- Hard cap: 4,000 tokens — `tests/checks/check_skill_size.py` fails the build above this (estimated as `characters / 4`)
+- Hard cap: 4,000 tokens — `tests/test_skill_size.py` fails the build above this (estimated as `characters / 4`)
 - Use `CREATE EXTENSION vector` (binary name), not `CREATE EXTENSION pgvector`
 - Azure references must use the `azure_pg_admin` role, never `SUPERUSER`
 - Never suggest `ALTER SYSTEM` or OS-level access for Azure Flexible Server — use `az ... parameter set` or the portal
