@@ -29,9 +29,24 @@ hardcoded default connection string so a DB is always expected to be present.
 
 ## Decisions (from brainstorming)
 
-1. **No skip anywhere.** DB-backed tests fail if the DB is unreachable. Integration
-   / AI dogfood tests fail if Azure OpenAI credentials are absent — locally **and**
-   in CI.
+1. **No skip anywhere.** DB-backed tests fail if their required database is
+   unreachable. The dogfood test requires a **real Azure PostgreSQL** connection
+   string and fails (not skips) when it is absent — locally **and** in CI.
+   (Correction from earlier draft: the dogfood test uses **no** Azure OpenAI
+   credentials; it asserts `isAzure` server detection and `SHOW azure.extensions`,
+   so it needs a genuine Azure server, which Docker cannot provide.)
+
+### Marker model
+
+| Marker | Tests | DB source | Missing-DB behavior |
+|--------|-------|-----------|---------------------|
+| (none) | default suite | none | n/a |
+| `pg` | `test_sql_syntax.py` | Docker (compose) | **fail** (preflight `SELECT 1`) |
+| `integration` | `test_mcp_e2e.py` (generic e2e) | Docker (compose) | **fail** (connect error) |
+| `azure` | `test_ai_app.py` (dogfood) | real Azure PG via `PGSQL_TEST_CONNECTION_STRING` secret | **fail** (no default) |
+
+Docker backs `pg` + `integration` (no secret → runs on fork PRs). The `azure` lane
+needs the Azure secret → fails on fork PRs (accepted trade-off).
 2. **Docker mechanism:** `tests/docker-compose.yml` (no Dockerfile — the
    `pgvector/pgvector` image is referenced directly), started with
    `docker compose up -d --wait` in CI and locally.
@@ -62,21 +77,25 @@ hardcoded default connection string so a DB is always expected to be present.
 ### 2. `tests/conftest.py`
 - Add `DEFAULT_CONN_STRING = "host=localhost user=testuser password=testpass dbname=testdb"`.
 - `_require_conn_string()` returns `PGSQL_TEST_CONNECTION_STRING` if set, else
-  `DEFAULT_CONN_STRING`. Remove `pytest.skip`. Connection failure surfaces as a
-  test failure.
-- Update the collection-time skip annotations (lines ~40–48) so they no longer
-  advertise "skipped unless ... set".
+  `DEFAULT_CONN_STRING` (used by the Docker-backed `db_client`). No skip.
+- Add `_require_azure_conn_string()` → returns the env var or `pytest.fail(...)`
+  with a clear "Azure PostgreSQL connection string required" message (no default).
+- Add an `azure_db_client` fixture mirroring `db_client` but using
+  `_require_azure_conn_string()`.
+- Register the `azure` marker; update `pg`/`integration` marker text to drop the
+  "skipped unless ... set" wording.
 
 ### 3. `tests/test_sql_syntax.py`
 - Replace `CONN_STRING = os.environ.get(..., "")` + `skipif(not CONN_STRING)` with
-  the shared default; `pg`-marked tests fail (not skip) when no DB is reachable.
+  the shared `DEFAULT_CONN_STRING`.
+- Add a `SELECT 1` preflight at the top of the `pg` test: if the DB is unreachable
+  (connection/auth failure), **fail** rather than reporting every block valid.
 
 ### 4. `tests/test_ai_app.py` (AI dogfood)
-- DB operations target the Docker DB (pgvector is native, removing the
-  `azure.extensions=vector` allowlist blocker that kept the PR in draft).
-- Require Azure OpenAI credentials (`AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_API_KEY`,
-  `AZURE_OPENAI_DEPLOYMENT`): if any is absent, **fail** with a clear message — no
-  skip, locally or in CI.
+- Change `pytestmark` from `integration` to `azure`; use the `azure_db_client`
+  fixture so it targets a real Azure PG (via the secret), never the Docker DB.
+- Update the module docstring: requires an Azure PG connection string; fails (no
+  skip) when absent.
 
 ### 5. `.github/workflows/ci.yml`
 **`sql-validation` (pg) lane:**
@@ -86,17 +105,23 @@ hardcoded default connection string so a DB is always expected to be present.
   -f tests/docker-compose.yml up -d --wait`, then `pytest -m pg`.
 - Tear down compose in a final `always()` step.
 
-**`integration` lane:**
+**`integration` lane (generic e2e):**
 - Add a step: `docker compose -f tests/docker-compose.yml up -d --wait` (defaults
   to PG 16).
-- Rely on the conftest default connection string; keep `AZURE_OPENAI_*` from
-  secrets, and remove the soft-warning branch.
-- Tear down compose in a final `always()` step.
+- Rely on the conftest default connection string; run `pytest tests/ -v -m integration`.
+- Remove the secret + soft-warning branch. Tear down compose in a final `always()`
+  step.
 
-### 6. Docs (`CONTRIBUTING.md`, `README.md`)
+**New `dogfood` lane (`azure` marker):**
+- No Docker. Set `PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}`
+  (real Azure PG) and run `pytest tests/ -v -m azure`. The `azure_db_client` fixture
+  fails if the secret is absent (e.g. on fork PRs).
+
+### 6. Docs + `tests/pytest.ini` (`CONTRIBUTING.md`, `README.md`)
+- Register the `azure` marker in `tests/pytest.ini`.
 - Local flow: `docker compose -f tests/docker-compose.yml up -d --wait` then
-  `python -m pytest`. Note that `-m integration` additionally requires
-  `AZURE_OPENAI_*` env vars.
+  `python -m pytest` (default + `pg` + `integration`). Note the `azure` suite
+  additionally requires `PGSQL_TEST_CONNECTION_STRING` pointing at a real Azure PG.
 
 ## Consequences / Trade-offs
 
