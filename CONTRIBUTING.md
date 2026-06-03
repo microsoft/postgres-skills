@@ -96,34 +96,46 @@ References are supplemental context, so focus on what LLMs get wrong. Common sec
 
 ## Testing
 
-The pytest suite lives in `tests/` and shares fixtures via `tests/conftest.py`.
-Install dependencies once with `pip install -r tests/requirements.txt`, then run from the repo root.
+The entire test suite is pytest-based and lives in `tests/`, sharing fixtures via
+`tests/conftest.py`. CI runs everything with a single `python -m pytest` command.
+Install dependencies once with `pip install -r tests/requirements.txt`, then run
+from the repo root.
 
 ```bash
-# Static checks — no database or API key needed (all run in CI)
+# Run the whole suite. Integration tests self-skip without a database; the SQL
+# fence checks (marker: pg) self-skip without PGSQL_TEST_CONNECTION_STRING.
+python -m pytest
+
+# Fast loop — skip the database-backed integration tests:
+python -m pytest -m "not integration"
+```
+
+The pytest suite wraps the standalone check scripts (token budgets, terminology,
+links, activation precision, licenses, security) and the routing eval, plus native
+tests for manifests/structure, MCP protocol, skill routing, performance budget,
+binary integrity, and eval regression. The check scripts are still runnable
+directly when you want a focused report:
+
+```bash
 python tests/checks/check_skill_size.py           # token budgets
 python tests/checks/check_terminology.py          # terminology
 python tests/checks/check_links.py                # reference links
 python tests/checks/check_activation_precision.py # activation-keyword precision
 python tests/checks/check_licenses.py             # license headers
 python tests/checks/check_security.py             # security guardrails
-python tests/checks/check_sql_syntax.py           # SQL in reference fences
-
-# Routing eval (no API key needed)
-python tests/evals/routing_eval.py --host all
-
-# pytest suite — no database needed (MCP protocol + skill routing)
-python -m pytest -m "not integration"
+python tests/evals/routing_eval.py --host all     # routing eval
 ```
 
-The integration tests require a live PostgreSQL database, supplied via the
-`PGSQL_TEST_CONNECTION_STRING` env var (libpq or postgres URL). They are skipped automatically
-when the variable is unset (and in CI unless the matching secret is configured):
+The integration tests and the SQL fence validation require a live PostgreSQL
+database, supplied via the `PGSQL_TEST_CONNECTION_STRING` env var (libpq or
+postgres URL). They are skipped automatically when the variable is unset (and in
+CI unless the matching secret/service is configured):
 
 ```bash
 export PGSQL_TEST_CONNECTION_STRING="host=... port=5432 dbname=... user=... password=... sslmode=require"
 
 python -m pytest -m integration        # end-to-end MCP queries + AI-application dogfood
+python -m pytest tests/test_sql_syntax.py -m pg   # SQL in reference fences against a real database
 # Or target a single file:
 python -m pytest tests/test_mcp_e2e.py # end-to-end MCP queries against a real database
 python -m pytest tests/test_ai_app.py  # AI-application dogfood

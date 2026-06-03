@@ -42,6 +42,11 @@ def pytest_configure(config):
         "integration: requires a live PostgreSQL database "
         "(skipped unless PGSQL_TEST_CONNECTION_STRING is set)",
     )
+    config.addinivalue_line(
+        "markers",
+        "pg: requires a generic PostgreSQL service "
+        "(skipped unless PGSQL_TEST_CONNECTION_STRING is set)",
+    )
 
 
 # ---------------------------------------------------------------------------

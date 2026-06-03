@@ -15,100 +15,33 @@ env:
 
 jobs:
   # ═══════════════════════════════════════════════════════════════════════════════
-  # CONTENT QUALITY
+  # TESTS — all Python tests run via a single pytest command
   # ═══════════════════════════════════════════════════════════════════════════════
+  #
+  # Covers content quality (manifests, structure, skill size, terminology, links,
+  # activation precision, routing eval), security (secrets, licenses), MCP protocol
+  # & skill routing, performance budget, binary integrity, and eval regression.
+  # Azure-backed integration tests (dogfood/e2e) self-skip unless the connection
+  # secret is available.
 
-  validate-manifests:
-    name: "Content: Manifests & structure"
+  tests:
+    name: "Tests: pytest suite"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Validate JSON manifests are parseable
-        run: |
-          echo "Checking marketplace manifests..."
-          for f in .github/plugin/marketplace.json .claude-plugin/marketplace.json .agents/plugins/marketplace.json; do
-            echo "  ✓ $f"
-            python3 -c "import json; json.load(open('$f'))"
-          done
-
-      - name: Validate single-plugin structure
-        run: |
-          echo "Checking root plugin structure..."
-          for file in README.md plugin/.mcp.json plugin/run_mcp.js plugin/PGSQL_TOOLS_CLI_VERSION plugin/skills/postgresql-best-practices/SKILL.md; do
-            if [ ! -f "$file" ]; then
-              echo "  ✗ Missing required file: $file"
-              exit 1
-            fi
-            echo "  ✓ $file exists"
-          done
-          ref_count=$(find plugin/skills/postgresql-best-practices/references -name "*.md" | wc -l)
-          if [ "$ref_count" -lt 10 ]; then
-            echo "  ✗ Expected at least 10 reference files, found $ref_count"
-            exit 1
-          fi
-          echo "  ✓ $ref_count reference files found"
-          python3 -c "import json; json.load(open('plugin/.mcp.json'))"
-          python3 -c "import json; json.load(open('tests/.skills.json'))"
-
-  skill-size-limits:
-    name: "Content: Skill token budgets"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 tests/checks/check_skill_size.py
-
-  terminology:
-    name: "Content: Brand terminology"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 tests/checks/check_terminology.py
-
-  link-checker:
-    name: "Content: Link validation"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 tests/checks/check_links.py
-
-  activation-precision:
-    name: "Content: Activation keyword precision"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 tests/checks/check_activation_precision.py
-
-  routing-eval:
-    name: "Content: Routing eval"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install routing eval dependency
-        run: python -m pip install "pyyaml>=6.0"
-      - name: Run routing eval
-        run: python tests/evals/routing_eval.py --host all
-
-  # ═══════════════════════════════════════════════════════════════════════════════
-  # SECURITY
-  # ═══════════════════════════════════════════════════════════════════════════════
-
-  security:
-    name: "Security: Secrets & content safety"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 tests/checks/check_security.py
-
-  license-compliance:
-    name: "Security: License compliance"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 tests/checks/check_licenses.py
+      - name: Install test dependencies
+        run: pip install -r tests/requirements.txt
+      - name: Run pytest
+        env:
+          PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
+        run: python -m pytest tests/ -v -m "not pg"
+        timeout-minutes: 10
 
   # ═══════════════════════════════════════════════════════════════════════════════
   # COMPATIBILITY
@@ -171,23 +104,6 @@ jobs:
           if echo "$OUTPUT" | grep -qi "error"; then echo "✗ plugin install reported an error"; exit 1; fi
           echo "✓ plugin installed"
 
-  mcp-conformance:
-    name: "Compat: MCP protocol conformance"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install test dependencies
-        run: pip install -r tests/requirements.txt
-      - name: Test MCP protocol and skill routing
-        run: python -m pytest tests/test_mcp_protocol.py tests/test_skill_routing.py -v
-        timeout-minutes: 3
-
   cross-platform-binary:
     name: "Compat: Binary ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
@@ -242,6 +158,11 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install -r tests/requirements.txt
 
       - name: Install extensions (pgvector)
         run: |
@@ -251,31 +172,7 @@ jobs:
         env:
           PGSQL_TEST_CONNECTION_STRING: "host=localhost user=testuser password=testpass dbname=testdb"
           PG_VERSION: ${{ matrix.pg_version }}
-        run: python3 tests/checks/check_sql_syntax.py
-
-  dogfood-test:
-    name: "Regression: Dogfood"
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'run-dogfood')
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install test dependencies
-        run: pip install -r tests/requirements.txt
-      - name: Run dogfood and e2e integration tests
-        env:
-          PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
-        run: |
-          if [ -z "$PGSQL_TEST_CONNECTION_STRING" ]; then
-            echo "⚠ PGSQL_TEST_CONNECTION_STRING secret not set — skipping"
-            exit 0
-          fi
-          python -m pytest tests/test_ai_app.py tests/test_mcp_e2e.py -v -m integration
+        run: python -m pytest tests/test_sql_syntax.py -v -m pg
 
   eval-pipeline:
     name: "Regression: Eval delta tracking"
@@ -334,117 +231,5 @@ jobs:
       - name: Check for regressions
         if: success()
         run: |
-          if [ -f tests/evals/results/latest.json ]; then
-            python3 -c "
-          import json, sys
-          with open('tests/evals/results/latest.json') as f:
-              results = json.load(f)
-          per_skill = results.get('per_skill', {})
-          regressions = []
-          for skill_id, metrics in per_skill.items():
-              judge_score = metrics.get('avg_judge_score')
-              if judge_score is not None and judge_score < 0.5:
-                  regressions.append((skill_id, judge_score))
-          if regressions:
-              print('✗ Skills with critically low judge scores (< 0.50):')
-              for sid, score in sorted(regressions, key=lambda x: x[1]):
-                  print(f'  {sid}: {score:.3f}')
-              sys.exit(1)
-          print(f'✓ No significant regressions detected ({len(per_skill)} skills checked)')
-          "
-          fi
-
-  # ═══════════════════════════════════════════════════════════════════════════════
-  # OPERATIONAL
-  # ═══════════════════════════════════════════════════════════════════════════════
-
-  performance-budget:
-    name: "Ops: Performance budget"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Measure MCP cold-start time
-        run: |
-          START=$(date +%s%N)
-          timeout 15 node plugin/run_mcp.js < /dev/null 2>&1 || true
-          END=$(date +%s%N)
-          ELAPSED=$(( (END - START) / 1000000 ))
-          echo "Cold-start time: ${ELAPSED}ms"
-          if [ "$ELAPSED" -gt 15000 ]; then
-            echo "✗ Cold start exceeds 15s budget"
-            exit 1
-          fi
-          echo "✓ Cold start within budget"
-
-      - name: Measure skill routing time
-        run: |
-          python3 -c "
-          import time, json
-          with open('tests/.skills.json') as f:
-              manifest = json.load(f)
-          skills = manifest['skills']
-          prompt = 'How do I create a DiskANN index for vector similarity search on Azure PostgreSQL?'
-          start = time.perf_counter_ns()
-          for _ in range(1000):
-              for skill in skills:
-                  for kw in skill.get('activation_keywords', []):
-                      if kw.lower() in prompt.lower():
-                          break
-          elapsed_ms = (time.perf_counter_ns() - start) / 1_000_000
-          avg_ms = elapsed_ms / 1000
-          print(f'Routing time: {avg_ms:.3f}ms per query (1000 iterations)')
-          if avg_ms > 100:
-              print('✗ Routing exceeds 100ms budget')
-              exit(1)
-          print('✓ Routing within 100ms budget')
-          "
-
-  binary-integrity:
-    name: "Ops: Binary SHA-256 integrity"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Verify runtime checksum verification across plugin copies
-        run: |
-          python3 -c "
-          import sys
-          from pathlib import Path
-
-          # The CLI binary is downloaded at runtime and verified against the
-          # per-release manifest.json. Assert every run_mcp.js copy performs
-          # that verification and stays byte-identical across plugin copies.
-          files = [f for f in Path('.').rglob('run_mcp.js') if 'node_modules' not in f.parts]
-          print(f'Found {len(files)} run_mcp.js files')
-          if not files:
-              print('✗ No run_mcp.js found')
-              sys.exit(1)
-
-          expected_platforms = ['linux-x64', 'linux-arm64', 'osx-arm64', 'osx-x86', 'win-x64']
-          required_markers = ['\"manifest.json\"', 'sha256', 'verifyChecksum', 'actual !== expected']
-
-          contents = {}
-          for f in files:
-              content = f.read_text()
-              contents[str(f)] = content
-              for marker in required_markers:
-                  if marker not in content:
-                      print(f'✗ {f}: missing verification marker: {marker}')
-                      sys.exit(1)
-              for platform in expected_platforms:
-                  if platform not in content:
-                      print(f'✗ {f}: missing platform: {platform}')
-                      sys.exit(1)
-              print(f'  ✓ {f}: manifest verification + all platforms present')
-
-          # All copies must be byte-identical
-          baseline = next(iter(contents.values()))
-          for path, content in contents.items():
-              if content != baseline:
-                  print(f'✗ {path} differs from other run_mcp.js copies')
-                  sys.exit(1)
-
-          print('✓ Runtime checksum verification consistent and complete')
-          "
+          pip install -r tests/requirements.txt
+          python -m pytest tests/test_eval_regression.py -v

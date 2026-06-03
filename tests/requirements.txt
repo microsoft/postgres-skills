@@ -1,3 +1,5 @@
 # Test dependencies for the PostgreSQL Agent Skills test suite.
 # The MCP server itself runs under Node; these are for the pytest harness.
 pytest>=7.4
+# Used by tests/evals/routing_eval.py (driven via tests/test_checks.py).
+pyyaml>=6.0
