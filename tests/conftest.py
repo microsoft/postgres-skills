@@ -330,6 +330,20 @@ def parse_connection_id(text: str) -> Optional[str]:
 
 
 def find_profile_id(text: str) -> Optional[str]:
+    """Return the connection profile to use.
+
+    Prefers the ``default (env)`` profile that the server auto-registers from
+    ``PGSQL_CONNECTION_STRING`` so the suite is isolated from any pre-existing
+    developer profiles in ``~/.pgsql-tools-cli/connections.yaml``. Falls back to
+    the first UUID found when that named profile is not present.
+    """
+    try:
+        obj = json.loads(text)
+        for profile in obj.get("profiles", []):
+            if profile.get("profileName") == "default (env)" and profile.get("profileId"):
+                return profile["profileId"]
+    except (json.JSONDecodeError, AttributeError, TypeError):
+        pass
     m = re.search(
         r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
         text, re.IGNORECASE,
