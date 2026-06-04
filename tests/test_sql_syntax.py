@@ -3,23 +3,21 @@
 
 """SQL-syntax validation of skill SQL fences against a live PostgreSQL.
 
-Native port of the former ``tests/checks/check_sql_syntax.py``. Extracts every
-executable ``sql``/``pgsql`` fence from SKILL.md and reference files, then
-validates parseability via ``psql`` (EXPLAIN for queries, BEGIN…ROLLBACK for
-DDL/DML). Only true parser/syntax errors count as failures, and — matching the
-original — the build fails only when more than 30% of blocks are invalid.
+Extracts every executable ``sql``/``pgsql`` fence from SKILL.md and reference
+files, then validates parseability via ``psql`` (EXPLAIN for queries,
+BEGIN…ROLLBACK for DDL/DML). Only true parser/syntax errors count as failures,
+and the build fails only when more than 30% of blocks are invalid.
 
-The CI ``sql-validation`` job runs this across a PG 14–17 service matrix; locally
-and on PRs without a database it skips automatically via the ``pg`` marker.
+The CI ``sql-validation`` job runs this across a PG 14–17 Docker matrix; the
+``pg``-marked test fails (rather than skipping) when no database is reachable.
 """
 
-import os
 import re
 import subprocess
 
 import pytest
 
-from conftest import ROOT
+from conftest import ROOT, DEFAULT_CONN_STRING
 
 SQL_BLOCK_PATTERN = re.compile(r"```(?:sql|pgsql)\s*\n(.*?)```", re.DOTALL)
 
@@ -43,7 +41,30 @@ SYNTAX_ERROR_PATTERNS = [
     re.compile(r"ERROR:\s+invalid input syntax", re.IGNORECASE),
 ]
 
-CONN_STRING = os.environ.get("PGSQL_TEST_CONNECTION_STRING", "")
+CONN_STRING = DEFAULT_CONN_STRING
+
+
+def _preflight(conn_string):
+    """Fail (not silently pass) when the database is unreachable.
+
+    ``_validate_sql`` treats any non-syntax psql failure as success, so without a
+    connectivity check an unreachable DB would make every block appear valid.
+    """
+    try:
+        result = subprocess.run(
+            ["psql", conn_string, "-c", "SELECT 1", "--no-psqlrc",
+             "-v", "ON_ERROR_STOP=1"],
+            capture_output=True, text=True, timeout=10,
+        )
+    except FileNotFoundError:  # psql not installed
+        raise AssertionError("psql client not found on PATH")
+    except subprocess.TimeoutExpired:
+        raise AssertionError(f"database unreachable (timeout): {conn_string}")
+    if result.returncode != 0:
+        raise AssertionError(
+            "database unreachable for SQL validation "
+            f"({(result.stderr or result.stdout or '').strip().splitlines()[:1]})"
+        )
 
 
 def _is_syntax_error(error_text):
@@ -106,8 +127,8 @@ def _collect_blocks():
 
 
 @pytest.mark.pg
-@pytest.mark.skipif(not CONN_STRING, reason="PGSQL_TEST_CONNECTION_STRING not set")
 def test_sql_blocks_parse():
+    _preflight(CONN_STRING)
     blocks = _collect_blocks()
     assert blocks, "no executable SQL blocks extracted"
     failures = []
@@ -125,10 +146,9 @@ def test_sql_blocks_parse():
 def test_sql_blocks_structural():
     """No-database structural lint of SQL fences.
 
-    Ports the database-independent ``syntax-only`` path of the former
-    ``tests/checks/check_sql_syntax.py`` so obvious authoring mistakes are caught
-    in the default (no ``pg``) lane without a live PostgreSQL. Flags balanced-
-    parenthesis violations and accidental empty statements (``;;``).
+    Runs in the default (no ``pg``) lane without a live PostgreSQL so obvious
+    authoring mistakes are caught early. Flags balanced-parenthesis violations
+    and accidental empty statements (``;;``).
     """
     blocks = _collect_blocks()
     assert blocks, "no executable SQL blocks extracted"

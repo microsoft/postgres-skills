@@ -3,11 +3,8 @@
 
 """License compliance.
 
-Native port of the former ``tests/checks/check_licenses.py``: the repository must
-carry an MIT/Apache LICENSE and no Python dependency may use a restricted (GPL)
-license. The npm and skill-attribution checks from the original were either
-optional (license-checker, skipped when unavailable) or non-blocking warnings, so
-only the failing assertions are reproduced here.
+The repository must carry an MIT/Apache LICENSE and no Python dependency may use
+a restricted (GPL) license.
 """
 
 import re

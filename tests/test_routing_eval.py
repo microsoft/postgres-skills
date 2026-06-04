@@ -3,10 +3,9 @@
 
 """Routing-accuracy smoke test across all host adapters.
 
-Native port of the former ``tests/evals/routing_eval.py`` invocation (previously
-run via subprocess). Loads the routing challenge set and drives every host adapter
-(Copilot CLI, Claude Code, Codex CLI) over every challenge, asserting the adapters
-load and route end-to-end without error and return well-formed results.
+Loads the routing challenge set and drives every host adapter (Copilot CLI,
+Claude Code, Codex CLI) over every challenge, asserting the adapters load and
+route end-to-end without error and return well-formed results.
 """
 
 import sys

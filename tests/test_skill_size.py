@@ -3,9 +3,8 @@
 
 """Skill/reference size and structure budgets.
 
-Native port of the former ``tests/checks/check_skill_size.py``: every SKILL.md and
-reference file must stay within the token budget, have a minimum of structure, and
-contain no empty SQL fences.
+Every SKILL.md and reference file must stay within the token budget, have a
+minimum of structure, and contain no empty SQL fences.
 """
 
 import re

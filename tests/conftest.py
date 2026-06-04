@@ -34,18 +34,31 @@ SKILLS_MANIFEST = TESTS_DIR / ".skills.json"
 BOOT_WAIT_S = float(os.environ.get("MCP_BOOT_WAIT_S", "5"))
 MSG_TIMEOUT_S = float(os.environ.get("MCP_MSG_TIMEOUT_S", "30"))
 
+# Default DB for the Docker-backed lanes (matches tests/docker-compose.yml).
+# Used when PGSQL_TEST_CONNECTION_STRING is not set so DB-backed tests connect to
+# the local compose Postgres instead of skipping.
+DEFAULT_CONN_STRING = (
+    "host=localhost port=5432 user=testuser password=testpass dbname=testdb "
+    "sslmode=disable gssencmode=disable"
+)
+
 
 def pytest_configure(config):
     """Register markers here so they are recognized regardless of CWD/ini discovery."""
     config.addinivalue_line(
         "markers",
-        "integration: requires a live PostgreSQL database "
-        "(skipped unless PGSQL_TEST_CONNECTION_STRING is set)",
+        "integration: generic end-to-end MCP tests against a live PostgreSQL "
+        "(Docker-backed; fails if no database is reachable)",
     )
     config.addinivalue_line(
         "markers",
-        "pg: requires a generic PostgreSQL service "
-        "(skipped unless PGSQL_TEST_CONNECTION_STRING is set)",
+        "pg: validates SQL fences against a live PostgreSQL "
+        "(Docker-backed; fails if no database is reachable)",
+    )
+    config.addinivalue_line(
+        "markers",
+        "azure: dogfood tests that require a real Azure Database for PostgreSQL "
+        "via PGSQL_TEST_CONNECTION_STRING (fails if absent)",
     )
 
 
@@ -342,25 +355,67 @@ def mcp_client():
 
 
 def _require_conn_string() -> str:
+    """Connection string for the Docker-backed lanes.
+
+    Always uses the local compose Postgres (DEFAULT_CONN_STRING). These lanes do
+    not read PGSQL_TEST_CONNECTION_STRING; they connect to the Docker database and
+    fail (rather than skip) when it is unreachable.
+    """
+    return DEFAULT_CONN_STRING
+
+
+def _require_azure_conn_string() -> str:
+    """Connection string for the dogfood (`azure`) lane.
+
+    No default: the dogfood suite asserts Azure-specific server detection
+    (isAzure, SHOW azure.extensions), so it requires a real Azure Database for
+    PostgreSQL. Fail loudly (never skip) when it is absent.
+    """
     cs = os.environ.get("PGSQL_TEST_CONNECTION_STRING")
     if not cs:
-        pytest.skip("PGSQL_TEST_CONNECTION_STRING not set — skipping integration test")
+        pytest.fail(
+            "PGSQL_TEST_CONNECTION_STRING is required for the dogfood (`azure`) "
+            "suite — set it to a real Azure Database for PostgreSQL connection "
+            "string. This suite cannot run against a local/Docker Postgres."
+        )
     return cs
 
 
 @pytest.fixture(scope="module")
 def db_client():
-    """MCP server wired to a real database via PGSQL_CONNECTION_STRING.
+    """MCP server wired to the Docker-backed database via PGSQL_CONNECTION_STRING.
 
-    Skips the whole module when PGSQL_TEST_CONNECTION_STRING is unset.
+    Connects to the local compose Postgres by default; fails (does not skip) when
+    no database is reachable.
     """
     cs = _require_conn_string()
     client = MCPClient(extra_env={
         "PGSQL_CONNECTION_STRING": to_libpq_string(cs),
         "PGSQL_TOOLS_QUERY_TIMEOUT_MS": "30000",
+        # Disable GSSAPI encryption negotiation. Without this, libpq/pgx attempts a
+        # Kerberos handshake against the local Docker Postgres on hosts that have
+        # GSS libraries (e.g. macOS), which fails before the normal auth flow.
+        "PGGSSENCMODE": "disable",
     })
     time.sleep(BOOT_WAIT_S)
     client.initialize(client_name="pytest-integration")
+    yield client
+    client.close()
+
+
+@pytest.fixture(scope="module")
+def azure_db_client():
+    """MCP server wired to a real Azure PostgreSQL for the dogfood (`azure`) lane.
+
+    Requires PGSQL_TEST_CONNECTION_STRING (no Docker fallback); fails when unset.
+    """
+    cs = _require_azure_conn_string()
+    client = MCPClient(extra_env={
+        "PGSQL_CONNECTION_STRING": to_libpq_string(cs),
+        "PGSQL_TOOLS_QUERY_TIMEOUT_MS": "30000",
+    })
+    time.sleep(BOOT_WAIT_S)
+    client.initialize(client_name="pytest-dogfood")
     yield client
     client.close()
 

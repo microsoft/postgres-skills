@@ -3,9 +3,8 @@
 
 """Brand terminology and spelling consistency across markdown files.
 
-Native port of the former ``tests/checks/check_terminology.py``. Code blocks,
-inline code, URLs, and front matter are stripped before matching so only prose is
-checked.
+Code blocks, inline code, URLs, and front matter are stripped before matching so
+only prose is checked.
 """
 
 import re

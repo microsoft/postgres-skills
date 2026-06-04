@@ -24,7 +24,8 @@ postgresql-agent-skills/
 ├── tests/
 │   ├── .skills.json                     # Routing fixture (used by tests + evals only)
 │   ├── conftest.py                      # pytest fixtures + MCP client + routing engine
-│   ├── pytest.ini                       # marker registration (integration, pg)
+│   ├── pytest.ini                       # marker registration (integration, pg, azure)
+│   ├── docker-compose.yml               # local/CI PostgreSQL (pgvector) for pg + integration lanes
 │   ├── evals/                           # Eval pipeline (300 challenges, LLM-as-judge)
 │   │   ├── pipeline.py                  # Main eval orchestrator
 │   │   ├── challenges/challenges.yaml   # 300 test challenges
@@ -34,8 +35,8 @@ postgresql-agent-skills/
 │   ├── test_mcp_protocol.py             # MCP protocol conformance (no DB)
 │   ├── test_sql_syntax.py              # SQL fence validation: structural (no DB) + parse (marker: pg)
 │   ├── test_mcp_e2e.py                  # End-to-end MCP queries (marker: integration)
-│   └── test_ai_app.py                   # AI-application dogfood (marker: integration)
-├── .github/workflows/ci.yml             # CI pipeline (single pytest lane + pg/integration/eval jobs)
+│   └── test_ai_app.py                   # AI-application dogfood (marker: azure)
+├── .github/workflows/ci.yml             # CI pipeline (default pytest lane + pg/integration/eval jobs)
 └── README.md
 ```
 
@@ -99,48 +100,57 @@ References are supplemental context, so focus on what LLMs get wrong. Common sec
 ## Testing
 
 The entire test suite is pytest-based and lives in `tests/`, sharing fixtures via
-`tests/conftest.py`. CI runs everything with a single `python -m pytest` command.
-Install dependencies once with `pip install -r tests/requirements.txt`, then run
-from the repo root.
+`tests/conftest.py`. Install dependencies once with
+`pip install -r tests/requirements.txt`, then run from the repo root.
+
+The `pg` and `integration` lanes run against a local PostgreSQL (with pgvector)
+started via Docker Compose — start it first so those lanes connect (they **fail**,
+rather than skip, when no database is reachable):
 
 ```bash
-# Run the whole suite. Integration tests self-skip without a database; the SQL
-# fence parse check (marker: pg) self-skips without PGSQL_TEST_CONNECTION_STRING.
-python -m pytest
+# Start the test database (PG 16 by default; PG_VERSION=15 selects another).
+docker compose -f tests/docker-compose.yml up -d --wait
 
-# Fast loop — what CI runs by default: skip both DB-backed lanes.
-python -m pytest -m "not pg and not integration"
+# Run the whole suite except the Azure-only dogfood (which needs a real Azure DB).
+python -m pytest -m "not azure"
+
+# Fast loop — no database needed: default unmarked lane only.
+python -m pytest -m "not pg and not integration and not azure"
+
+# Stop the database when done.
+docker compose -f tests/docker-compose.yml down -v
 ```
 
-Tests are grouped by three lanes via pytest markers:
+Tests are grouped into four lanes via pytest markers:
 
 - **default (unmarked)** — no database required; runs on every CI push. Covers
   token budgets, terminology, links, activation precision, licenses, security,
   manifests/structure, MCP protocol, skill routing, performance budget, binary
   integrity, eval regression, the routing eval, and the no-DB structural SQL
   fence lint.
-- **`pg`** — SQL fence validation that executes fences against a live
-  PostgreSQL (`tests/test_sql_syntax.py::test_sql_blocks_parse`).
-- **`integration`** — end-to-end MCP queries and the AI-application dogfood
-  (`tests/test_mcp_e2e.py`, `tests/test_ai_app.py`).
+- **`pg`** — SQL fence validation that executes fences against the Docker
+  PostgreSQL (`tests/test_sql_syntax.py::test_sql_blocks_parse`). Always uses the
+  fixed Docker credentials; fails if no DB is reachable.
+- **`integration`** — generic end-to-end MCP queries against the Docker
+  PostgreSQL (`tests/test_mcp_e2e.py`). Always uses the fixed Docker credentials;
+  fails if no DB is reachable.
+- **`azure`** — the AI-application dogfood (`tests/test_ai_app.py`). Requires a
+  **real Azure Database for PostgreSQL** (it asserts `isAzure` and
+  `SHOW azure.extensions`), so it cannot use the Docker DB and **fails** when
+  `PGSQL_TEST_CONNECTION_STRING` is unset. This is the only lane that reads that
+  env var, and it is an edge case run manually against an Azure server; CI does
+  not run it.
 
-These native pytest modules replace the former standalone `tests/checks/*.py`
-scripts and the standalone routing eval; there is no longer a separate check
-runner — everything is collected by `python -m pytest`.
+Everything is collected by `python -m pytest` — there is no separate check
+runner.
 
-The `pg` and `integration` lanes require a live PostgreSQL database, supplied
-via the `PGSQL_TEST_CONNECTION_STRING` env var (libpq or postgres URL). They are
-skipped automatically when the variable is unset (and in CI unless the matching
-secret/service is configured):
+To run the Azure-only dogfood lane, point `PGSQL_TEST_CONNECTION_STRING` at a real
+Azure server (with the `vector` extension allowlisted via `azure.extensions`):
 
 ```bash
 export PGSQL_TEST_CONNECTION_STRING="host=... port=5432 dbname=... user=... password=... sslmode=require"
 
-python -m pytest -m integration        # end-to-end MCP queries + AI-application dogfood
-python -m pytest -m pg                 # SQL in reference fences against a real database
-# Or target a single file:
-python -m pytest tests/test_mcp_e2e.py # end-to-end MCP queries against a real database
-python -m pytest tests/test_ai_app.py  # AI-application dogfood
+python -m pytest -m azure               # AI-application dogfood (real Azure DB)
 ```
 
 ### Manual testing (local install)

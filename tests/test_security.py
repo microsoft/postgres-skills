@@ -3,11 +3,8 @@
 
 """Secret scanning across the repository.
 
-Native port of the secret-scanning portion of the former
-``tests/checks/check_security.py`` (a hard failure on any detected secret). The
-binary checksum-verification assertions from that script are covered by
-``test_binary_integrity.py``, and its non-blocking unsafe-SQL warnings were
-informational only, so neither is duplicated here.
+Hard-fails on any detected secret. Binary checksum verification lives in
+``test_binary_integrity.py``.
 """
 
 import re

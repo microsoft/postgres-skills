@@ -3,15 +3,17 @@
 
 """AI Application Dogfood Test — Multi-Tenant RAG Product Q&A System.
 
-Replaces the former ``tests/test_ai_app.js``. Simulates an AI coding agent
-building a real application: it routes prompts through skills, reads skill
-guidance, and executes SQL via MCP tools against a live database, grading
-whether the skills gave correct, complete guidance.
+Simulates an AI coding agent building a real application: it routes prompts
+through skills, reads skill guidance, and executes SQL via MCP tools against a
+live database, grading whether the skills gave correct, complete guidance.
 
-Requires PGSQL_TEST_CONNECTION_STRING (Azure Database for PostgreSQL with
-pgvector/azure_ai); the module is skipped when it is unset. Routing and skill
-expectations are validated against the current ``tests/.skills.json`` manifest.
-Pure no-DB skill-content/routing contracts live in ``test_skill_routing.py``.
+Requires a real Azure Database for PostgreSQL (pgvector/azure_ai) via
+PGSQL_TEST_CONNECTION_STRING — the suite asserts Azure-specific server detection
+(``isAzure``) and ``SHOW azure.extensions``, so it cannot run against a generic or
+Docker PostgreSQL and **fails** (does not skip) when the connection string is
+absent. Routing and skill expectations are validated against the current
+``tests/.skills.json`` manifest. Pure no-DB skill-content/routing contracts live
+in ``test_skill_routing.py``.
 """
 
 import re
@@ -29,7 +31,7 @@ from conftest import (
     route_ids,
 )
 
-pytestmark = pytest.mark.integration
+pytestmark = pytest.mark.azure
 
 # Unique per process so same-day and parallel CI runs never collide.
 _SUFFIX = f"{time.strftime('%Y%m%d')}_{os.getpid()}"
@@ -411,8 +413,9 @@ def validate_skill_quality(client, conn_id, skills, g: Grades):
           {"connectionId": conn_id, "statement": f"DROP SCHEMA IF EXISTS {verify_schema} CASCADE;"})
 
 
-def test_dogfood_app_build(db_client, skills):
+def test_dogfood_app_build(azure_db_client, skills):
     """Build a multi-tenant RAG app end-to-end and grade skill guidance."""
+    db_client = azure_db_client
     conn_id = connect_to_database(db_client)
     g = Grades()
     try:

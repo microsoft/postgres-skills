@@ -3,14 +3,9 @@
 
 """Skill routing and content-contract tests (no database required).
 
-Replaces the no-DB portions of the former ``tests/test_plugin.js`` (routing
-scenarios + skill loading) and ``tests/test_ai_app.js`` Phases A/C/E (content
-contracts, negative routing, eval-regression guards).
-
-Routing/skill expectations are validated against the current
-``tests/.skills.json`` manifest as the source of truth. Where the legacy JS
-tests referenced skills that no longer exist (``postgresql-core``,
-``azure-postgresql-core``), assertions were updated to current manifest IDs.
+Covers routing scenarios, skill loading, content contracts, negative routing,
+and eval-regression guards. Routing/skill expectations are validated against the
+``tests/.skills.json`` manifest as the source of truth.
 """
 
 import re

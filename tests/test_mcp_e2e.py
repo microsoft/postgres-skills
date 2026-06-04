@@ -3,8 +3,8 @@
 
 """End-to-end MCP integration tests against a real PostgreSQL database.
 
-Replaces the former ``tests/test_e2e.js``. Requires PGSQL_TEST_CONNECTION_STRING
-(libpq or postgres URL); the whole module is skipped when it is unset.
+Runs against the Docker-backed PostgreSQL; the module fails — rather than
+skipping — when no database is reachable.
 
 Skill-guided MCP execution (version checks, extension allowlist, EXPLAIN,
 index creation/verification, capability detection, schema introspection) is

@@ -140,20 +140,8 @@ jobs:
       fail-fast: false
       matrix:
         pg_version: ["14", "15", "16", "17"]
-    services:
-      postgres:
-        image: postgres:${{ matrix.pg_version }}
-        env:
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpass
-          POSTGRES_DB: testdb
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
+    env:
+      PG_VERSION: ${{ matrix.pg_version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -162,18 +150,18 @@ jobs:
       - name: Install test dependencies
         run: pip install -r tests/requirements.txt
 
-      - name: Install extensions (pgvector)
-        run: |
-          sudo apt-get update && sudo apt-get install -y postgresql-${{ matrix.pg_version }}-pgvector || true
+      - name: Start PostgreSQL (pgvector) via Docker
+        run: docker compose -f tests/docker-compose.yml up -d --wait
 
       - name: Validate SQL snippets
-        env:
-          PGSQL_TEST_CONNECTION_STRING: "host=localhost user=testuser password=testpass dbname=testdb"
-          PG_VERSION: ${{ matrix.pg_version }}
         run: python -m pytest tests/test_sql_syntax.py -v -m pg
 
+      - name: Stop database
+        if: always()
+        run: docker compose -f tests/docker-compose.yml down -v
+
   integration:
-    name: "Regression: Integration (MCP e2e + AI dogfood)"
+    name: "Regression: Integration (MCP e2e)"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -185,15 +173,14 @@ jobs:
           python-version: "3.11"
       - name: Install test dependencies
         run: pip install -r tests/requirements.txt
+      - name: Start PostgreSQL (pgvector) via Docker
+        run: docker compose -f tests/docker-compose.yml up -d --wait
       - name: Run integration tests
-        env:
-          PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
-        run: |
-          if [ -z "$PGSQL_TEST_CONNECTION_STRING" ]; then
-            echo "⚠ PGSQL_TEST_CONNECTION_STRING not set — integration tests will self-skip"
-          fi
-          python -m pytest tests/ -v -m integration
+        run: python -m pytest tests/ -v -m integration
         timeout-minutes: 15
+      - name: Stop database
+        if: always()
+        run: docker compose -f tests/docker-compose.yml down -v
 
   eval-pipeline:
     name: "Regression: Eval delta tracking"

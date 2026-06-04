@@ -3,9 +3,8 @@
 
 """Validate that external URLs in markdown files are reachable.
 
-Native port of the former ``tests/checks/check_links.py``. Uses a HEAD request
-(falling back to GET on 403/405) and treats transient DNS/TLS/timeout failures as
-non-blocking, matching the original behavior.
+Uses a HEAD request (falling back to GET on 403/405) and treats transient
+DNS/TLS/timeout failures as non-blocking.
 """
 
 import re

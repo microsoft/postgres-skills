@@ -3,11 +3,10 @@
 
 """Routing-table precision for the SKILL.md keyword routing table.
 
-Native port of the former ``tests/checks/check_activation_precision.py``. Parses
-the keyword→reference routing table from SKILL.md and asserts that representative
-prompts activate the expected reference(s) and never activate forbidden ones,
-including the Azure-gating rules (Azure references must not activate outside an
-Azure session).
+Parses the keyword→reference routing table from SKILL.md and asserts that
+representative prompts activate the expected reference(s) and never activate
+forbidden ones, including the Azure-gating rules (Azure references must not
+activate outside an Azure session).
 """
 
 import re

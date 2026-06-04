@@ -3,10 +3,9 @@
 
 """MCP protocol conformance tests (no database required).
 
-Replaces the former ``tests/checks/check_mcp_conformance.js`` and
-``tests/test_mcp.js``: validates that the MCP server starts, completes the
-initialize handshake, declares a tools capability, and lists the expected tools
-with input schemas, within the cold-start budget.
+Validates that the MCP server starts, completes the initialize handshake,
+declares a tools capability, and lists the expected tools with input schemas,
+within the cold-start budget.
 """
 
 import time
