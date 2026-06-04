@@ -255,18 +255,19 @@ jobs:
             tests/evals/results/report_*.json
             tests/evals/results/results_*.json
           retention-days: 30
-      - name: Print eval summary to pipeline output
-        if: always()
+      - name: Commit eval results on release tags only
+        if: success() && startsWith(github.ref, 'refs/tags/v')
         run: |
+          echo "Release tag detected — snapshotting eval results..."
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          mkdir -p tests/evals/results/releases
           if [ -f tests/evals/results/latest.json ]; then
-            echo "### Eval results" >> "$GITHUB_STEP_SUMMARY"
-            echo '```json' >> "$GITHUB_STEP_SUMMARY"
-            cat tests/evals/results/latest.json >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-            echo "=== Eval results (latest.json) ==="
-            cat tests/evals/results/latest.json
-          else
-            echo "No eval results (latest.json absent)."
+            cp tests/evals/results/latest.json "tests/evals/results/releases/${TAG_NAME}.json"
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add -f "tests/evals/results/releases/${TAG_NAME}.json"
+            git commit -m "chore: snapshot eval results for ${TAG_NAME} [skip ci]"
+            git push
           fi
       - name: Check for regressions
         if: success()
