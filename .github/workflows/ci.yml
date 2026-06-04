@@ -15,7 +15,7 @@ env:
 
 jobs:
   # ═══════════════════════════════════════════════════════════════════════════════
-  # TESTS — all Python tests run via a single pytest command
+  # TESTS — no-DB default lane (pytest, runs without a database)
   # ═══════════════════════════════════════════════════════════════════════════════
   #
   # Covers content quality (manifests, structure, skill size, terminology, links,
