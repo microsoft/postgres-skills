@@ -19,8 +19,8 @@ jobs:
   # ═══════════════════════════════════════════════════════════════════════════════
   #
   # Covers content quality (manifests, structure, skill size, terminology, links,
-  # activation precision, routing eval), security (secrets, licenses), MCP protocol
-  # & skill routing, performance budget, binary integrity, eval, and the
+  # activation precision, skill routing), security (secrets, licenses), MCP protocol
+  # & skill routing, performance budget, binary integrity, and the
   # no-DB structural SQL fence lint. Database-backed lanes run in dedicated jobs:
   # `sql-validation` (marker: pg), `integration` (marker: integration), and
   # `azure-dogfood` (marker: azure, test_ai_app) which runs against a real Azure
@@ -222,6 +222,10 @@ jobs:
           python-version: "3.11"
       - name: Install eval dependencies
         run: pip install -r tests/evals/requirements.txt
+      - name: Run routing eval (no LLM)
+        run: |
+          cd tests/evals
+          python routing_eval.py
       - name: Run eval pipeline
         env:
           PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
@@ -267,5 +271,5 @@ jobs:
       - name: Check for regressions
         if: success()
         run: |
-          pip install -r tests/requirements.txt
-          python -m pytest tests/test_eval_regression.py -v
+          cd tests/evals
+          python eval_regression.py

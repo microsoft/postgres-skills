@@ -4,7 +4,7 @@
 """Skill routing and content-contract tests (no database required).
 
 Covers routing scenarios, skill loading, content contracts, negative routing,
-and eval-regression guards. Routing/skill expectations are validated against the
+and content-regression guards. Routing/skill expectations are validated against the
 ``tests/.skills.json`` manifest as the source of truth.
 """
 
@@ -211,14 +211,14 @@ def test_skill_content_contract(skills, contract):
 
 
 # ---------------------------------------------------------------------------
-# Phase E: eval-regression guards (known negative-delta failure modes)
+# Phase E: content-regression guards (known negative-delta failure modes)
 # ---------------------------------------------------------------------------
 def _single_line(pattern, content):
-    """JS-style search: '.' does not cross newlines."""
+    """Single-line search: '.' does not cross newlines."""
     return re.search(pattern, content, I) is not None
 
 
-EVAL_REGRESSION = {
+CONTENT_REGRESSION = {
     "vector-diskann": [
         (
             "no speculative DiskANN GUC parameters",
@@ -279,7 +279,7 @@ EVAL_REGRESSION = {
 
 _REGRESSION_CASES = [
     (skill_id, name, fn)
-    for skill_id, checks in EVAL_REGRESSION.items()
+    for skill_id, checks in CONTENT_REGRESSION.items()
     for name, fn in checks
 ]
 
@@ -289,7 +289,7 @@ _REGRESSION_CASES = [
     _REGRESSION_CASES,
     ids=[f"{s}-{n}" for s, n, _ in _REGRESSION_CASES],
 )
-def test_eval_regression_guard(skills, skill_id, name, check):
+def test_content_regression_guard(skills, skill_id, name, check):
     content = load_skill_content(skill_id, skills)
     assert content, f"{skill_id}: reference file not found"
     assert check(content), f"{skill_id}: {name}"

@@ -126,7 +126,7 @@ Tests are grouped into four lanes via pytest markers:
 - **default (unmarked)** — no database required; runs on every CI push. Covers
   token budgets, terminology, links, activation precision, licenses, security,
   manifests/structure, MCP protocol, skill routing, performance budget, binary
-  integrity, eval regression, the routing eval, and the no-DB structural SQL
+  integrity, and the no-DB structural SQL
   fence lint.
 - **`pg`** — SQL fence validation that executes fences against the Docker
   PostgreSQL (`tests/test_sql_syntax.py::test_sql_blocks_parse`). Always uses the
