@@ -3,10 +3,8 @@
 
 """Routing performance budget.
 
-Ported from the inline Python in the ci.yml ``performance-budget`` job: the
-keyword routing scan over the skills manifest must stay well under budget. The
-MCP server cold-start (15s budget) is also asserted here, replacing the bash
-``node plugin/run_mcp.js`` measurement from the old job.
+The keyword routing scan over the skills manifest must stay well under budget.
+The MCP server cold-start (15s budget) is also asserted here.
 """
 
 import subprocess
