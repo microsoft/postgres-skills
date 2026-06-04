@@ -15,100 +15,38 @@ env:
 
 jobs:
   # ═══════════════════════════════════════════════════════════════════════════════
-  # CONTENT QUALITY
+  # TESTS — no-DB default lane (pytest, runs without a database)
   # ═══════════════════════════════════════════════════════════════════════════════
+  #
+  # Covers content quality (manifests, structure, skill size, terminology, links,
+  # activation precision, skill routing), security (secrets, licenses), MCP protocol
+  # & skill routing, performance budget, binary integrity, and the
+  # no-DB structural SQL fence lint. Database-backed lanes run in dedicated jobs:
+  # `sql-validation` (marker: pg), `integration` (marker: integration), and
+  # `azure-dogfood` (marker: azure, test_ai_app) which runs against a real Azure
+  # server via PGSQL_TEST_CONNECTION_STRING.
 
-  validate-manifests:
-    name: "Content: Manifests & structure"
+  tests:
+    name: "Tests: pytest suite"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Validate JSON manifests are parseable
-        run: |
-          echo "Checking marketplace manifests..."
-          for f in .github/plugin/marketplace.json .claude-plugin/marketplace.json .agents/plugins/marketplace.json; do
-            echo "  ✓ $f"
-            python3 -c "import json; json.load(open('$f'))"
-          done
-
-      - name: Validate single-plugin structure
-        run: |
-          echo "Checking root plugin structure..."
-          for file in README.md plugin/.mcp.json plugin/run_mcp.js plugin/PGSQL_TOOLS_CLI_VERSION plugin/skills/postgresql-best-practices/SKILL.md; do
-            if [ ! -f "$file" ]; then
-              echo "  ✗ Missing required file: $file"
-              exit 1
-            fi
-            echo "  ✓ $file exists"
-          done
-          ref_count=$(find plugin/skills/postgresql-best-practices/references -name "*.md" | wc -l)
-          if [ "$ref_count" -lt 10 ]; then
-            echo "  ✗ Expected at least 10 reference files, found $ref_count"
-            exit 1
-          fi
-          echo "  ✓ $ref_count reference files found"
-          python3 -c "import json; json.load(open('plugin/.mcp.json'))"
-          python3 -c "import json; json.load(open('tests/.skills.json'))"
-
-  skill-size-limits:
-    name: "Content: Skill token budgets"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 tests/checks/check_skill_size.py
-
-  terminology:
-    name: "Content: Brand terminology"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 tests/checks/check_terminology.py
-
-  link-checker:
-    name: "Content: Link validation"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 tests/checks/check_links.py
-
-  activation-precision:
-    name: "Content: Activation keyword precision"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 tests/checks/check_activation_precision.py
-
-  routing-eval:
-    name: "Content: Routing eval"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install routing eval dependency
-        run: python -m pip install "pyyaml>=6.0"
-      - name: Run routing eval
-        run: python tests/evals/routing_eval.py --host all
-
-  # ═══════════════════════════════════════════════════════════════════════════════
-  # SECURITY
-  # ═══════════════════════════════════════════════════════════════════════════════
-
-  security:
-    name: "Security: Secrets & content safety"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 tests/checks/check_security.py
-
-  license-compliance:
-    name: "Security: License compliance"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 tests/checks/check_licenses.py
+      - name: Install test dependencies
+        run: pip install -r tests/requirements.txt
+      - name: Run pytest
+        run: python -m pytest tests/ -v -m "not pg and not integration and not azure"
+        timeout-minutes: 10
+      - name: Routing eval gate (deterministic host adapters, no LLM)
+        run: |
+          cd tests/evals
+          python routing_eval.py --check
+        timeout-minutes: 5
 
   # ═══════════════════════════════════════════════════════════════════════════════
   # COMPATIBILITY
@@ -171,18 +109,6 @@ jobs:
           if echo "$OUTPUT" | grep -qi "error"; then echo "✗ plugin install reported an error"; exit 1; fi
           echo "✓ plugin installed"
 
-  mcp-conformance:
-    name: "Compat: MCP protocol conformance"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Test MCP protocol
-        run: node tests/checks/check_mcp_conformance.js
-        timeout-minutes: 2
-
   cross-platform-binary:
     name: "Compat: Binary ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
@@ -201,7 +127,7 @@ jobs:
       - name: Verify binary exists in cache
         shell: bash
         run: |
-          CACHE_DIR="$HOME/.pgsql-tools"
+          CACHE_DIR="$HOME/.pgsql-tools-cli"
           if [ -d "$CACHE_DIR" ]; then
             echo "✓ Binary cache created at $CACHE_DIR"
             find "$CACHE_DIR" -type f | sed -n '1,10p'
@@ -211,64 +137,87 @@ jobs:
           fi
 
   # ═══════════════════════════════════════════════════════════════════════════════
-  # REGRESSION
+  # DATABASE
   # ═══════════════════════════════════════════════════════════════════════════════
 
   sql-validation:
-    name: "Regression: SQL syntax (PG ${{ matrix.pg_version }})"
+    name: "DB: SQL syntax (PG ${{ matrix.pg_version }})"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         pg_version: ["14", "15", "16", "17"]
-    services:
-      postgres:
-        image: postgres:${{ matrix.pg_version }}
-        env:
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpass
-          POSTGRES_DB: testdb
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
+    env:
+      PG_VERSION: ${{ matrix.pg_version }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install -r tests/requirements.txt
 
-      - name: Install extensions (pgvector)
-        run: |
-          sudo apt-get update && sudo apt-get install -y postgresql-${{ matrix.pg_version }}-pgvector || true
+      - name: Start PostgreSQL (pgvector) via Docker
+        run: docker compose -f tests/docker-compose.yml up -d --wait
 
       - name: Validate SQL snippets
-        env:
-          PGSQL_TEST_CONNECTION_STRING: "host=localhost user=testuser password=testpass dbname=testdb"
-          PG_VERSION: ${{ matrix.pg_version }}
-        run: python3 tests/checks/check_sql_syntax.py
+        run: python -m pytest tests/test_sql_syntax.py -v -m pg
 
-  dogfood-test:
-    name: "Regression: Dogfood (90 checks)"
+      - name: Stop database
+        if: always()
+        run: docker compose -f tests/docker-compose.yml down -v
+
+  integration:
+    name: "DB: Integration (MCP e2e)"
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'run-dogfood')
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Run dogfood test
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install -r tests/requirements.txt
+      - name: Start PostgreSQL (pgvector) via Docker
+        run: docker compose -f tests/docker-compose.yml up -d --wait
+      - name: Run integration tests
+        run: python -m pytest tests/ -v -m integration
+        timeout-minutes: 15
+      - name: Stop database
+        if: always()
+        run: docker compose -f tests/docker-compose.yml down -v
+
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # AZURE
+  # ═══════════════════════════════════════════════════════════════════════════════
+
+  azure-dogfood:
+    name: "Dogfood: AI app (Azure)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install -r tests/requirements.txt
+      - name: Run Azure dogfood test
         env:
           PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
-        run: |
-          if [ -z "$PGSQL_TEST_CONNECTION_STRING" ]; then
-            echo "⚠ PGSQL_TEST_CONNECTION_STRING secret not set — skipping"
-            exit 0
-          fi
-          node tests/test_ai_app.js
+        run: python -m pytest tests/test_ai_app.py -v -m azure
+        timeout-minutes: 15
+
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # EVAL
+  # ═══════════════════════════════════════════════════════════════════════════════
 
   eval-pipeline:
-    name: "Regression: Eval delta tracking"
+    name: "Eval delta tracking"
     runs-on: ubuntu-latest
     if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     steps:
@@ -278,6 +227,10 @@ jobs:
           python-version: "3.11"
       - name: Install eval dependencies
         run: pip install -r tests/evals/requirements.txt
+      - name: Run routing eval (no LLM)
+        run: |
+          cd tests/evals
+          python routing_eval.py
       - name: Run eval pipeline
         env:
           PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
@@ -323,113 +276,14 @@ jobs:
           fi
       - name: Check for regressions
         if: success()
+        env:
+          PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
         run: |
-          if [ -f tests/evals/results/latest.json ]; then
-            python3 -c "
-          import json, sys
-          with open('tests/evals/results/latest.json') as f:
-              results = json.load(f)
-          per_skill = results.get('per_skill', {})
-          regressions = []
-          for skill_id, metrics in per_skill.items():
-              judge_score = metrics.get('avg_judge_score')
-              if judge_score is not None and judge_score < 0.5:
-                  regressions.append((skill_id, judge_score))
-          if regressions:
-              print('✗ Skills with critically low judge scores (< 0.50):')
-              for sid, score in sorted(regressions, key=lambda x: x[1]):
-                  print(f'  {sid}: {score:.3f}')
-              sys.exit(1)
-          print(f'✓ No significant regressions detected ({len(per_skill)} skills checked)')
-          "
+          cd tests/evals
+          if [ -z "$PGSQL_TEST_CONNECTION_STRING" ] || [ -z "$AZURE_OPENAI_ENDPOINT" ] || [ -z "$AZURE_OPENAI_API_KEY" ]; then
+            echo "⚠ Eval pipeline did not run (secrets absent) — regression guard not applicable (non-gating)."
+            exit 0
           fi
-
-  # ═══════════════════════════════════════════════════════════════════════════════
-  # OPERATIONAL
-  # ═══════════════════════════════════════════════════════════════════════════════
-
-  performance-budget:
-    name: "Ops: Performance budget"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Measure MCP cold-start time
-        run: |
-          START=$(date +%s%N)
-          timeout 15 node plugin/run_mcp.js < /dev/null 2>&1 || true
-          END=$(date +%s%N)
-          ELAPSED=$(( (END - START) / 1000000 ))
-          echo "Cold-start time: ${ELAPSED}ms"
-          if [ "$ELAPSED" -gt 15000 ]; then
-            echo "✗ Cold start exceeds 15s budget"
-            exit 1
-          fi
-          echo "✓ Cold start within budget"
-
-      - name: Measure skill routing time
-        run: |
-          python3 -c "
-          import time, json
-          with open('tests/.skills.json') as f:
-              manifest = json.load(f)
-          skills = manifest['skills']
-          prompt = 'How do I create a DiskANN index for vector similarity search on Azure PostgreSQL?'
-          start = time.perf_counter_ns()
-          for _ in range(1000):
-              for skill in skills:
-                  for kw in skill.get('activation_keywords', []):
-                      if kw.lower() in prompt.lower():
-                          break
-          elapsed_ms = (time.perf_counter_ns() - start) / 1_000_000
-          avg_ms = elapsed_ms / 1000
-          print(f'Routing time: {avg_ms:.3f}ms per query (1000 iterations)')
-          if avg_ms > 100:
-              print('✗ Routing exceeds 100ms budget')
-              exit(1)
-          print('✓ Routing within 100ms budget')
-          "
-
-  binary-integrity:
-    name: "Ops: Binary SHA-256 integrity"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Verify hash consistency across plugin copies
-        run: |
-          python3 -c "
-          import json, sys
-          from pathlib import Path
-
-          # Load both run_mcp.js files and extract hashes
-          files = list(Path('.').rglob('run_mcp.js'))
-          print(f'Found {len(files)} run_mcp.js files')
-
-          all_hashes = {}
-          for f in files:
-              content = f.read_text()
-              import re
-              hashes = dict(re.findall(r'\"(pgsql-tools-cli-[^\"]+)\":\s*\"([a-f0-9]{64})\"', content))
-              all_hashes[str(f)] = hashes
-              print(f'  {f}: {len(hashes)} hashes')
-
-          # Verify all copies have same hashes
-          hash_sets = list(all_hashes.values())
-          for i in range(1, len(hash_sets)):
-              if hash_sets[i] != hash_sets[0]:
-                  print(f'✗ Hash mismatch between run_mcp.js copies')
-                  sys.exit(1)
-
-          # Verify all 5 platforms have hashes
-          expected = ['linux-x64', 'linux-arm64', 'osx-arm64', 'osx-x86', 'win-x64']
-          for platform in expected:
-              found = any(platform in k for k in hash_sets[0].keys())
-              if not found:
-                  print(f'✗ Missing hash for platform: {platform}')
-                  sys.exit(1)
-              print(f'  ✓ {platform} hash present')
-
-          print(f'✓ All binary hashes consistent and complete')
-          "
+          python eval_regression.py --require-results
