@@ -42,6 +42,11 @@ jobs:
       - name: Run pytest
         run: python -m pytest tests/ -v -m "not pg and not integration and not azure"
         timeout-minutes: 10
+      - name: Routing eval gate (deterministic host adapters, no LLM)
+        run: |
+          cd tests/evals
+          python routing_eval.py --check
+        timeout-minutes: 5
 
   # ═══════════════════════════════════════════════════════════════════════════════
   # COMPATIBILITY
@@ -271,6 +276,14 @@ jobs:
           fi
       - name: Check for regressions
         if: success()
+        env:
+          PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
         run: |
           cd tests/evals
-          python eval_regression.py
+          if [ -z "$PGSQL_TEST_CONNECTION_STRING" ] || [ -z "$AZURE_OPENAI_ENDPOINT" ] || [ -z "$AZURE_OPENAI_API_KEY" ]; then
+            echo "⚠ Eval pipeline did not run (secrets absent) — regression guard not applicable (non-gating)."
+            exit 0
+          fi
+          python eval_regression.py --require-results

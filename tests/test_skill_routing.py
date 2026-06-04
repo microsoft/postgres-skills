@@ -103,14 +103,18 @@ SKILL_CONTRACTS = [
         "skill_id": "vector-diskann",
         "required": [
             r"CREATE\s+EXTENSION.*vector",
-            r"USING\s+(diskann|hnsw)",
+            r"CREATE\s+INDEX.*USING\s+(diskann|hnsw)",
             r"vector_cosine_ops|vector_l2_ops|vector_ip_ops",
             r"azure_pg_admin",
             r"azure\.extensions",
         ],
+        # ivfflat is only forbidden when recommended/preferred; a "not recommended"
+        # or "legacy" framing is allowed (Python re lacks variable-width lookbehind,
+        # so this is enforced in check_forbidden() rather than as a bare pattern).
         "forbidden": [r"ALTER\s+SYSTEM"],
+        "forbidden_contextual": ["ivfflat_not_preferred"],
         "required_sections": ["Prerequisites", "Common Mistakes"],
-        "min_sql_blocks": 3,
+        "min_sql_blocks": 4,
     },
     {
         "skill_id": "table-partitioning",
@@ -146,6 +150,9 @@ SKILL_CONTRACTS = [
             r"shared_preload_libraries",
         ],
         "forbidden": [],
+        # ALTER SYSTEM is only forbidden when shown as the correct approach
+        # (inside a ✅ Right block), not when called out as wrong.
+        "forbidden_contextual": ["right_block_alter_system"],
         "required_sections": ["Prerequisites"],
         "min_sql_blocks": 2,
     },
@@ -159,6 +166,9 @@ SKILL_CONTRACTS = [
             r"FORCE\s+ROW\s+LEVEL\s+SECURITY",
         ],
         "forbidden": [r"ALTER\s+SYSTEM"],
+        # SUPERUSER is only forbidden when presented as a required role
+        # (inside a ✅ Right block), not when warning about bypass.
+        "forbidden_contextual": ["right_block_superuser"],
         "required_sections": [],
         "min_sql_blocks": 2,
     },
@@ -189,6 +199,36 @@ SKILL_CONTRACTS = [
 ]
 
 
+_CONTEXTUAL_FORBIDDEN = {
+    # ivfflat is acceptable when framed as not-preferred/legacy; only flag it
+    # when it is actively recommended or preferred.
+    "ivfflat_not_preferred": (
+        r"(?:recommend|prefer)\w*\s+ivfflat",
+        r"(?:not|never|avoid|legacy|instead\s+of|rather\s+than)\b[^\n]{0,40}\bivfflat",
+    ),
+    # ALTER SYSTEM shown inside a "✅ Right" block (correct-approach framing).
+    "right_block_alter_system": (r"✅\s*Right[\s\S]{0,200}ALTER\s+SYSTEM", None),
+    # SUPERUSER shown inside a "✅ Right" block (required-role framing).
+    "right_block_superuser": (r"✅\s*Right[\s\S]{0,200}SUPERUSER", None),
+}
+
+
+def _contextual_forbidden_hit(key: str, content: str) -> bool:
+    """Return True when a contextual forbidden pattern is violated.
+
+    Each rule is (flag_pattern, allow_pattern). The rule is violated when
+    flag_pattern matches and allow_pattern (if any) does not — emulating the
+    variable-width negative lookbehind used by the original JS contracts, which
+    Python ``re`` cannot express directly.
+    """
+    flag_pat, allow_pat = _CONTEXTUAL_FORBIDDEN[key]
+    if not re.search(flag_pat, content, I):
+        return False
+    if allow_pat is not None and re.search(allow_pat, content, I):
+        return False
+    return True
+
+
 @pytest.mark.parametrize("contract", SKILL_CONTRACTS, ids=lambda c: c["skill_id"])
 def test_skill_content_contract(skills, contract):
     content = load_skill_content(contract["skill_id"], skills)
@@ -199,6 +239,15 @@ def test_skill_content_contract(skills, contract):
 
     triggered = [f for f in contract["forbidden"] if re.search(f, content, I)]
     assert not triggered, f"{contract['skill_id']} has forbidden patterns: {triggered}"
+
+    contextual = [
+        k
+        for k in contract.get("forbidden_contextual", [])
+        if _contextual_forbidden_hit(k, content)
+    ]
+    assert not contextual, (
+        f"{contract['skill_id']} has contextual forbidden patterns: {contextual}"
+    )
 
     for section in contract["required_sections"]:
         assert section in content, f"{contract['skill_id']} missing section: {section}"

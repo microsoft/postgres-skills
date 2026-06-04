@@ -295,7 +295,34 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, default=DEFAULT_RESULTS)
     parser.add_argument("--skill-md", type=Path, default=DEFAULT_SKILL_MD)
     parser.add_argument("--marketplace", type=Path, default=DEFAULT_MARKETPLACE)
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="Gating mode: exit non-zero if any deterministic (non-approximate) "
+        "host has misroutes or no-match failures. Approximate hosts "
+        f"({', '.join(sorted(APPROXIMATE_HOSTS))}) remain informational.",
+    )
     return parser.parse_args()
+
+
+def _gating_failures(metrics_by_host: dict[str, "HostMetrics"]) -> list[str]:
+    """Return human-readable failures for deterministic hosts only.
+
+    Approximate hosts are keyword-simulated (LLM-mediated routing) and would make
+    a gate flaky, so they are excluded. Deterministic adapters read the actual
+    manifests, so any misroute/no-match there reflects a real routing regression.
+    """
+    failures: list[str] = []
+    for host, m in metrics_by_host.items():
+        if host in APPROXIMATE_HOSTS:
+            continue
+        if m.misroutes or m.no_match_failures:
+            failures.append(
+                f"{host}: {m.misroutes} misroute(s), "
+                f"{m.no_match_failures} no-match failure(s) "
+                f"out of {m.total_challenges} challenges"
+            )
+    return failures
 
 
 def main() -> int:
@@ -328,6 +355,15 @@ def main() -> int:
     print_disagreements(disagreements)
     save_results(args.output, args, challenges, metrics_by_host, disagreements)
     print(f"Saved routing results to {args.output}")
+
+    if args.check:
+        failures = _gating_failures(metrics_by_host)
+        if failures:
+            print("\nFAIL — deterministic host routing regressions detected:")
+            for f in failures:
+                print(f"  {f}")
+            return 1
+        print("\nPASS — deterministic host routing is clean (no misroutes/no-match).")
     return 0
 
 
