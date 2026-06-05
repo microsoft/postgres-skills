@@ -1,4 +1,4 @@
-name: Dummy CI
+name: CI — Enterprise Test Suite
 
 on:
   workflow_dispatch:
