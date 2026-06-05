@@ -35,8 +35,7 @@ TERMINOLOGY_RULES = [
 CODE_BLOCK_PATTERN = re.compile(r"```.*?```", re.DOTALL)
 INLINE_CODE_PATTERN = re.compile(r"`[^`]+`")
 URL_PATTERN = re.compile(r"https?://\S+")
-FRONTMATTER_PATTERN = re.compile(r"^---\n.*?\n---\n", re.DOTALL)
-
+FRONTMATTER_PATTERN = re.compile(r"^---\r?\n.*?\r?\n---\r?\n", re.DOTALL)
 
 def _strip_code(content: str) -> str:
     content = FRONTMATTER_PATTERN.sub(" ", content, count=1)
