@@ -1,0 +1,21 @@
+# Local + CI PostgreSQL (with pgvector) for the DB-backed test lanes.
+#
+#   docker compose -f tests/docker-compose.yml up -d --wait
+#   PG_VERSION=15 docker compose -f tests/docker-compose.yml up -d --wait
+#
+# Connection string (matches tests/conftest.py DEFAULT_CONN_STRING):
+#   host=localhost user=testuser password=testpass dbname=testdb
+services:
+  postgres:
+    image: pgvector/pgvector:pg${PG_VERSION:-16}
+    environment:
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpass
+      POSTGRES_DB: testdb
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "testuser", "-d", "testdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
