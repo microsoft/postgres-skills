@@ -6,9 +6,6 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -214,79 +211,3 @@ jobs:
           PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
         run: python -m pytest tests/test_ai_app.py -v -m azure
         timeout-minutes: 15
-
-  # ═══════════════════════════════════════════════════════════════════════════════
-  # EVAL
-  # ═══════════════════════════════════════════════════════════════════════════════
-
-  eval-pipeline:
-    name: "Eval delta tracking"
-    runs-on: ubuntu-latest
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install eval dependencies
-        run: pip install -r tests/evals/requirements.txt
-      - name: Run routing eval (no LLM)
-        run: |
-          cd tests/evals
-          python routing_eval.py
-      - name: Run eval pipeline
-        env:
-          PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
-          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
-          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
-          AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
-        run: |
-          if [ -z "$PGSQL_TEST_CONNECTION_STRING" ] || [ -z "$AZURE_OPENAI_ENDPOINT" ] || [ -z "$AZURE_OPENAI_API_KEY" ]; then
-            echo "⚠ Required secrets not set — skipping eval pipeline"
-            exit 0
-          fi
-          cd tests/evals
-          python pipeline.py --provider azure --output results/
-      - name: Upload eval summary
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: eval-results
-          path: tests/evals/results/latest.json
-          retention-days: 30
-      - name: Upload detailed eval results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: eval-detailed-results
-          path: |
-            tests/evals/results/report_*.json
-            tests/evals/results/results_*.json
-          retention-days: 30
-      - name: Commit eval results on release tags only
-        if: success() && startsWith(github.ref, 'refs/tags/v')
-        run: |
-          echo "Release tag detected — snapshotting eval results..."
-          TAG_NAME="${GITHUB_REF#refs/tags/}"
-          mkdir -p tests/evals/results/releases
-          if [ -f tests/evals/results/latest.json ]; then
-            cp tests/evals/results/latest.json "tests/evals/results/releases/${TAG_NAME}.json"
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add -f "tests/evals/results/releases/${TAG_NAME}.json"
-            git commit -m "chore: snapshot eval results for ${TAG_NAME} [skip ci]"
-            git push
-          fi
-      - name: Check for regressions
-        if: success()
-        env:
-          PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
-          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
-          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
-        run: |
-          cd tests/evals
-          if [ -z "$PGSQL_TEST_CONNECTION_STRING" ] || [ -z "$AZURE_OPENAI_ENDPOINT" ] || [ -z "$AZURE_OPENAI_API_KEY" ]; then
-            echo "⚠ Eval pipeline did not run (secrets absent) — regression guard not applicable (non-gating)."
-            exit 0
-          fi
-          python eval_regression.py --require-results

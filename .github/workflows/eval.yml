@@ -1,0 +1,91 @@
+name: Eval — Pipeline (manual)
+
+# Manually-dispatched eval. On non-main branches the updated
+# tests/evals/results/latest.json is committed back so the delta lands in
+# git history alongside the corresponding skill changes.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: eval-${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  eval-pipeline:
+    name: "Eval delta tracking"
+    runs-on: ubuntu-latest
+    permissions:
+      # Snapshot step pushes `latest.json` back to the dispatched branch.
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install eval dependencies
+        run: pip install -r tests/evals/requirements.txt
+      - name: Run routing eval (no LLM)
+        run: |
+          cd tests/evals
+          python routing_eval.py
+      - name: Run eval pipeline
+        env:
+          PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
+        run: |
+          if [ -z "$PGSQL_TEST_CONNECTION_STRING" ] || [ -z "$AZURE_OPENAI_ENDPOINT" ] || [ -z "$AZURE_OPENAI_API_KEY" ]; then
+            echo "⚠ Required secrets not set — skipping eval pipeline"
+            exit 0
+          fi
+          cd tests/evals
+          python pipeline.py --provider azure --output results/
+      - name: Upload eval summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: tests/evals/results/latest.json
+          retention-days: 30
+      - name: Upload detailed eval results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-detailed-results
+          path: |
+            tests/evals/results/report_*.json
+            tests/evals/results/results_*.json
+          retention-days: 30
+      - name: Snapshot latest.json to dispatched branch
+        # Skipped on `main` (push would be rejected) and on non-branch refs.
+        # `[skip ci]` prevents the auto-push from re-triggering ci.yml.
+        if: success() && startsWith(github.ref, 'refs/heads/') && github.ref != 'refs/heads/main'
+        run: |
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          if [ ! -f tests/evals/results/latest.json ]; then
+            echo "No latest.json produced — nothing to snapshot."
+            exit 0
+          fi
+          if git diff --quiet -- tests/evals/results/latest.json; then
+            echo "latest.json unchanged on ${BRANCH_NAME} — nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tests/evals/results/latest.json
+          git commit -m "chore: snapshot eval results on ${BRANCH_NAME} [skip ci]"
+          git push origin "HEAD:${BRANCH_NAME}"
+      - name: Check for regressions
+        if: success()
+        env:
+          PGSQL_TEST_CONNECTION_STRING: ${{ secrets.PGSQL_TEST_CONNECTION_STRING }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+        run: |
+          cd tests/evals
+          if [ -z "$PGSQL_TEST_CONNECTION_STRING" ] || [ -z "$AZURE_OPENAI_ENDPOINT" ] || [ -z "$AZURE_OPENAI_API_KEY" ]; then
+            echo "⚠ Eval pipeline did not run (secrets absent) — regression guard not applicable (non-gating)."
+            exit 0
+          fi
+          python eval_regression.py --require-results
