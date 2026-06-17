@@ -47,10 +47,11 @@ When guidance needs Azure CLI and shell access exists:
 - Execute non-destructive `az` commands directly.
 - Ask first for destructive actions: `delete`, `restart`, `upgrade`, `failover`, `stop-replication`, PITR restore.
 - Always pass `--subscription <id>`.
-- If target server is unknown:
+- If target server or resource group is unknown, **always discover before prompting the user**:
   ```bash
   az postgres flexible-server list --query "[].{name:name, resourceGroup:resourceGroup, location:location, version:version}" -o table
   ```
+  Use the discovered `resourceGroup` and `name` for subsequent commands. Only ask the user if the list returns multiple servers and the target is ambiguous.
 - If shell access is unavailable, provide numbered manual commands.
 
 ---
