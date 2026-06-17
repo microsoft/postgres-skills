@@ -139,6 +139,12 @@ function detectPlatform() {
   if (osName === "osx" && arch === "x64") {
     arch = "x86";
   }
+  // Windows on ARM has no dedicated artifact, but it transparently runs
+  // the x64 build through the OS emulation layer, so resolve win-arm64
+  // to the published win-x64 asset.
+  if (osName === "win" && arch === "arm64") {
+    arch = "x64";
+  }
   const platform = `${osName}-${arch}`;
   if (!SUPPORTED_TARGETS.has(platform)) {
     throw new Error(
@@ -982,7 +988,13 @@ async function main() {
   execMcp(cliPath);
 }
 
-main().catch((err) => {
-  log(`Fatal: ${err.message}`);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    log(`Fatal: ${err.message}`);
+    process.exit(1);
+  });
+}
+
+// Exported for unit tests; the guard above keeps direct `node run_mcp.js`
+// invocation (CLI, MCP launch, CI smoke tests) running main() unchanged.
+module.exports = { detectPlatform, SUPPORTED_TARGETS };
