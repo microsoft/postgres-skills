@@ -46,7 +46,7 @@ When guidance needs Azure CLI and shell access exists:
   ```
 - If `az account show` fails, ask the user to run `az login` or `az login --use-device-code`. Do not run login automatically.
 - Execute non-destructive `az` commands directly.
-- Ask first for destructive actions: `delete`, `restart`, `upgrade`, `failover`, `stop-replication`, PITR restore.
+- **NEVER execute destructive az CLI commands without explicit user confirmation.** Before running `delete`, `restart`, `upgrade`, `failover`, `stop-replication`, or PITR restore, state what will happen (including expected downtime) and ask "Do you want me to proceed?" Wait for a yes before executing.
 - Always pass `--subscription <id>`.
 - If target server or resource group is unknown, **always discover before prompting the user**:
   ```bash
