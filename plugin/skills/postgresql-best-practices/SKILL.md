@@ -3,8 +3,8 @@ name: postgresql-best-practices
 description: "Expert PostgreSQL skills with intelligent routing. Covers both generic PostgreSQL and Azure Database for PostgreSQL."
 tags: [postgresql, azure, database, skills, routing]
 activation:
-  user_intent: ["work with PostgreSQL", "database query", "connect to postgres", "Azure PostgreSQL"]
-  technical_keywords: ["postgresql", "postgres", "psql", "pg_", "azure database for postgresql", "flexible server", "pgvector", "diskann"]
+  user_intent: ["work with PostgreSQL", "database query", "connect to postgres", "Azure PostgreSQL", "show tables", "list tables", "describe schema", "database schema", "what tables exist"]
+  technical_keywords: ["postgresql", "postgres", "psql", "pg_", "azure database for postgresql", "flexible server", "pgvector", "diskann", "pgsql_", "pgsql-tools"]
 ---
 
 # PostgreSQL Agent Skills — Routing Table
@@ -23,9 +23,10 @@ Use references as supplemental context — combine them with your PostgreSQL kno
 
 When the context is Azure Database for PostgreSQL, NEVER suggest:
 
-- **File paths**: `pg_hba.conf`, `postgresql.conf`, `/var/lib/postgresql/` — these are not accessible
+- **File paths**: `pg_hba.conf`, `postgresql.conf`, `/var/lib/postgresql/` — these are not accessible. Never run `SHOW config_file`, `SHOW hba_file`, or `SHOW data_directory` as these reveal internal paths that are irrelevant on a managed service.
 - **OS commands**: `systemctl`, `sudo`, `pg_basebackup`, `pg_ctl`, `initdb` — no OS-level access
-- **ALTER SYSTEM SET** — use `az postgres flexible-server parameter set` or portal instead
+- **ALTER SYSTEM SET** — blocked on Azure. Use `az postgres flexible-server parameter set` or portal instead.
+- **ALTER DATABASE SET for server-wide parameters** — while technically permitted, prefer `az postgres flexible-server parameter set` for server-wide changes (e.g., `work_mem`, `shared_buffers`, `max_connections`). Only use `ALTER DATABASE SET` if the user explicitly wants a per-database override. Always clarify scope with the user: "Do you want this server-wide (az CLI) or for this specific database only (ALTER DATABASE SET)?"
 - **Manual replication setup** — use Azure read replicas (`az postgres flexible-server replica create`)
 - **Manual backup/restore** — use Azure PITR (`az postgres flexible-server restore`)
 
