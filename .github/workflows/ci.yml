@@ -63,19 +63,19 @@ jobs:
             os: ubuntu-latest
             install_cmd: npm install -g @github/copilot@latest
             add_marketplace_cmd: copilot plugin marketplace add "$(pwd)"
-            add_plugin_cmd: copilot plugin install postgresql-agent-skills@postgresql-agent-skills
+            add_plugin_cmd: copilot plugin install postgres-skills@postgres-skills
 
           - cli: claude-code
             os: ubuntu-latest
             install_cmd: npm install -g @anthropic-ai/claude-code@latest
             add_marketplace_cmd: claude plugin marketplace add "$(pwd)"
-            add_plugin_cmd: claude plugin install postgresql-agent-skills@postgresql-agent-skills
+            add_plugin_cmd: claude plugin install postgres-skills@postgres-skills
 
           - cli: codex-cli
             os: ubuntu-latest
             install_cmd: npm install -g @openai/codex@latest
             add_marketplace_cmd: codex plugin marketplace add "$(pwd)"
-            add_plugin_cmd: codex plugin add postgresql-agent-skills@postgresql-agent-skills
+            add_plugin_cmd: codex plugin add postgres-skills@postgres-skills
 
     steps:
       - uses: actions/checkout@v4

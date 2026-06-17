@@ -13,7 +13,7 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 ## Repository layout
 
 ```
-postgresql-agent-skills/
+postgres-skills/
 ├── .github/plugin/marketplace.json     # Canonical marketplace manifest (Copilot)
 ├── plugin/                             # Plugin root (MCP launcher + skills)
 │   ├── .mcp.json
@@ -159,19 +159,19 @@ Install the plugin from your local checkout to test changes end-to-end before su
 
 ```bash
 # GitHub Copilot CLI
-copilot plugin marketplace remove postgresql-agent-skills --force
+copilot plugin marketplace remove postgres-skills --force
 copilot plugin marketplace add "$(pwd)"
-copilot plugin install postgresql-agent-skills@postgresql-agent-skills
+copilot plugin install postgres-skills@postgres-skills
 
 # Claude Code CLI
-claude plugin marketplace remove postgresql-agent-skills
+claude plugin marketplace remove postgres-skills
 claude plugin marketplace add "$(pwd)"
-claude plugin install postgresql-agent-skills@postgresql-agent-skills
+claude plugin install postgres-skills@postgres-skills
 
 # Codex CLI
-codex plugin marketplace remove postgresql-agent-skills
+codex plugin marketplace remove postgres-skills
 codex plugin marketplace add "$(pwd)"
-codex plugin add postgresql-agent-skills@postgresql-agent-skills
+codex plugin add postgres-skills@postgres-skills
 ```
 
 ### Running the full eval pipeline

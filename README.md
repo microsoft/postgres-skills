@@ -42,22 +42,22 @@ Installation differs by host. Each host registers the marketplace, then installs
 ### GitHub Copilot CLI
 
 ```bash
-copilot plugin marketplace add microsoft/postgresql-agent-skills
-copilot plugin install postgresql-agent-skills@postgresql-agent-skills
+copilot plugin marketplace add microsoft/postgres-skills
+copilot plugin install postgres-skills@postgres-skills
 ```
 
 ### Claude Code
 
 ```bash
-claude plugin marketplace add microsoft/postgresql-agent-skills
-claude plugin install postgresql-agent-skills@postgresql-agent-skills
+claude plugin marketplace add microsoft/postgres-skills
+claude plugin install postgres-skills@postgres-skills
 ```
 
 ### Codex CLI
 
 ```bash
-codex plugin marketplace add microsoft/postgresql-agent-skills
-codex plugin install postgresql-agent-skills@postgresql-agent-skills
+codex plugin marketplace add microsoft/postgres-skills
+codex plugin install postgres-skills@postgres-skills
 ```
 
 That's it. Start your AI agent, ask PostgreSQL questions and the right skill activates automatically.
