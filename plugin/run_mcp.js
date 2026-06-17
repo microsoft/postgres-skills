@@ -515,10 +515,52 @@ function extractArchive(buf, destDir, assetName) {
 function sleepSync(ms) {
   // Block the event loop without busy-waiting. Atomics.wait on a
   // SharedArrayBuffer is the stdlib way to sleep synchronously in Node;
-  // we only need it during lock-contention backoff, which is rare.
+  // we only need it during install-lock and rename-retry backoff, which
+  // are rare.
   const sab = new SharedArrayBuffer(4);
   const view = new Int32Array(sab);
   Atomics.wait(view, 0, 0, ms);
+}
+
+// Windows transiently fails directory renames with these codes when
+// another process still holds a handle inside the directory — e.g.
+// Defender's real-time scan of the freshly extracted unsigned .exe, the
+// just-executed binary's lingering image handle (verifyStagedBundle runs
+// the staged binary right before promote), or x64-on-ARM64 emulation
+// handle-release delays. POSIX has no such contention. Retrying with a
+// short backoff lets the handle drop so the promote can complete.
+const RENAME_RETRY_CODES = new Set(["EPERM", "EACCES", "EBUSY", "ENOTEMPTY"]);
+const RENAME_MAX_ATTEMPTS = 10;
+const RENAME_RETRY_DELAY_MS = 200;
+
+// `rename`/`sleep` are injectable so the retry loop is unit-testable
+// off-Windows without real filesystem races; production uses the
+// fs.renameSync / sleepSync defaults.
+function renameWithRetry(
+  src,
+  dst,
+  {
+    attempts = RENAME_MAX_ATTEMPTS,
+    delayMs = RENAME_RETRY_DELAY_MS,
+    rename = fs.renameSync,
+    sleep = sleepSync,
+  } = {},
+) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      rename(src, dst);
+      return;
+    } catch (err) {
+      if (attempt >= attempts || !RENAME_RETRY_CODES.has(err.code)) {
+        throw err;
+      }
+      log(
+        `rename ${src} -> ${dst} failed with ${err.code}; ` +
+          `retry ${attempt}/${attempts - 1} after ${delayMs}ms`,
+      );
+      sleep(delayMs);
+    }
+  }
 }
 
 function isProcessAlive(pid) {
@@ -662,14 +704,14 @@ function promoteStaging(stagedDir) {
       CONFIG_DIR,
       `.old.${crypto.randomBytes(6).toString("hex")}`,
     );
-    fs.renameSync(INSTALL_DIR, oldDir);
+    renameWithRetry(INSTALL_DIR, oldDir);
   }
   try {
-    fs.renameSync(stagedDir, INSTALL_DIR);
+    renameWithRetry(stagedDir, INSTALL_DIR);
   } catch (err) {
     if (oldDir) {
       try {
-        fs.renameSync(oldDir, INSTALL_DIR);
+        renameWithRetry(oldDir, INSTALL_DIR);
       } catch (_) {
         // rollback failed; surface original error
       }
@@ -679,7 +721,14 @@ function promoteStaging(stagedDir) {
   installState.stagingDir = null;
   if (oldDir) {
     try {
-      fs.rmSync(oldDir, { recursive: true, force: true });
+      // Same Windows handle contention that affects the renames can briefly
+      // block deleting the old bundle, so let rmSync retry as well.
+      fs.rmSync(oldDir, {
+        recursive: true,
+        force: true,
+        maxRetries: RENAME_MAX_ATTEMPTS,
+        retryDelay: RENAME_RETRY_DELAY_MS,
+      });
     } catch (_) {
       // best effort
     }
@@ -997,4 +1046,4 @@ if (require.main === module) {
 
 // Exported for unit tests; the guard above keeps direct `node run_mcp.js`
 // invocation (CLI, MCP launch, CI smoke tests) running main() unchanged.
-module.exports = { detectPlatform, SUPPORTED_TARGETS };
+module.exports = { detectPlatform, SUPPORTED_TARGETS, renameWithRetry };
