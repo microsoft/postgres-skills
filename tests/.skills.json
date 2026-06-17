@@ -1,15 +1,15 @@
 {
   "schema_version": "1.0",
-  "name": "postgresql-agent-skills",
+  "name": "postgres-skills",
   "display_name": "PostgreSQL Agent Skills",
   "description": "Expert-curated skills for AI coding agents working with PostgreSQL and Azure Database for PostgreSQL. Single plugin with connection-aware routing.",
   "publisher": "microsoft",
   "version": "0.2.0",
   "license": "MIT",
-  "repository": "https://github.com/microsoft/postgresql-agent-skills",
+  "repository": "https://github.com/microsoft/postgres-skills",
   "skills": [
     {
-      "id": "postgresql-agent-skills",
+      "id": "postgres-skills",
       "path": "plugin/skills/postgresql-best-practices/SKILL.md",
       "platform_scope": "postgresql",
       "activation_keywords": [

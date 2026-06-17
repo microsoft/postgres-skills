@@ -1,6 +1,6 @@
-# postgresql-agent-skills plugin
+# postgres-skills plugin
 
-The installable plugin payload for the `postgresql-agent-skills` marketplace. It bundles
+The installable plugin payload for the `postgres-skills` marketplace. It bundles
 the PostgreSQL skill and the `pgsql-tools` MCP server so AI-agent CLIs (GitHub Copilot CLI,
 Claude Code, Codex) can route PostgreSQL work to the right guidance and tools.
 
@@ -17,7 +17,7 @@ Claude Code, Codex) can route PostgreSQL work to the right guidance and tools.
 ## Codex compatibility: `plugin.json`
 
 Codex requires a manifest at **`.codex-plugin/plugin.json`** inside the plugin folder.
-Without it, `codex plugin add postgresql-agent-skills@postgresql-agent-skills` fails with
+Without it, `codex plugin add postgres-skills@postgres-skills` fails with
 `Error: missing plugin.json`.
 
 It should be updated along with the plugin field in `.github/plugin/marketplace.json`.

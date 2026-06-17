@@ -63,19 +63,22 @@ jobs:
             os: ubuntu-latest
             install_cmd: npm install -g @github/copilot@latest
             add_marketplace_cmd: copilot plugin marketplace add "$(pwd)"
-            add_plugin_cmd: copilot plugin install postgresql-agent-skills@postgresql-agent-skills
+            add_plugin_cmd: copilot plugin install postgres-skills@postgres-skills
+            list_cmd: copilot plugin list
 
           - cli: claude-code
             os: ubuntu-latest
             install_cmd: npm install -g @anthropic-ai/claude-code@latest
             add_marketplace_cmd: claude plugin marketplace add "$(pwd)"
-            add_plugin_cmd: claude plugin install postgresql-agent-skills@postgresql-agent-skills
+            add_plugin_cmd: claude plugin install postgres-skills@postgres-skills
+            list_cmd: claude plugin list
 
           - cli: codex-cli
             os: ubuntu-latest
             install_cmd: npm install -g @openai/codex@latest
             add_marketplace_cmd: codex plugin marketplace add "$(pwd)"
-            add_plugin_cmd: codex plugin add postgresql-agent-skills@postgresql-agent-skills
+            add_plugin_cmd: codex plugin add postgres-skills@postgres-skills
+            list_cmd: codex plugin list
 
     steps:
       - uses: actions/checkout@v4
@@ -108,6 +111,24 @@ jobs:
           if [ "$CODE" -ne 0 ]; then echo "✗ plugin install exited $CODE"; exit 1; fi
           if echo "$OUTPUT" | grep -qi "error"; then echo "✗ plugin install reported an error"; exit 1; fi
           echo "✓ plugin installed"
+
+      - name: Verify plugin is installed
+        run: |
+          set +e
+          OUTPUT=$(${{ matrix.list_cmd }} 2>&1)
+          CODE=$?
+          set -e
+          echo "$OUTPUT"
+          if [ "$CODE" -ne 0 ]; then echo "✗ plugin list exited $CODE"; exit 1; fi
+          # Assert postgres-skills appears as installed. Codex lists every
+          # marketplace plugin (installed or not), so require a postgres-skills
+          # line that is NOT "not installed"; Copilot/Claude only list installed
+          # plugins, so their entry passes the same check.
+          if ! echo "$OUTPUT" | grep -i "postgres-skills" | grep -qvi "not installed"; then
+            echo "✗ postgres-skills not listed as installed"
+            exit 1
+          fi
+          echo "✓ postgres-skills present and installed"
 
   cross-platform-binary:
     name: "Compat: Binary ${{ matrix.os }}"

@@ -28,7 +28,7 @@ SKIP_PATTERNS = [
     r"management\.azure\.com/?$",
     r"myresource\.openai\.azure\.com",
     r"dl\.cacerts\.digicert\.com",
-    r"github\.com/[^/\s]+/postgresql-agent-skills(?:\.git|/|$)",
+    r"github\.com/[^/\s]+/postgres-skills(?:\.git|/|$)",
 ]
 NON_BLOCKING_NETWORK_ERRORS = [
     "No address associated with hostname",
