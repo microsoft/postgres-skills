@@ -17,6 +17,7 @@ Use references as supplemental context — combine them with your PostgreSQL kno
 - Never assume `SUPERUSER` — use `azure_pg_admin` (Azure) or equivalent managed role
 - Use `CONCURRENTLY` for `CREATE INDEX` / `REINDEX` / `DETACH PARTITION` in production
 - `pgsql_modify` does NOT return row data (no RETURNING support)
+- **Destructive DDL confirmation**: Before executing `pgsql_modify` with `DROP`, `TRUNCATE`, `DELETE` (without WHERE), or `ALTER TABLE ... DROP`, always ask the user for explicit confirmation. List the affected objects and warn about data loss before proceeding.
 - Version-gated features: `MERGE` (PG 15+), `json_table` (PG 17+), `DETACH CONCURRENTLY` (PG 14+)
 
 ## Managed Service Guardrails (Azure Flexible Server)
@@ -28,7 +29,7 @@ When the context is Azure Database for PostgreSQL, NEVER suggest:
 - **ALTER SYSTEM SET** — blocked on Azure. Use `az postgres flexible-server parameter set` or portal instead.
 - **ALTER DATABASE SET for server-wide parameters** — while technically permitted, prefer `az postgres flexible-server parameter set` for server-wide changes (e.g., `work_mem`, `shared_buffers`, `max_connections`). Only use `ALTER DATABASE SET` if the user explicitly wants a per-database override. Always clarify scope with the user: "Do you want this server-wide (az CLI) or for this specific database only (ALTER DATABASE SET)?"
 - **Manual replication setup** — use Azure read replicas (`az postgres flexible-server replica create`)
-- **Manual backup/restore** — use Azure PITR (`az postgres flexible-server restore`)
+- **Manual backup/restore** — do NOT suggest `pg_dump` or `pg_basebackup` as the primary backup strategy. Always lead with Azure PITR (`az postgres flexible-server restore`), and explain it creates a new server. Only mention `pg_dump` as a secondary option for cross-platform migration or selective table export.
 
 Instead, always use Azure equivalents: portal, az CLI, ARM/Bicep, or server parameters API.
 
@@ -64,7 +65,7 @@ On first activation:
 2. `isAzure: true` → all skills available; prefer `azure-postgresql-*` for overlapping topics.
 3. `isAzure: false` → use only `postgresql-*` skills.
 4. No connection + generic question → use `postgresql-*` skills.
-5. No connection + explicit Azure question → answer conceptually with: "These steps require an active Azure PostgreSQL connection to execute."
+5. No connection + explicit Azure question → answer conceptually with: "These steps require an active Azure PostgreSQL connection to execute." Apply all Azure guardrails (no ALTER SYSTEM, no file paths, no OS commands) even without `isAzure` confirmation — if the user says "Azure PostgreSQL", treat it as Azure.
 6. Unknown state → attempt capability check only for clearly Azure-specific requests; otherwise default to generic PostgreSQL skills.
 
 ---
@@ -114,7 +115,7 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 
 ## Quick Decision Tree
 
-- Vector or similarity → `azure-postgresql-vector-diskann` on Azure, otherwise `postgresql-vector-search`
+- Vector or similarity → `azure-postgresql-vector-diskann` on Azure, otherwise `postgresql-vector-search`. When `isAzure: true` and the user asks about vector indexes without specifying an index type, recommend DiskANN as the preferred option alongside HNSW.
 - RAG or GenAI → `azure-postgresql-genai-patterns` only for in-database `azure_ai`; otherwise `postgresql-genai-rag`
 - Extensions → Azure uses `azure-postgresql-extension-lifecycle`; non-Azure uses `postgresql-extensions`
 - Connection pooling → Azure built-in pooler uses `azure-postgresql-connection-pooling`; otherwise `postgresql-connection-management`
