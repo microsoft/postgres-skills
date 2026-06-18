@@ -1,5 +1,5 @@
 {
-  "name": "postgresql-agent-skills",
+  "name": "postgres-skills",
   "metadata": {
     "description": "Expert PostgreSQL and Azure Database for PostgreSQL skills with connection-aware routing",
     "version": "0.0.1"
@@ -10,7 +10,7 @@
   },
   "plugins": [
     {
-      "name": "postgresql-agent-skills",
+      "name": "postgres-skills",
       "source": "./plugin",
       "description": "Single plugin with intelligent routing — generic PG always available, Azure skills gated by connection detection",
       "version": "0.0.1"
