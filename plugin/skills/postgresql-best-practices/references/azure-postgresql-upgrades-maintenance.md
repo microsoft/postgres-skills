@@ -10,6 +10,14 @@ tags: [azure, postgresql, upgrade, major-version, maintenance, mvu]
 
 > **Shell execution:** `--validate-only` is safe to execute directly. The actual `upgrade` command is destructive (irreversible, causes downtime) and requires user confirmation. Restart after upgrade also requires confirmation.
 
+## ⚠️ Confident Hallucination Corrections
+
+These facts are ones models **confidently get wrong**. Override any prior belief:
+
+- **❌ WRONG: "You can upgrade from PG 13 to 16 directly."** ✅ CORRECT: Azure MVU goes **one version at a time** (13→14→15→16). No multi-version jumps.
+- **❌ WRONG: "Just run the upgrade command."** ✅ CORRECT: Always run `--validate-only` first. It catches extension blockers, disk space issues, and connection problems in 2-5 minutes without committing.
+- **❌ WRONG: "You can downgrade if something goes wrong."** ✅ CORRECT: MVU is **irreversible**. Rollback = PITR restore to a NEW server.
+
 ## Key Facts (what models get wrong)
 
 | Fact | Detail |
@@ -57,6 +65,7 @@ tags: [azure, postgresql, upgrade, major-version, maintenance, mvu]
 - Cannot skip versions (e.g., 13→16 directly)
 - Maintenance windows do NOT control MVU timing
 - Read replicas do NOT auto-upgrade with primary
+- **25% free disk space required** for MVU to proceed (pre-check fails otherwise)
 
 ## References
 - [Major version upgrades](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-major-version-upgrade)

@@ -19,6 +19,11 @@ Avoid explaining basic Azure CLI commands or generic identity concepts. The base
 
 > **NEVER suggest for Azure:** `pg_hba.conf` edits, `/var/lib/postgresql` paths, or `postgresql.conf` changes. Auth configuration is via `az postgres flexible-server ad-admin` and server parameters API.
 
+## ⚠️ Confident Hallucination Corrections
+
+- **❌ WRONG: "Use the managed identity display name as the database username."** ✅ CORRECT: The PostgreSQL username for managed identity must be the **client ID** (or object ID), NOT the display name or app name. Display names are not unique and will fail auth.
+- **❌ WRONG: "PgBouncer transaction mode works with token auth."** ✅ CORRECT: **Session pool mode is required** for Entra token auth. Transaction mode drops auth context between transactions.
+
 ## Key Facts (what models get wrong)
 
 | Fact | Detail |
@@ -28,7 +33,8 @@ Avoid explaining basic Azure CLI commands or generic identity concepts. The base
 | pgaadauth_create_principal required | Azure RBAC Contributor does NOT grant database login. Must explicitly create principal |
 | Username format varies | Managed identity = client/object ID. User = `user@domain.com`. Service principal = application ID |
 | PgBouncer requires session mode | Transaction mode breaks token auth (auth context is per-connection) |
-| Propagation delay | RBAC role assignment takes up to 10 minutes to propagate |
+| Propagation delay | RBAC role assignment takes up to **10 minutes** to propagate |
+| Entra group propagation | Group membership changes take up to **60 minutes** to propagate to PostgreSQL |
 | Entra admin is mandatory | Must set an Entra admin before any token-based login works |
 
 ## Critical Code Pattern: Managed Identity Connection

@@ -12,6 +12,11 @@ Prioritize where agents over-trust Azure's tuning surface: incomplete Query Stor
 
 > **NEVER suggest for Azure:** `ALTER SYSTEM SET`, `postgresql.conf` edits, `systemctl reload`, or `sudo` commands. Parameter changes are via `az postgres flexible-server parameter set` or portal.
 
+## ⚠️ Confident Hallucination Corrections
+
+- **❌ WRONG: "Any database user can query intelligent performance views."** ✅ CORRECT: The `azure_pg_admin` role is **required** for `intelligent_performance.*` and `query_store.*` views. Without it, you get permission denied.
+- **❌ WRONG: "Index recommendations appear in pg_stat_user_indexes or system catalogs."** ✅ CORRECT: Azure's recommendations are in `intelligent_performance.index_recommendations` — a **custom Azure view**, not a standard PostgreSQL catalog.
+
 ## Prerequisites
 
 - `azure_pg_admin` role is required for most intelligent performance views.

@@ -12,6 +12,10 @@ If user builds app-driven RAG (app calls OpenAI SDK, stores vectors in PostgreSQ
 
 Avoid explaining basic vector search, HNSW indexes, or generic RAG patterns. The base model and other skills handle those.
 
+## ⚠️ Confident Hallucination Correction
+
+- **❌ WRONG: "Pass an array of texts to `azure_openai.create_embeddings()` for batch processing."** ✅ CORRECT: `azure_openai.create_embeddings()` takes **single text input only**. No array/batch. You MUST loop row-by-row or use `SELECT ... FROM table` with a lateral join.
+
 ## Key Facts (what models get wrong)
 
 | Fact | Detail |
@@ -52,6 +56,7 @@ Avoid explaining basic vector search, HNSW indexes, or generic RAG patterns. The
 - Cannot use non-Azure-OpenAI models with azure_ai extension
 - azure_ai requires explicit endpoint configuration via `azure_ai.set_setting()` (not auto-discovered)
 - Do NOT confuse `create_embeddings()` (returns vector) with `create()` (returns text)
+- Azure OpenAI endpoint must have **NO trailing slash** (e.g., `https://myoai.openai.azure.com` not `https://myoai.openai.azure.com/`)
 
 ## SQL Examples
 

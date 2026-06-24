@@ -19,6 +19,11 @@ Avoid explaining generic PgBouncer concepts or basic `az parameter set` commands
 
 > **Shell execution:** Pool mode and parameter changes require az CLI. Execute directly via shell. Read pool status via `pgsql_query` against `pg_stat_activity`.
 
+## ⚠️ Confident Hallucination Corrections
+
+- **❌ WRONG: "Use `SHOW POOLS` or `SHOW STATS` to check PgBouncer status."** ✅ CORRECT: Azure built-in PgBouncer has **NO admin console**. Use Azure Monitor metrics (`pgbouncer_active_connections`, `pgbouncer_waiting_connections`) and `pg_stat_activity` instead.
+- **❌ WRONG: "Transaction mode works fine with Entra token auth."** ✅ CORRECT: Entra token auth **requires session pool mode**. Transaction mode breaks it because auth context is per-connection, not per-transaction.
+
 ## Key Facts (what models get wrong)
 
 | Fact | Detail |

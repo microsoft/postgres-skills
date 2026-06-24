@@ -12,10 +12,13 @@ Prioritize the constraints that are hard to reverse after creation: network mode
 
 ## Non-obvious facts agents often miss
 
+> **⚠️ Confident Hallucination Correction:**
+> **❌ WRONG: "Start with Burstable tier and upgrade to General Purpose later — it's just `az postgres flexible-server update --tier`."** ✅ CORRECT: In-place tier changes work between GP↔MO, but **Burstable→GP/MO is NOT supported in-place**. You must provision a new server and migrate data. Burstable is NOT a stepping stone.
+
 - **Storage never shrinks**: manual increases and auto-grow are permanent.
 - **Network mode is effectively a create-time decision**: public vs private/VNet cannot be flipped casually later.
 - **SKU names differ by tool**: CLI uses names like `Standard_D4ds_v5`; Terraform uses tier-prefixed names like `GP_Standard_D4ds_v5`.
-- **Burstable is not a stepping stone to GP/MO**: moving from Burstable to General Purpose or Memory Optimized means new server + migration.
+- **Burstable is not a stepping stone to GP/MO**: in-place tier changes work between GP↔MO, but Burstable→GP/MO requires new server + migration.
 - **Zone placement is sticky**: changing AZ usually means reprovision + migration.
 - **Terraform storage uses MB**: `storage_mb`, not `storage_gb`.
 
