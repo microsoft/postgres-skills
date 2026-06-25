@@ -20,7 +20,7 @@ tags: [postgresql, performance, explain, work_mem, statistics]
 
 - **`loops` multiplier** — node time is per-loop. `0.1ms × 10,000 loops = 1 second`. Always multiply.
 - **Seq Scan is not always wrong** — on low-selectivity queries or small tables, Seq Scan is the correct choice. Don't reflexively add indexes.
-- **Statistics before indexes** — fix 10x row-estimate errors (`rows=` vs `actual rows=`) with `ANALYZE` or `CREATE STATISTICS` before adding access paths.
+- **Statistics before indexes** — fix 10x row-estimate errors (`rows=` vs `actual rows=`) with `ANALYZE` or `CREATE STATISTICS` before adding access paths. Check `pg_stat_user_tables.n_mod_since_analyze` to detect stale statistics: a high value means autovacuum hasn't analyzed the table yet and estimates may be wrong.
 - **`work_mem` is per-operation per-worker** — raising it globally multiplies across parallel workers and plan nodes. Prefer session/statement scope for specific spilling queries.
 - **`hash_mem_multiplier`** — hash nodes can use `work_mem × hash_mem_multiplier` (default 2.0). Include this in memory math.
 - **Sort by `total_exec_time`, not `mean`** — in `pg_stat_statements`, high-total-impact queries matter more than high-mean outliers.
