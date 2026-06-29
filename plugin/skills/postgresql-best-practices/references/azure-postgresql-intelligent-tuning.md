@@ -14,8 +14,8 @@ Prioritize where agents over-trust Azure's tuning surface: incomplete Query Stor
 
 ## ⚠️ Confident Hallucination Corrections
 
-- **❌ WRONG: "Any database user can query intelligent performance views."** ✅ CORRECT: The `azure_pg_admin` role is **required** for `intelligent_performance.*` and `query_store.*` views. Without it, you get permission denied.
-- **❌ WRONG: "Index recommendations appear in pg_stat_user_indexes or system catalogs."** ✅ CORRECT: Azure's recommendations are in `intelligent_performance.index_recommendations` — a **custom Azure view**, not a standard PostgreSQL catalog.
+- **❌ WRONG: "Any database user can query intelligent performance views."** ✅ CORRECT: The `azure_pg_admin` role is **required** for `intelligentperformance.*` and `query_store.*` views in the `azure_sys` database. Without it, you get permission denied.
+- **❌ WRONG: "Index recommendations appear in pg_stat_user_indexes or system catalogs."** ✅ CORRECT: Azure's recommendations are in `intelligentperformance.recommendations` (and sessions in `intelligentperformance.sessions`) inside the `azure_sys` database — **custom Azure views**, not standard PostgreSQL catalogs.
 
 ## Prerequisites
 
@@ -43,10 +43,10 @@ FROM query_store.pgms_wait_sampling_view
 GROUP BY 1, 2
 ORDER BY samples DESC;
 
--- Current index recommendations
+-- Current index recommendations (run in azure_sys database)
 SELECT *
-FROM intelligent_performance.index_recommendations
-ORDER BY created_time DESC;
+FROM intelligentperformance.recommendations
+ORDER BY last_recommended DESC;
 ```
 
 ## Before you trust a recommendation

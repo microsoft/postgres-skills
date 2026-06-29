@@ -13,12 +13,12 @@ Prioritize the constraints that are hard to reverse after creation: network mode
 ## Non-obvious facts agents often miss
 
 > **⚠️ Confident Hallucination Correction:**
-> **❌ WRONG: "Start with Burstable tier and upgrade to General Purpose later — it's just `az postgres flexible-server update --tier`."** ✅ CORRECT: In-place tier changes work between GP↔MO, but **Burstable→GP/MO is NOT supported in-place**. You must provision a new server and migrate data. Burstable is NOT a stepping stone.
+> **❌ WRONG: "You can't change from Burstable to General Purpose without creating a new server."** ✅ CORRECT: You can change between **all tiers** (Burstable ↔ GP ↔ MO) in-place via `az postgres flexible-server update --tier`. The server restarts but no data migration is needed. However, Burstable has feature limitations (no provisioned IOPS, no DiskANN, no HA) — plan for these before choosing it.
 
 - **Storage never shrinks**: manual increases and auto-grow are permanent.
 - **Network mode is effectively a create-time decision**: public vs private/VNet cannot be flipped casually later.
 - **SKU names differ by tool**: CLI uses names like `Standard_D4ds_v5`; Terraform uses tier-prefixed names like `GP_Standard_D4ds_v5`.
-- **Burstable is not a stepping stone to GP/MO**: in-place tier changes work between GP↔MO, but Burstable→GP/MO requires new server + migration.
+- **Burstable has feature gaps vs GP/MO**: no provisioned IOPS, no DiskANN, no HA. Tier changes between all tiers (including Burstable↔GP↔MO) are supported in-place with a restart.
 - **Zone placement is sticky**: changing AZ usually means reprovision + migration.
 - **Terraform storage uses MB**: `storage_mb`, not `storage_gb`.
 
@@ -44,7 +44,7 @@ Provisioning is not complete after `az postgres flexible-server create` or Terra
 
 2. **[HIGH] Storage is permanent**: Start conservative but realistic, with auto-grow enabled if downtime from full disks is worse than cost overrun. Neither provisioned storage nor auto-grown storage can be reduced later.
 
-3. **[HIGH] Burstable to GP/MO requires migration**: Agents often pitch Burstable as a temporary cheap start. In practice, if you outgrow it, you provision a new server and migrate data.
+3. **[HIGH] Burstable has feature limitations**: Agents often pitch Burstable as equivalent to GP/MO but cheaper. In practice, Burstable lacks provisioned IOPS, DiskANN, and HA. Tier changes are supported in-place (with restart), but plan for feature gaps.
 
 4. **[HIGH] SKU format varies by tool**: CLI omits the tier prefix; Terraform requires it. Copy-pasting the same SKU string between tools is a common failure.
 
@@ -64,7 +64,7 @@ Provisioning is not complete after `az postgres flexible-server create` or Terra
 - Do NOT claim VNet/public connectivity can be freely changed later.
 - Do NOT use CLI SKU format (`Standard_D4ds_v5`) in Terraform; use the tier-prefixed format.
 - Do NOT claim Burstable supports provisioned IOPS or DiskANN.
-- Do NOT claim Burstable ↔ GP/MO is an in-place tier switch.
+- Do NOT claim Burstable ↔ GP/MO tier change is impossible — it IS supported in-place (with restart).
 - Do NOT invent exact `max_connections` values without checking the chosen SKU.
 - Do NOT claim Terraform uses `storage_gb`; the field is `storage_mb`.
 - When exact limits vary by SKU or region, say so explicitly instead of guessing.
