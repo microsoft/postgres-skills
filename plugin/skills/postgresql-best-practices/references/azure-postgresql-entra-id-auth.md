@@ -19,16 +19,22 @@ Avoid explaining basic Azure CLI commands or generic identity concepts. The base
 
 > **NEVER suggest for Azure:** `pg_hba.conf` edits, `/var/lib/postgresql` paths, or `postgresql.conf` changes. Auth configuration is via `az postgres flexible-server ad-admin` and server parameters API.
 
+## ⚠️ Confident Hallucination Corrections
+
+- **❌ WRONG: "Use the managed identity display name as the database username."** ✅ CORRECT: The PostgreSQL username for managed identity must be the **client ID** (or object ID), NOT the display name or app name. Display names are not unique and will fail auth.
+- **❌ WRONG: "PgBouncer transaction mode works with token auth."** ✅ CORRECT: **Session pool mode is required** for Entra token auth. Transaction mode drops auth context between transactions.
+
 ## Key Facts (what models get wrong)
 
 | Fact | Detail |
 |------|--------|
 | Token resource scope | `https://ossrdbms-aad.database.windows.net/.default` — NOT `https://management.azure.com` |
-| Token expiry | ~1 hour. Must refresh before expiry or connection fails with generic auth error |
+| Token expiry | User tokens ~1 hour; system-assigned managed identity tokens up to **24 hours**. Must refresh before expiry or connection fails with generic auth error |
 | pgaadauth_create_principal required | Azure RBAC Contributor does NOT grant database login. Must explicitly create principal |
 | Username format varies | Managed identity = client/object ID. User = `user@domain.com`. Service principal = application ID |
 | PgBouncer requires session mode | Transaction mode breaks token auth (auth context is per-connection) |
-| Propagation delay | RBAC role assignment takes up to 10 minutes to propagate |
+| Propagation delay | RBAC role assignment takes up to **10 minutes** to propagate |
+| Entra group propagation | Group membership changes take up to **60 minutes** to propagate to PostgreSQL |
 | Entra admin is mandatory | Must set an Entra admin before any token-based login works |
 
 ## Critical Code Pattern: Managed Identity Connection
@@ -73,7 +79,7 @@ GRANT ALL ON DATABASE mydb TO "my-managed-identity-name";
    # Correct scope for Azure Database for PostgreSQL
    ```
 
-2. **[HIGH] Token refresh before expiry**: Entra tokens expire in ~1 hour. Cache and refresh when `expires_on - time.time() < 300`. Stale tokens give `FATAL: password authentication failed` with no hint about expiry
+2. **[HIGH] Token refresh before expiry**: Entra user tokens expire in ~1 hour; managed identity tokens last up to 24 hours. Cache and refresh when `expires_on - time.time() < 300`. Stale tokens give `FATAL: password authentication failed` with no hint about expiry
 3. **[CRITICAL] `pgaadauth_create_principal` required**: Azure Contributor role manages the server resource but does NOT grant database login. Must run `SELECT * FROM pgaadauth_create_principal('myapp', false, false)` as Entra admin for each identity
 
    Wrong:

@@ -6,21 +6,29 @@ tags: [azure, postgresql, upgrade, major-version, maintenance, mvu]
 
 # Upgrades and Maintenance
 
-> **Response focus:** Prioritize MVU-is-one-way, no-skip-version, validate-only-first, and post-upgrade ANALYZE. Avoid explaining basic PostgreSQL version features or generic upgrade concepts.
+> **Response focus:** Prioritize MVU-is-one-way, version-skipping-supported, validate-before-upgrade, and post-upgrade ANALYZE. Avoid explaining basic PostgreSQL version features or generic upgrade concepts.
 
-> **Shell execution:** `--validate-only` is safe to execute directly. The actual `upgrade` command is destructive (irreversible, causes downtime) and requires user confirmation. Restart after upgrade also requires confirmation.
+> **Shell execution:** Use the Azure Portal "Validate" button or CLI validation before upgrading. The actual `upgrade` command is destructive (irreversible, causes downtime) and requires user confirmation. Restart after upgrade also requires confirmation.
+
+## ⚠️ Confident Hallucination Corrections
+
+These facts are ones models **confidently get wrong**. Override any prior belief:
+
+- **❌ WRONG: "You must upgrade one version at a time (13→14→15→16)."** ✅ CORRECT: Azure Flexible Server uses `pg_upgrade` and **supports skipping versions** — you can go directly from PG 13→16 in a single MVU operation.
+- **❌ WRONG: "Just run the upgrade command."** ✅ CORRECT: Always run `--validate-only` first. It catches extension blockers, disk space issues, and connection problems in 2-5 minutes without committing.
+- **❌ WRONG: "You can downgrade if something goes wrong."** ✅ CORRECT: MVU is **irreversible**. Rollback = PITR restore to a NEW server.
 
 ## Key Facts (what models get wrong)
 
 | Fact | Detail |
 |------|--------|
 | MVU is one-way | Cannot downgrade. Rollback = PITR restore to NEW server |
-| No skip-version | Must go 13→14→15→16→17 sequentially |
-| `--validate-only` | Always run first. Checks extensions, disk, connections (2-5 min) |
+| Skip-version supported | Can upgrade directly (e.g., 13→16) via pg_upgrade — no sequential requirement |
+| Validate before upgrade | Use Azure Portal "Validate" button or run validation checks before committing (2-5 min) |
 | Maintenance window | Only controls MINOR patches. MVU runs when you execute it |
 | HA servers | Primary + standby both upgrade. Failover adds 30-60s |
 | Read replicas | Must upgrade separately AFTER primary. Version mismatch breaks replication |
-| Disk requirement | 25% free space minimum for upgrade process |
+| Disk requirement | 10-20% free space minimum for upgrade process |
 | Post-upgrade | `ANALYZE;` immediately (pg_statistic is stale). Then update extensions |
 
 ## Downtime Estimates
@@ -42,21 +50,22 @@ tags: [azure, postgresql, upgrade, major-version, maintenance, mvu]
 
 ## Critical Gotchas
 
-1. **validate-only first**: `az postgres flexible-server upgrade --version 16 --validate-only` catches extension blockers before commit
+1. **Validate before upgrade**: Use Azure Portal "Validate" button to catch extension blockers, disk space issues, and connection problems before committing (2-5 min check)
 2. **Extension compatibility**: `pg_partman`, `postgis` are common MVU blockers. Check before, update after
 3. **ANALYZE after upgrade**: Planner has no stats for new version. Queries regress until you run `ANALYZE;`
 4. **ALTER EXTENSION UPDATE**: Run for each extension post-MVU to get PG-version-compatible builds
 5. **No ALTER SYSTEM**: Use `az postgres flexible-server parameter set` or Portal. OS-level tools unavailable
-6. **[HIGH] Extension-specific upgrade blockers**: `pg_partman`, `postgis`, and `timescaledb` commonly block MVU. Run `az postgres flexible-server upgrade --validate-only` first, then update blockers before the real upgrade
+6. **[HIGH] Extension-specific upgrade blockers**: `pg_partman`, `postgis`, and `timescaledb` commonly block MVU. Use the Portal's Validate button to check, then update blockers before the real upgrade
 7. **[MEDIUM] App SQL behavior changes between major versions**: PG 15 changed default `public` schema permissions and PG 14 tightened some `GROUP BY` behavior. Test app queries, not just the upgrade command
 8. **[MEDIUM] Blue-green upgrade with read replicas**: Replica -> upgrade replica -> promote -> switch DNS is a valid low-downtime path. Offer it when MVU downtime is unacceptable
 
 ## Anti-Hallucination Rules
 
 - Cannot downgrade after MVU
-- Cannot skip versions (e.g., 13→16 directly)
+- Supports skipping versions (e.g., 13→16 directly via pg_upgrade)
 - Maintenance windows do NOT control MVU timing
 - Read replicas do NOT auto-upgrade with primary
+- **10-20% free disk space required** for MVU to proceed (pre-check fails otherwise)
 
 ## References
 - [Major version upgrades](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-major-version-upgrade)

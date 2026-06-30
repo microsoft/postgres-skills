@@ -19,12 +19,17 @@ Avoid explaining generic PgBouncer concepts or basic `az parameter set` commands
 
 > **Shell execution:** Pool mode and parameter changes require az CLI. Execute directly via shell. Read pool status via `pgsql_query` against `pg_stat_activity`.
 
+## ⚠️ Confident Hallucination Corrections
+
+- **❌ WRONG: "Azure built-in PgBouncer has no admin console — you can't run SHOW commands."** ✅ CORRECT: The admin console **IS available**. Set `pgBouncer.stats_users` parameter, then connect to the `pgbouncer` database on port 6432 to run `SHOW POOLS`, `SHOW STATS`, `SHOW DATABASES`. It's just not enabled by default.
+- **❌ WRONG: "Transaction mode works fine with Entra token auth."** ✅ CORRECT: Entra token auth **requires session pool mode**. Transaction mode breaks it because auth context is per-connection, not per-transaction.
+
 ## Key Facts (what models get wrong)
 
 | Fact | Detail |
 |------|--------|
 | Port 6432 is mandatory | Built-in PgBouncer always on port 6432. Cannot change. Port 5432 bypasses pooler entirely |
-| No admin console | Azure built-in PgBouncer does NOT expose `SHOW POOLS`, `SHOW STATS`, `SHOW CLIENTS` |
+| Admin console requires setup | Set `pgBouncer.stats_users` parameter, then connect to `pgbouncer` database on port 6432 to run `SHOW POOLS`, `SHOW STATS` |
 | Entra tokens need session mode | Transaction mode breaks token auth (auth context is per-connection, not per-transaction) |
 | Pool math | `max_backend_connections = default_pool_size × num_databases × num_users`. Easy to exceed `max_connections` |
 | DISCARD ALL runs automatically | Azure's built-in PgBouncer runs `DISCARD ALL` as `server_reset_query` in transaction mode |
@@ -63,7 +68,7 @@ Avoid explaining generic PgBouncer concepts or basic `az parameter set` commands
    az postgres flexible-server parameter set --name pgbouncer.default_pool_mode --value session
    ```
 
-5. **[MEDIUM] `SHOW POOLS` unavailable**: Azure built-in PgBouncer does NOT expose the admin console. No `SHOW POOLS`, `SHOW STATS`, `SHOW CLIENTS`. Use `pg_stat_activity` (shows backend connections) and Azure Monitor metrics (`pgbouncer_active_connections`, `pgbouncer_waiting_connections`) instead
+5. **[MEDIUM] `SHOW POOLS` requires setup**: Azure built-in PgBouncer admin console is NOT enabled by default. You must set the `pgBouncer.stats_users` server parameter first, then connect to the `pgbouncer` database on port 6432 to run `SHOW POOLS`, `SHOW STATS`, `SHOW CLIENTS`. Also use Azure Monitor metrics (`pgbouncer_active_connections`, `pgbouncer_waiting_connections`) for monitoring
 6. **[HIGH] Prepared statement workaround**: Transaction mode breaks server-side prepared statements. Solutions: (a) `pgbouncer.pool_mode = session` for that user, (b) client-side prepared statements, (c) `DEALLOCATE ALL` at transaction start
 
    Wrong:

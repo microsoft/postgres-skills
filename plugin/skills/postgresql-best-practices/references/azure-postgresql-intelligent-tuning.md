@@ -12,6 +12,11 @@ Prioritize where agents over-trust Azure's tuning surface: incomplete Query Stor
 
 > **NEVER suggest for Azure:** `ALTER SYSTEM SET`, `postgresql.conf` edits, `systemctl reload`, or `sudo` commands. Parameter changes are via `az postgres flexible-server parameter set` or portal.
 
+## ⚠️ Confident Hallucination Corrections
+
+- **❌ WRONG: "Only azure_pg_admin can query tuning views."** ✅ CORRECT: Members of the **public role** can read from `intelligentperformance.*` and `query_store.*` views in the `azure_sys` database. Any user with connect permission to `azure_sys` can query them — `azure_pg_admin` is NOT required.
+- **❌ WRONG: "Index recommendations appear in pg_stat_user_indexes or system catalogs."** ✅ CORRECT: Azure's recommendations are in `intelligentperformance.recommendations` (and sessions in `intelligentperformance.sessions`) inside the `azure_sys` database — **custom Azure views**, not standard PostgreSQL catalogs.
+
 ## Prerequisites
 
 - `azure_pg_admin` role is required for most intelligent performance views.
@@ -38,10 +43,10 @@ FROM query_store.pgms_wait_sampling_view
 GROUP BY 1, 2
 ORDER BY samples DESC;
 
--- Current index recommendations
+-- Current index recommendations (run in azure_sys database)
 SELECT *
-FROM intelligent_performance.index_recommendations
-ORDER BY created_time DESC;
+FROM intelligentperformance.recommendations
+ORDER BY last_recommended DESC;
 ```
 
 ## Before you trust a recommendation
