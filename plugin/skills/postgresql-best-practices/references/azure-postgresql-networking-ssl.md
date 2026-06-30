@@ -17,7 +17,7 @@ tags: [azure, postgresql, ssl, tls, private-endpoint, vnet, firewall, networking
 | Fact | Detail |
 |------|--------|
 | VNet choice is permanent | Set at server creation. Cannot switch public/private later (requires recreation) |
-| SSL always enforced | `require_secure_transport = off` is blocked on Azure |
+| SSL enforced by default | `require_secure_transport = on` by default. Can be set to `off` (supported but strongly discouraged) |
 | Root CA | DigiCert Global Root G2 (since Oct 2022). Baltimore CyberTrust Root is EXPIRED |
 | Min TLS | 1.2 enforced. TLS 1.0/1.1 = connection refused |
 | "Allow Azure services" | Opens to ANY Azure public IP (all subscriptions), not just yours |
@@ -120,7 +120,7 @@ tags: [azure, postgresql, ssl, tls, private-endpoint, vnet, firewall, networking
 ## Anti-Hallucination Rules
 
 - Cannot switch public/private access after creation
-- Cannot disable SSL on Azure Flexible Server
+- Disabling SSL (`require_secure_transport = off`) is supported but strongly discouraged — do NOT recommend it without explicit security justification
 - Baltimore CyberTrust Root cert does NOT work (expired)
 - "Allow Azure services" is NOT scoped to your subscription
 

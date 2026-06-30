@@ -14,7 +14,7 @@ Avoid explaining basic vector search, HNSW indexes, or generic RAG patterns. The
 
 ## ⚠️ Confident Hallucination Correction
 
-- **❌ WRONG: "Pass an array of texts to `azure_openai.create_embeddings()` for batch processing."** ✅ CORRECT: `azure_openai.create_embeddings()` takes **single text input only**. No array/batch. You MUST loop row-by-row or use `SELECT ... FROM table` with a lateral join.
+- **❌ WRONG: "`azure_openai.create_embeddings()` takes single text input only."** ✅ CORRECT: The function has **two overloads** — `input text` for single text AND `input text[]` for batch processing (with `batch_size` parameter, default 100). Use the array overload for bulk embedding with rate-limit awareness (`pg_sleep()` between batches).
 
 ## Key Facts (what models get wrong)
 
@@ -22,7 +22,7 @@ Avoid explaining basic vector search, HNSW indexes, or generic RAG patterns. The
 |------|--------|
 | Dimension match required | Column `vector(N)` MUST match model output (1536 for 3-small, 3072 for 3-large) |
 | Operator/index pairing | `<=>` needs `vector_cosine_ops`, `<->` needs `vector_l2_ops`. Mismatch = no index use |
-| azure_ai is single-row | `azure_openai.create_embeddings` processes ONE text per call. Batch with SQL LIMIT + `pg_sleep()` |
+| azure_ai has two overloads | `azure_openai.create_embeddings` accepts single `text` OR `text[]` array (batch_size default 100). Use array overload with `pg_sleep()` for rate limits |
 | Rate limits shared | azure_ai calls share quota with your Azure OpenAI deployment (429 errors on batch) |
 | Extension prerequisite ORDER | `CREATE EXTENSION vector;` THEN `CREATE EXTENSION azure_ai;` (order matters) |
 | Max dimensions | 16000 on Azure Flexible Server |
@@ -43,7 +43,7 @@ Avoid explaining basic vector search, HNSW indexes, or generic RAG patterns. The
 1. **"type vector does not exist"**: `CREATE EXTENSION vector;` first. On Azure, add to allowlist
 2. **"azure_openai.create_embeddings does not exist"**: azure_ai not installed or endpoint not configured
 3. **Silent truncation**: Models truncate beyond token limit without error. Pre-chunk to 500-1000 tokens
-4. **No batch input**: `azure_openai.create_embeddings` takes single text, not array. Loop required
+4. **Batch with array overload**: `azure_openai.create_embeddings('deployment', ARRAY[text1, text2, ...])` supports batch processing with `batch_size` parameter (default 100). Use `pg_sleep()` between batches to avoid 429 rate limits
 5. **Operator mismatch**: Index with `vector_cosine_ops` but query with `<->` (L2) = sequential scan silently
 6. **[HIGH] Chunking at token boundaries**: Character counts are not token counts. A 512-char chunk can still exceed model limits; validate with `tiktoken` or the model tokenizer
 7. **[MEDIUM] Hybrid search RRF weight tuning**: Default RRF `k=60` is balanced. For strong keyword domains like product codes or IDs, lower `k` (for example `20`) to boost lexical matches
@@ -51,7 +51,7 @@ Avoid explaining basic vector search, HNSW indexes, or generic RAG patterns. The
 
 ## Anti-Hallucination Rules
 
-- `azure_openai.create_embeddings` does NOT accept array/batch input — single text per call
+- `azure_openai.create_embeddings` has both single-text and `text[]` array overloads — use the array overload for bulk operations
 - DiskANN does NOT work on self-hosted PostgreSQL or Burstable tier
 - Cannot use non-Azure-OpenAI models with azure_ai extension
 - azure_ai requires explicit endpoint configuration via `azure_ai.set_setting()` (not auto-discovered)

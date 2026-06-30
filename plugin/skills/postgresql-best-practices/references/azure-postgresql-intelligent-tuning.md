@@ -14,7 +14,7 @@ Prioritize where agents over-trust Azure's tuning surface: incomplete Query Stor
 
 ## ⚠️ Confident Hallucination Corrections
 
-- **❌ WRONG: "Any database user can query intelligent performance views."** ✅ CORRECT: The `azure_pg_admin` role is **required** for `intelligentperformance.*` and `query_store.*` views in the `azure_sys` database. Without it, you get permission denied.
+- **❌ WRONG: "Only azure_pg_admin can query tuning views."** ✅ CORRECT: Members of the **public role** can read from `intelligentperformance.*` and `query_store.*` views in the `azure_sys` database. Any user with connect permission to `azure_sys` can query them — `azure_pg_admin` is NOT required.
 - **❌ WRONG: "Index recommendations appear in pg_stat_user_indexes or system catalogs."** ✅ CORRECT: Azure's recommendations are in `intelligentperformance.recommendations` (and sessions in `intelligentperformance.sessions`) inside the `azure_sys` database — **custom Azure views**, not standard PostgreSQL catalogs.
 
 ## Prerequisites

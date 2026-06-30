@@ -83,7 +83,7 @@ LIMIT 10;
 1. **Mismatched ops class is silent**: Index is simply not used; query returns wrong ordering with no error
 2. **Allowlist both extensions**: Forgetting `pg_diskann` in `azure.extensions` gives `ERROR: access to library "pg_diskann" is not allowed`
 3. **HNSW ef_search default is low**: Default 40; set `SET hnsw.ef_search = 200` for production recall
-4. **DiskANN search_list_size**: Default 100; increase with `SET diskann.search_list_size = 200` for higher recall
+4. **DiskANN l_value_is**: Default 100; increase with `SET diskann.l_value_is = 200` for higher recall
 5. **Index build monitoring**: Use `pg_stat_progress_create_index`; prefer `CREATE INDEX CONCURRENTLY` to avoid blocking
 6. **Seq scan fallback**: If index not used, run `ANALYZE` on table or increase `LIMIT` value
 7. **HNSW OOM**: Large tables may exhaust `maintenance_work_mem`; switch to DiskANN

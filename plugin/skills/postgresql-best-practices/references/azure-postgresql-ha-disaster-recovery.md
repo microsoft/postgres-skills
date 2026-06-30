@@ -15,8 +15,8 @@ tags: [azure, postgresql, ha, disaster-recovery, pitr, read-replicas, backup]
 | Fact | Detail |
 |------|--------|
 | PITR creates a NEW server | Restore produces a new hostname; it is NOT an in-place rollback |
-| Zone-redundant HA RPO/RTO | RPO near-zero (synchronous replication), RTO 60-120s |
-| Same-zone HA | Protects against compute failure only; ~30s failover; no zone protection |
+| Zone-redundant HA RPO/RTO | RPO zero (synchronous replication guarantees no data loss), RTO 60-120s |
+| Same-zone HA | Protects against compute failure only; RTO <120s; no zone protection |
 | Read replicas are async | Expect 100ms-5s lag; NOT suitable for strong-consistency reads |
 | Geo-redundant backup is creation-time only | Cannot enable on an existing server; must be set at `create` |
 | Replica promotion is permanent | `stop-replication` severs the link irreversibly; cannot re-attach |
@@ -29,7 +29,7 @@ tags: [azure, postgresql, ha, disaster-recovery, pitr, read-replicas, backup]
 | Factor | No HA | Same-Zone HA | Zone-Redundant HA |
 |--------|-------|--------------|-------------------|
 | RPO | < 5 min (backup) | 0 (sync) | 0 (sync) |
-| RTO | Minutes-hours | ~30s | 60-120s |
+| RTO | Minutes-hours | <120s | 60-120s |
 | Protects against | Nothing (manual) | Compute failure | Full zone outage |
 | Cost | 1x | ~2x compute | ~2x compute |
 | SLA | 99.9% | 99.95% | 99.99% |
