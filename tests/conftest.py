@@ -162,7 +162,7 @@ def to_libpq_string(cs: str) -> str:
 # MCP JSON-RPC client over stdio
 # ---------------------------------------------------------------------------
 class MCPClient:
-    """Minimal NDJSON JSON-RPC client for the pgsql-tools MCP server.
+    """Minimal NDJSON JSON-RPC client for the postgres-mcp MCP server.
 
     A single background thread reads stdout, parses JSON-RPC responses, and
     stores them keyed by id (banner / non-JSON lines are skipped). Callers wait
@@ -334,7 +334,7 @@ def find_profile_id(text: str) -> Optional[str]:
 
     Prefers the ``default (env)`` profile that the server auto-registers from
     ``PGSQL_CONNECTION_STRING`` so the suite is isolated from any pre-existing
-    developer profiles in ``~/.pgsql-tools-cli/connections.yaml``. Falls back to
+    developer profiles in ``~/.postgres-mcp/connections.yaml``. Falls back to
     the first UUID found when that named profile is not present.
     """
     try:

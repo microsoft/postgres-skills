@@ -29,7 +29,7 @@ REQUIRED_FILES = [
     "README.md",
     "plugin/.mcp.json",
     "plugin/run_mcp.js",
-    "plugin/PGSQL_TOOLS_CLI_VERSION",
+    "plugin/POSTGRES_MCP_CLI_VERSION",
     "plugin/skills/postgresql-best-practices/SKILL.md",
 ]
 

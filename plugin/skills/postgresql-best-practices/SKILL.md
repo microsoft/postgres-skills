@@ -4,7 +4,7 @@ description: "Expert PostgreSQL skills with intelligent routing. Covers both gen
 tags: [postgresql, azure, database, skills, routing]
 activation:
   user_intent: ["work with PostgreSQL", "database query", "connect to postgres", "Azure PostgreSQL", "show tables", "list tables", "describe schema", "database schema", "what tables exist"]
-  technical_keywords: ["postgresql", "postgres", "psql", "pg_", "azure database for postgresql", "flexible server", "pgvector", "diskann", "pgsql_", "pgsql-tools"]
+  technical_keywords: ["postgresql", "postgres", "psql", "pg_", "azure database for postgresql", "flexible server", "pgvector", "diskann", "pgsql_", "postgres-mcp"]
 ---
 
 # PostgreSQL Agent Skills — Routing Table

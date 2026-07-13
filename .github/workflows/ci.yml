@@ -148,7 +148,7 @@ jobs:
       - name: Verify binary exists in cache
         shell: bash
         run: |
-          CACHE_DIR="$HOME/.pgsql-tools-cli"
+          CACHE_DIR="$HOME/.postgres-mcp"
           if [ -d "$CACHE_DIR" ]; then
             echo "✓ Binary cache created at $CACHE_DIR"
             find "$CACHE_DIR" -type f | sed -n '1,10p'

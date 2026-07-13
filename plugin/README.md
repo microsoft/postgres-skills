@@ -11,7 +11,7 @@ Claude Code, Codex) can route PostgreSQL work to the right guidance and tools.
 | `skills/postgresql-best-practices/` | The skill (SKILL.md routing table + reference docs). |
 | `.mcp.json` | Declares the `postgres-mcp` MCP server (stdio, `node ${PLUGIN_ROOT}/run_mcp.js`). |
 | `run_mcp.js` | Launcher for the `postgres-mcp` MCP server. |
-| `PGSQL_TOOLS_CLI_VERSION` | Pinned `postgres-mcp` CLI version. |
+| `POSTGRES_MCP_CLI_VERSION` | Pinned `postgres-mcp` CLI version. |
 | `.codex-plugin/plugin.json` | Plugin manifest required by Codex. |
 
 ## Codex compatibility: `plugin.json`
