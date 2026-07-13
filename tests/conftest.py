@@ -362,7 +362,7 @@ def skills() -> list[dict]:
 @pytest.fixture(scope="module")
 def mcp_client():
     """MCP server without a DB connection string (protocol/tool-listing tests)."""
-    client = MCPClient(extra_env={"PGSQL_TOOLS_QUERY_TIMEOUT_MS": "10000"})
+    client = MCPClient(extra_env={"PGSQL_MCP_QUERY_TIMEOUT_MS": "10000"})
     time.sleep(BOOT_WAIT_S)
     yield client
     client.close()
@@ -405,7 +405,7 @@ def db_client():
     cs = _require_conn_string()
     client = MCPClient(extra_env={
         "PGSQL_CONNECTION_STRING": to_libpq_string(cs),
-        "PGSQL_TOOLS_QUERY_TIMEOUT_MS": "30000",
+        "PGSQL_MCP_QUERY_TIMEOUT_MS": "30000",
         # Disable GSSAPI encryption negotiation. Without this, libpq/pgx attempts a
         # Kerberos handshake against the local Docker Postgres on hosts that have
         # GSS libraries (e.g. macOS), which fails before the normal auth flow.
@@ -426,7 +426,7 @@ def azure_db_client():
     cs = _require_azure_conn_string()
     client = MCPClient(extra_env={
         "PGSQL_CONNECTION_STRING": to_libpq_string(cs),
-        "PGSQL_TOOLS_QUERY_TIMEOUT_MS": "30000",
+        "PGSQL_MCP_QUERY_TIMEOUT_MS": "30000",
     })
     time.sleep(BOOT_WAIT_S)
     client.initialize(client_name="pytest-dogfood")
