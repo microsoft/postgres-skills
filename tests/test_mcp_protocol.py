@@ -36,7 +36,7 @@ def test_initialize_returns_server_info(initialized):
 
 def test_server_identity(initialized):
     info = initialized["init"]["serverInfo"]
-    assert info.get("name") == "pgsql-tools", f"unexpected server name: {info}"
+    assert info.get("name") == "postgres-mcp", f"unexpected server name: {info}"
 
 
 def test_tools_capability_declared(initialized):

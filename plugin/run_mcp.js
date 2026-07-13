@@ -4,11 +4,11 @@
 // Licensed under the MIT License. See License.txt in the project root for license information.
 // --------------------------------------------------------------------------------------------
 //
-// Plugin entry point for `pgsql-tools mcp run`.
+// Plugin entry point for `postgres-mcp run`.
 //
-// Ensures the `pgsql-tools` CLI matching the version pinned in
+// Ensures the `postgres-mcp` CLI matching the version pinned in
 // `PGSQL_TOOLS_CLI_VERSION` (sibling to this file) is installed
-// locally, then execs `pgsql-tools mcp run` with stdio inherited so
+// locally, then execs `postgres-mcp run` with stdio inherited so
 // the MCP client's JSON-RPC stream flows through unchanged.
 //
 // Self-contained: install + exec use only Node stdlib (`node:https`,
@@ -38,7 +38,7 @@ const VERSION_FILE = path.join(SCRIPT_DIR, "PGSQL_TOOLS_CLI_VERSION");
 
 const GITHUB_REPO = "microsoft/pgsql-tools";
 const MANIFEST_NAME = "manifest.json";
-const BINARY_NAME = "pgsql-tools";
+const BINARY_NAME = "postgres-mcp";
 const IS_WINDOWS = process.platform === "win32";
 
 // Defensive bounds on fetchUrl() so a stalled or pathologically large
@@ -740,8 +740,8 @@ async function installCli(pinnedVersion) {
   log(`Detected platform: ${platform}`);
 
   const ext = platform.startsWith("win-") ? "zip" : "tar.gz";
-  const assetName = `pgsql-tools-cli-${platform}.${ext}`;
-  const releaseTag = `cli-v${pinnedVersion}`;
+  const assetName = `postgres-mcp-${platform}.${ext}`;
+  const releaseTag = `mcp-v${pinnedVersion}`;
   const baseUrl =
     `https://github.com/${GITHUB_REPO}/releases/download/${releaseTag}`;
   const assetUrl = `${baseUrl}/${assetName}`;
@@ -994,7 +994,7 @@ async function ensureCli(pinnedVersion) {
 }
 
 function execMcp(cliPath) {
-  const child = spawn(cliPath, ["mcp", "run"], {
+  const child = spawn(cliPath, ["run"], {
     stdio: "inherit",
     env: process.env,
     windowsHide: true,
