@@ -4,7 +4,7 @@
 [![References: 22](https://img.shields.io/badge/References-22-green.svg)](#reference-catalog)
 [![Platforms: 3](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex-purple.svg)](#get-started-in-30-seconds)
 
-**Ship production PostgreSQL faster.** This plugin turns your AI coding assistant into a PostgreSQL and Azure Database for PostgreSQL expert that can *act*, not just advise. It pairs 22 expert-curated skill references with two execution hands — the **pgsql-tools MCP server** for working inside your database and the **Azure CLI** for managing your Flexible Server — so you get safe, version-aware, production-ready results instead of Stack Overflow snippets.
+**Ship production PostgreSQL faster.** This plugin turns your AI coding assistant into a PostgreSQL and Azure Database for PostgreSQL expert that can *act*, not just advise. It pairs 22 expert-curated skill references with two execution hands — the **postgres-mcp MCP server** for working inside your database and the **Azure CLI** for managing your Flexible Server — so you get safe, version-aware, production-ready results instead of Stack Overflow snippets.
 
 ## What you get
 
@@ -22,7 +22,7 @@ A default AI assistant gives you plausible-looking PostgreSQL advice. This plugi
 This repo is the plugin. Installing it gives your agent three things that work together:
 
 - **The skill** — a lightweight routing table that reads your question and connection, then loads the one matching reference (generic or Azure).
-- **The pgsql-tools MCP server** — executes inside your database: runs queries, applies changes, inspects schema, and detects whether you're on Azure.
+- **The postgres-mcp MCP server** — executes inside your database: runs queries, applies changes, inspects schema, and detects whether you're on Azure.
 - **The Azure CLI (`az`)** — executes on the managed service: provisioning, scaling, parameters, HA and failover, replicas, point-in-time restore, networking, and upgrades.
 
 ## Get started in 30 seconds
@@ -52,7 +52,7 @@ codex plugin install postgres-skills@postgres-skills
 
 ## Real-world examples
 
-### Working inside your database (via the pgsql-tools MCP server)
+### Working inside your database (via the postgres-mcp MCP server)
 
 **"What tables do I have, and which are the biggest?"**
 → Introspects your live schema and reports tables, row estimates, and sizes.

@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "pgsql-tools": {
+    "postgres-mcp": {
       "type": "stdio",
       "command": "node",
       "args": ["${PLUGIN_ROOT}/run_mcp.js"],
