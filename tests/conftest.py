@@ -333,7 +333,7 @@ def find_profile_id(text: str) -> Optional[str]:
     """Return the connection profile to use.
 
     Prefers the ``default (env)`` profile that the server auto-registers from
-    ``PGSQL_CONNECTION_STRING`` so the suite is isolated from any pre-existing
+    ``PGSQL_MCP_CONNECTION_STRING`` so the suite is isolated from any pre-existing
     developer profiles in ``~/.postgres-mcp/connections.yaml``. Falls back to
     the first UUID found when that named profile is not present.
     """
@@ -397,14 +397,14 @@ def _require_azure_conn_string() -> str:
 
 @pytest.fixture(scope="module")
 def db_client():
-    """MCP server wired to the Docker-backed database via PGSQL_CONNECTION_STRING.
+    """MCP server wired to the Docker-backed database via PGSQL_MCP_CONNECTION_STRING.
 
     Connects to the local compose Postgres by default; fails (does not skip) when
     no database is reachable.
     """
     cs = _require_conn_string()
     client = MCPClient(extra_env={
-        "PGSQL_CONNECTION_STRING": to_libpq_string(cs),
+        "PGSQL_MCP_CONNECTION_STRING": to_libpq_string(cs),
         "PGSQL_MCP_QUERY_TIMEOUT_MS": "30000",
         # Disable GSSAPI encryption negotiation. Without this, libpq/pgx attempts a
         # Kerberos handshake against the local Docker Postgres on hosts that have
@@ -425,7 +425,7 @@ def azure_db_client():
     """
     cs = _require_azure_conn_string()
     client = MCPClient(extra_env={
-        "PGSQL_CONNECTION_STRING": to_libpq_string(cs),
+        "PGSQL_MCP_CONNECTION_STRING": to_libpq_string(cs),
         "PGSQL_MCP_QUERY_TIMEOUT_MS": "30000",
     })
     time.sleep(BOOT_WAIT_S)
