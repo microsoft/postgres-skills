@@ -4,11 +4,11 @@
 // Licensed under the MIT License. See License.txt in the project root for license information.
 // --------------------------------------------------------------------------------------------
 //
-// Plugin entry point for `pgsql-tools mcp run`.
+// Plugin entry point for `postgres-mcp run`.
 //
-// Ensures the `pgsql-tools` CLI matching the version pinned in
-// `PGSQL_TOOLS_CLI_VERSION` (sibling to this file) is installed
-// locally, then execs `pgsql-tools mcp run` with stdio inherited so
+// Ensures the `postgres-mcp` CLI matching the version pinned in
+// `POSTGRES_MCP_CLI_VERSION` (sibling to this file) is installed
+// locally, then execs `postgres-mcp run` with stdio inherited so
 // the MCP client's JSON-RPC stream flows through unchanged.
 //
 // Self-contained: install + exec use only Node stdlib (`node:https`,
@@ -18,7 +18,7 @@
 // is logged and non-fatal). Mirrors the download + SHA-256 manifest
 // verification + extraction flow of public/cli/install.sh and
 // install.ps1, including their shell-rc / user-PATH update at the
-// end of install so `pgsql-tools` resolves directly in new terminals.
+// end of install so `postgres-mcp` resolves directly in new terminals.
 //
 // All diagnostic output goes to stderr so the MCP JSON-RPC channel
 // on stdout stays clean.
@@ -34,11 +34,11 @@ const crypto = require("crypto");
 const { execFileSync, spawn } = require("child_process");
 
 const SCRIPT_DIR = __dirname;
-const VERSION_FILE = path.join(SCRIPT_DIR, "PGSQL_TOOLS_CLI_VERSION");
+const VERSION_FILE = path.join(SCRIPT_DIR, "POSTGRES_MCP_CLI_VERSION");
 
 const GITHUB_REPO = "microsoft/pgsql-tools";
 const MANIFEST_NAME = "manifest.json";
-const BINARY_NAME = "pgsql-tools";
+const BINARY_NAME = "postgres-mcp";
 const IS_WINDOWS = process.platform === "win32";
 
 // Defensive bounds on fetchUrl() so a stalled or pathologically large
@@ -55,7 +55,7 @@ const MAX_DOWNLOAD_BYTES = 500 * 1024 * 1024;
 // PyInstaller bundle lives under bin/ so it can be replaced without
 // nuking user data (connections.yaml + other state at the config
 // root). Mirrors public/cli/install.sh.
-const CONFIG_DIR = path.join(os.homedir(), ".pgsql-tools-cli");
+const CONFIG_DIR = path.join(os.homedir(), ".postgres-mcp");
 const INSTALL_DIR = path.join(CONFIG_DIR, "bin");
 const LOCAL_BIN_PATH = path.join(
   INSTALL_DIR,
@@ -89,7 +89,7 @@ const SUPPORTED_TARGETS = new Set([
 ]);
 
 function log(message) {
-  process.stderr.write(`[pgsql-tools/run_mcp] ${message}\n`);
+  process.stderr.write(`[postgres-mcp/run_mcp] ${message}\n`);
 }
 
 function readPinnedVersion() {
@@ -160,7 +160,7 @@ function fetchUrl(url, { maxRedirects = 10 } = {}) {
     const visit = (current, remaining) => {
       const req = https.get(
         current,
-        { headers: { "User-Agent": "pgsql-tools-plugin-launcher" } },
+        { headers: { "User-Agent": "postgres-mcp-plugin-launcher" } },
         (res) => {
           const code = res.statusCode || 0;
           if (code >= 300 && code < 400 && res.headers.location) {
@@ -740,8 +740,8 @@ async function installCli(pinnedVersion) {
   log(`Detected platform: ${platform}`);
 
   const ext = platform.startsWith("win-") ? "zip" : "tar.gz";
-  const assetName = `pgsql-tools-cli-${platform}.${ext}`;
-  const releaseTag = `cli-v${pinnedVersion}`;
+  const assetName = `postgres-mcp-${platform}.${ext}`;
+  const releaseTag = `mcp-v${pinnedVersion}`;
   const baseUrl =
     `https://github.com/${GITHUB_REPO}/releases/download/${releaseTag}`;
   const assetUrl = `${baseUrl}/${assetName}`;
@@ -789,7 +789,7 @@ async function installCli(pinnedVersion) {
   }
 
   // Mirror install.sh's add_to_path / install.ps1's Add-ToPath, which
-  // run at the end of a successful install so `pgsql-tools` is
+  // run at the end of a successful install so `postgres-mcp` is
   // available directly in new terminals. Failure here never breaks
   // MCP launch — the launcher execs the binary by absolute path.
   addToUserPath({ force: true });
@@ -832,7 +832,7 @@ function detectShellRcPath() {
 // file is missing (e.g., user deleted CONFIG_DIR/.path-configured).
 function addToUserPathPosix() {
   const rc = detectShellRcPath();
-  const marker = ".pgsql-tools-cli/bin";
+  const marker = ".postgres-mcp/bin";
   if (fs.existsSync(rc)) {
     let existing;
     try {
@@ -847,15 +847,15 @@ function addToUserPathPosix() {
     }
   }
   const block =
-    `\n# pgsql-tools-cli\n` +
-    `export PATH="$HOME/.pgsql-tools-cli/bin:$PATH"\n`;
+    `\n# postgres-mcp\n` +
+    `export PATH="$HOME/.postgres-mcp/bin:$PATH"\n`;
   try {
     fs.appendFileSync(rc, block);
   } catch (err) {
-    log(`Could not update ${rc} to add pgsql-tools to PATH: ${err.message}`);
+    log(`Could not update ${rc} to add postgres-mcp to PATH: ${err.message}`);
     return false;
   }
-  log(`Added pgsql-tools to PATH in ${rc}`);
+  log(`Added postgres-mcp to PATH in ${rc}`);
   log(`Open a new terminal (or 'source ${rc}') to pick up the change.`);
   return true;
 }
@@ -945,24 +945,24 @@ function readInstalledVersion(cliPath) {
     const last = tokens[tokens.length - 1] || "";
     return last.replace(/^v/, "") || null;
   } catch (err) {
-    log(`pgsql-tools --version failed: ${err.message}`);
+    log(`postgres-mcp --version failed: ${err.message}`);
     return null;
   }
 }
 
 // The plugin-managed bundle at LOCAL_BIN_PATH is the only path we
 // trust for binary resolution. We deliberately do not probe the
-// user's PATH: a binary named `pgsql-tools` on PATH with a matching
+// user's PATH: a binary named `postgres-mcp` on PATH with a matching
 // `--version` would otherwise bypass the upstream-verified download
 // + checksum flow. The PATH edit performed by addToUserPath() is a
-// separate concern — it only helps the user invoke `pgsql-tools`
+// separate concern — it only helps the user invoke `postgres-mcp`
 // from their own shell, and never affects how this launcher locates
 // the binary it execs.
 async function ensureCli(pinnedVersion) {
   if (fs.existsSync(LOCAL_BIN_PATH)) {
     const installed = readInstalledVersion(LOCAL_BIN_PATH);
     if (installed === pinnedVersion) {
-      log(`pgsql-tools ${installed} found at ${LOCAL_BIN_PATH}`);
+      log(`postgres-mcp ${installed} found at ${LOCAL_BIN_PATH}`);
       // Handles users whose bundle predates this launcher's PATH-edit
       // support: the marker file gates this to a one-time attempt so
       // steady-state launches stay quiet.
@@ -970,31 +970,31 @@ async function ensureCli(pinnedVersion) {
       return LOCAL_BIN_PATH;
     }
     log(
-      `pgsql-tools version mismatch at ${LOCAL_BIN_PATH} ` +
+      `postgres-mcp version mismatch at ${LOCAL_BIN_PATH} ` +
         `(installed=${installed ?? "unknown"}, pinned=${pinnedVersion})`,
     );
   } else {
-    log(`pgsql-tools not found at ${LOCAL_BIN_PATH}`);
+    log(`postgres-mcp not found at ${LOCAL_BIN_PATH}`);
   }
 
   await installCli(pinnedVersion);
 
   if (!fs.existsSync(LOCAL_BIN_PATH)) {
-    throw new Error(`pgsql-tools missing at ${LOCAL_BIN_PATH} after install`);
+    throw new Error(`postgres-mcp missing at ${LOCAL_BIN_PATH} after install`);
   }
   const postVersion = readInstalledVersion(LOCAL_BIN_PATH);
   if (postVersion !== pinnedVersion) {
     throw new Error(
-      `Installed pgsql-tools ${postVersion ?? "unknown"} at ${LOCAL_BIN_PATH}, ` +
+      `Installed postgres-mcp ${postVersion ?? "unknown"} at ${LOCAL_BIN_PATH}, ` +
         `expected ${pinnedVersion}`,
     );
   }
-  log(`pgsql-tools ${postVersion} installed at ${LOCAL_BIN_PATH}`);
+  log(`postgres-mcp ${postVersion} installed at ${LOCAL_BIN_PATH}`);
   return LOCAL_BIN_PATH;
 }
 
 function execMcp(cliPath) {
-  const child = spawn(cliPath, ["mcp", "run"], {
+  const child = spawn(cliPath, ["run"], {
     stdio: "inherit",
     env: process.env,
     windowsHide: true,
@@ -1025,7 +1025,7 @@ async function main() {
     log(err.message);
     process.exit(1);
   }
-  log(`Pinned pgsql-tools version: ${pinnedVersion}`);
+  log(`Pinned postgres-mcp version: ${pinnedVersion}`);
 
   let cliPath;
   try {

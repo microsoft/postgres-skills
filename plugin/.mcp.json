@@ -1,11 +1,11 @@
 {
   "mcpServers": {
-    "pgsql-tools": {
+    "postgres-mcp": {
       "type": "stdio",
       "command": "node",
       "args": ["${PLUGIN_ROOT}/run_mcp.js"],
       "env": {
-        "PGSQL_TOOLS_QUERY_TIMEOUT_MS": "540000"
+        "PGSQL_MCP_QUERY_TIMEOUT_MS": "540000"
       },
       "timeout": 90000
     }

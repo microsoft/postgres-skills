@@ -162,7 +162,7 @@ def to_libpq_string(cs: str) -> str:
 # MCP JSON-RPC client over stdio
 # ---------------------------------------------------------------------------
 class MCPClient:
-    """Minimal NDJSON JSON-RPC client for the pgsql-tools MCP server.
+    """Minimal NDJSON JSON-RPC client for the postgres-mcp MCP server.
 
     A single background thread reads stdout, parses JSON-RPC responses, and
     stores them keyed by id (banner / non-JSON lines are skipped). Callers wait
@@ -333,8 +333,8 @@ def find_profile_id(text: str) -> Optional[str]:
     """Return the connection profile to use.
 
     Prefers the ``default (env)`` profile that the server auto-registers from
-    ``PGSQL_CONNECTION_STRING`` so the suite is isolated from any pre-existing
-    developer profiles in ``~/.pgsql-tools-cli/connections.yaml``. Falls back to
+    ``PGSQL_MCP_CONNECTION_STRING`` so the suite is isolated from any pre-existing
+    developer profiles in ``~/.postgres-mcp/connections.yaml``. Falls back to
     the first UUID found when that named profile is not present.
     """
     try:
@@ -362,7 +362,7 @@ def skills() -> list[dict]:
 @pytest.fixture(scope="module")
 def mcp_client():
     """MCP server without a DB connection string (protocol/tool-listing tests)."""
-    client = MCPClient(extra_env={"PGSQL_TOOLS_QUERY_TIMEOUT_MS": "10000"})
+    client = MCPClient(extra_env={"PGSQL_MCP_QUERY_TIMEOUT_MS": "10000"})
     time.sleep(BOOT_WAIT_S)
     yield client
     client.close()
@@ -397,15 +397,15 @@ def _require_azure_conn_string() -> str:
 
 @pytest.fixture(scope="module")
 def db_client():
-    """MCP server wired to the Docker-backed database via PGSQL_CONNECTION_STRING.
+    """MCP server wired to the Docker-backed database via PGSQL_MCP_CONNECTION_STRING.
 
     Connects to the local compose Postgres by default; fails (does not skip) when
     no database is reachable.
     """
     cs = _require_conn_string()
     client = MCPClient(extra_env={
-        "PGSQL_CONNECTION_STRING": to_libpq_string(cs),
-        "PGSQL_TOOLS_QUERY_TIMEOUT_MS": "30000",
+        "PGSQL_MCP_CONNECTION_STRING": to_libpq_string(cs),
+        "PGSQL_MCP_QUERY_TIMEOUT_MS": "30000",
         # Disable GSSAPI encryption negotiation. Without this, libpq/pgx attempts a
         # Kerberos handshake against the local Docker Postgres on hosts that have
         # GSS libraries (e.g. macOS), which fails before the normal auth flow.
@@ -425,8 +425,8 @@ def azure_db_client():
     """
     cs = _require_azure_conn_string()
     client = MCPClient(extra_env={
-        "PGSQL_CONNECTION_STRING": to_libpq_string(cs),
-        "PGSQL_TOOLS_QUERY_TIMEOUT_MS": "30000",
+        "PGSQL_MCP_CONNECTION_STRING": to_libpq_string(cs),
+        "PGSQL_MCP_QUERY_TIMEOUT_MS": "30000",
     })
     time.sleep(BOOT_WAIT_S)
     client.initialize(client_name="pytest-dogfood")
