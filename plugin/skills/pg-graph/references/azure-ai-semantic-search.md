@@ -1,10 +1,10 @@
 ---
-title: "Semantic Search with the azure_ai Extension"
-description: "Enable and use the azure_ai extension on Azure Database for PostgreSQL to generate embeddings for semantic search and graph-augmented retrieval, including what to configure and what to ask the user for."
+title: "Graph Semantic Search with the azure_ai Extension"
+description: "Enable and use the azure_ai extension on Azure Database for PostgreSQL to generate embeddings for graph semantic search and graph-augmented retrieval, including what to configure and what to ask the user for."
 tags: [azure-ai, azure-openai, embeddings, pgvector, semantic-search, postgresql]
 ---
 
-# Semantic Search with the azure_ai Extension
+# Graph Semantic Search with the azure_ai Extension
 
 ## When to use this skill
 

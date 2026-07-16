@@ -502,11 +502,11 @@
       "path": "plugin/skills/pg-graph/references/azure-ai-semantic-search.md",
       "platform_scope": "postgresql",
       "activation_keywords": [
-        "azure_ai embeddings",
-        "azure openai embeddings",
-        "enable azure_ai",
-        "configure azure openai",
-        "in database embeddings",
+        "graph azure_ai embeddings",
+        "graph azure openai embeddings",
+        "enable azure_ai for graph",
+        "configure azure openai for graph",
+        "in database embeddings for graph",
         "graph semantic search"
       ],
       "always_load": false

@@ -378,7 +378,7 @@ routing_challenges:
     query: "How do I plot a line chart of query latency over time in Grafana?"
     expected_skill: null
     difficulty: hard
-    notes: "Negative: charting a graph is not a property-graph task; must not trigger pg-graph."
+    notes: "Negative: visualization graphs like Grafana charts must not trigger the property-graph pg-graph skills."
 
   - id: route-59
     query: "How do I remove duplicate rows from a table using DISTINCT?"

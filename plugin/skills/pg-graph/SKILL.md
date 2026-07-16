@@ -51,7 +51,7 @@ Construction uses only capabilities available today: agent driven extraction ove
 | graph schema, list vertex labels, edge labels, ag_label, describe graph | [graph-schema-introspection](references/graph-schema-introspection.md) | Discovering labels, edge types, and properties so generated Cypher is grounded |
 | graph rag, graph augmented, graph augmented retrieval, hybrid graph retrieval | [graph-augmented-rag](references/graph-augmented-rag.md) | Retrieval that combines vector similarity with graph traversal and reranking |
 | explainability, traceability, provenance, why this recommendation, reasoning path, audit graph answer | [graph-explainability](references/graph-explainability.md) | Make facts traceable to sources and recommendations explainable: provenance on vertices and edges, returned reasoning path, weakest link path confidence, and a reproducible reasoning trace log |
-| graph semantic search, azure_ai embeddings, azure openai embeddings, enable azure_ai, configure azure openai | [azure-ai-semantic-search](references/azure-ai-semantic-search.md) | Enable and configure the `azure_ai` extension, prompt the user for endpoint/key/deployment, and generate embeddings for semantic search |
+| graph semantic search, graph azure_ai embeddings, graph azure openai embeddings, enable azure_ai for graph, configure azure openai for graph | [azure-ai-semantic-search](references/azure-ai-semantic-search.md) | Enable and configure the `azure_ai` extension, prompt the user for endpoint/key/deployment, and generate embeddings for semantic search |
 | cypher example, graph query example, worked graph example | [examples](references/examples.md) | End to end worked examples spanning schema, query, and results |
 
 ## Anti-Hallucination Rules
