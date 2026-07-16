@@ -385,3 +385,9 @@ routing_challenges:
     expected_skill: null
     difficulty: hard
     notes: "Negative: plain row de-duplication is not graph entity resolution."
+
+  - id: route-60
+    query: "How do I set up semantic search over my documents on Azure PostgreSQL?"
+    expected_skill: null
+    difficulty: medium
+    notes: "Negative: generic semantic-search prompts without graph context must not trigger the pg-graph semantic-search skill."
