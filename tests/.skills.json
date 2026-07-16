@@ -400,6 +400,158 @@
         "upgrade version"
       ],
       "always_load": false
+    },
+    {
+      "id": "pg-graph",
+      "path": "plugin/skills/pg-graph/SKILL.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "graph database help",
+        "apache age help",
+        "work with apache age",
+        "knowledge graph help",
+        "graph workload on postgresql"
+      ],
+      "always_load": false,
+      "references_dir": "plugin/skills/pg-graph/references/"
+    },
+    {
+      "id": "graph-ontology-derivation",
+      "path": "plugin/skills/pg-graph/references/ontology-derivation.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "derive ontology",
+        "suggest ontology",
+        "generate ontology",
+        "ontology from data",
+        "ontology from documents",
+        "propose ontology",
+        "ontology feedback"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "graph-extract-to-graph",
+      "path": "plugin/skills/pg-graph/references/extract-to-graph.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "extract to graph",
+        "build graph from data",
+        "build knowledge graph",
+        "populate graph",
+        "extract entities to graph"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "graph-opencypher-age",
+      "path": "plugin/skills/pg-graph/references/opencypher-age-patterns.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "apache age",
+        "opencypher",
+        "cypher()",
+        "create_graph",
+        "property graph",
+        "vertices and edges",
+        "merge node"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "graph-text-to-cypher",
+      "path": "plugin/skills/pg-graph/references/text-to-cypher.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "text to cypher",
+        "natural language to cypher",
+        "english to cypher",
+        "generate cypher",
+        "nl to cypher"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "graph-schema-introspection",
+      "path": "plugin/skills/pg-graph/references/graph-schema-introspection.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "graph schema",
+        "list vertex labels",
+        "edge labels",
+        "ag_label",
+        "describe graph"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "graph-augmented-rag",
+      "path": "plugin/skills/pg-graph/references/graph-augmented-rag.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "graph rag",
+        "graph augmented",
+        "graph augmented retrieval",
+        "graph-augmented rag",
+        "hybrid graph retrieval"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "graph-azure-ai-semantic-search",
+      "path": "plugin/skills/pg-graph/references/azure-ai-semantic-search.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "azure_ai embeddings",
+        "azure openai embeddings",
+        "enable azure_ai",
+        "configure azure openai",
+        "create_embeddings",
+        "semantic search postgres",
+        "in database embeddings"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "graph-explainability",
+      "path": "plugin/skills/pg-graph/references/graph-explainability.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "graph explainability",
+        "graph traceability",
+        "graph provenance",
+        "why this recommendation",
+        "reasoning path",
+        "reasoning trace",
+        "explain graph answer"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "graph-context-dedup",
+      "path": "plugin/skills/pg-graph/references/context-dedup.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "entity resolution",
+        "context dedup",
+        "context based deduplication",
+        "deduplicate entities",
+        "canonicalize entities",
+        "entity deduplication",
+        "merge duplicate entities"
+      ],
+      "always_load": false
+    },
+    {
+      "id": "graph-examples",
+      "path": "plugin/skills/pg-graph/references/examples.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "cypher example",
+        "graph query example",
+        "worked graph example"
+      ],
+      "always_load": false
     }
   ],
   "connection_gating": {
