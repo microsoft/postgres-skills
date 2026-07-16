@@ -506,9 +506,9 @@
         "azure openai embeddings",
         "enable azure_ai",
         "configure azure openai",
-        "create_embeddings",
         "semantic search postgres",
-        "in database embeddings"
+        "in database embeddings",
+        "graph semantic search"
       ],
       "always_load": false
     },
