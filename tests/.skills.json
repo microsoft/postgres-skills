@@ -506,7 +506,7 @@
         "graph azure openai embeddings",
         "enable azure_ai for graph",
         "configure azure openai for graph",
-        "in database embeddings for graph",
+        "in-database embeddings for graph",
         "graph semantic search"
       ],
       "always_load": false
