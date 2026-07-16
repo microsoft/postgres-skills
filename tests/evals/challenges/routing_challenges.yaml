@@ -369,12 +369,18 @@ routing_challenges:
     notes: "Explainability and traceability for graph recommendations."
 
   - id: route-57
+    query: "How do I set up graph semantic search over my graph content on Azure PostgreSQL?"
+    expected_skill: "plugin/skills/pg-graph/references/azure-ai-semantic-search"
+    difficulty: medium
+    notes: "Graph-specific semantic search should route to the pg-graph Azure semantic-search reference."
+
+  - id: route-58
     query: "How do I plot a line chart of query latency over time in Grafana?"
     expected_skill: null
     difficulty: hard
     notes: "Negative: charting a graph is not a property-graph task; must not trigger pg-graph."
 
-  - id: route-58
+  - id: route-59
     query: "How do I remove duplicate rows from a table using DISTINCT?"
     expected_skill: null
     difficulty: hard

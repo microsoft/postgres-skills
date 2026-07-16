@@ -4129,7 +4129,7 @@ challenges:
       - "Does it return a reasoning path with a path confidence bounded by the weakest edge, not just the answer?"
 
   - id: graph-azureai-01
-    task: "I want in-database embeddings for semantic search over my graph content on Azure PostgreSQL. How do I set that up?"
+    task: "I want in-database embeddings for graph semantic search over my graph content on Azure PostgreSQL. How do I set that up?"
     difficulty: medium
     target_skill: plugin/skills/pg-graph/references/azure-ai-semantic-search
     platform_scope: azure-postgresql
