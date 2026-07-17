@@ -3977,3 +3977,169 @@ challenges:
     - Does it avoid forcing PostgreSQL reference-skill routing as the main answer?
     - Does it refrain from pretending skill activation is needed for a generic Docker task?
     notes: 'Negative case: generic Docker environment setup should not activate the root PostgreSQL references skill.'
+
+  # ─── PG-GRAPH (pg-graph skill: ontology → build → query → explain) ────────
+
+  - id: graph-ont-01
+    task: "Point the agent at my normalized Postgres schema and propose a graph ontology I can review before finalizing."
+    difficulty: medium
+    target_skill: plugin/skills/pg-graph/references/ontology-derivation
+    platform_scope: postgresql
+    expected_activation: true
+    expected_patterns:
+      - "node|label|vertex"
+      - "edge|relationship"
+      - "confidence"
+      - "feedback|approve|review"
+    anti_patterns:
+      - "ai\\.build_graph|ai\\.suggest_ontology"
+      - "ALTER SYSTEM"
+    correctness_checks:
+      - "Does the response derive node labels from tables and edges from foreign keys?"
+      - "Does it present the ontology as a proposal with confidence and a human feedback loop, not a finished artifact?"
+      - "Does it avoid claiming an unreleased ai.* primitive builds the ontology?"
+
+  - id: graph-ont-02
+    task: "Can I just call ai.suggest_ontology() on Azure PostgreSQL to auto-generate my knowledge graph ontology?"
+    difficulty: medium
+    target_skill: plugin/skills/pg-graph/references/ontology-derivation
+    platform_scope: postgresql
+    expected_activation: false
+    correctness_checks:
+      - "Does the response state that ai.* pipeline primitives are not available today?"
+      - "Does it redirect to agent-driven derivation or the azure_ai extension with a human feedback loop?"
+
+  - id: graph-extract-01
+    task: "My ontology is finalized. How do I load entities and relationships into Apache AGE without creating duplicates on re-run?"
+    difficulty: medium
+    target_skill: plugin/skills/pg-graph/references/extract-to-graph
+    platform_scope: postgresql
+    expected_activation: true
+    expected_patterns:
+      - "MERGE"
+      - "ag_catalog\\.cypher"
+      - "source_id|provenance"
+    anti_patterns:
+      - "ai\\.deduplicate|ai\\.build_graph"
+      - "LOAD 'age'"
+    correctness_checks:
+      - "Does the response use MERGE on a stable business key for idempotent loads instead of CREATE?"
+      - "Does it deduplicate before writing and carry a provenance property like source_id?"
+      - "Does it avoid unreleased ai.* primitives?"
+
+  - id: graph-dedup-01
+    task: "Extraction produced 'AKS', 'Azure Kubernetes Service', and 'the k8s cluster' as separate entities. How do I resolve these before loading the graph?"
+    difficulty: hard
+    target_skill: plugin/skills/pg-graph/references/context-dedup
+    platform_scope: postgresql
+    expected_activation: true
+    expected_patterns:
+      - "canonical"
+      - "blocking|normaliz|embedding"
+    anti_patterns:
+      - "ai\\.deduplicate"
+    correctness_checks:
+      - "Does the response canonicalize aliases using type and neighboring context, not just the surface string?"
+      - "Does it persist decisions in a canonical map and let a human override win?"
+
+  - id: graph-cypher-01
+    task: "Show me how to run an openCypher query against my Apache AGE graph on PostgreSQL."
+    difficulty: easy
+    target_skill: plugin/skills/pg-graph/references/opencypher-age-patterns
+    platform_scope: postgresql
+    expected_activation: true
+    expected_patterns:
+      - "ag_catalog\\.cypher"
+      - "agtype"
+    anti_patterns:
+      - "ALTER SYSTEM"
+    correctness_checks:
+      - "Is the Cypher wrapped in ag_catalog.cypher(...) with a column definition list typed agtype?"
+      - "Does it avoid presenting Cypher as a bare statement?"
+
+  - id: graph-cypher-02
+    task: "On Azure Database for PostgreSQL Flexible Server, do I need to run LOAD 'age' before every Cypher query?"
+    difficulty: medium
+    target_skill: plugin/skills/pg-graph/references/opencypher-age-patterns
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "shared_preload_libraries|preloaded|not needed|not required"
+    anti_patterns:
+      - "you must run LOAD 'age'"
+    correctness_checks:
+      - "Does the response explain that age is preloaded via shared_preload_libraries on managed Azure so LOAD is unnecessary and blocked for non-superusers?"
+
+  - id: graph-nl2cypher-01
+    task: "Turn the question 'which services did INC-9002 affect' into a Cypher query for my AGE graph."
+    difficulty: medium
+    target_skill: plugin/skills/pg-graph/references/text-to-cypher
+    platform_scope: postgresql
+    expected_activation: true
+    expected_patterns:
+      - "ag_catalog\\.cypher"
+      - "MATCH"
+    anti_patterns:
+      - "ai\\.text_to_cypher"
+    correctness_checks:
+      - "Does the response ground labels and properties via schema introspection before generating Cypher?"
+      - "Does it produce a syntactically valid wrapped Cypher query?"
+
+  - id: graph-introspect-01
+    task: "How do I discover the vertex labels, edge labels, and their properties in an existing AGE graph?"
+    difficulty: easy
+    target_skill: plugin/skills/pg-graph/references/graph-schema-introspection
+    platform_scope: postgresql
+    expected_activation: true
+    expected_patterns:
+      - "ag_catalog|ag_label|label"
+    correctness_checks:
+      - "Does the response show how to enumerate labels and properties so generated Cypher is grounded?"
+
+  - id: graph-rag-01
+    task: "A new support ticket came in. Find similar past tickets and suggest the resolution that actually fixed them, using my AGE graph."
+    difficulty: hard
+    target_skill: plugin/skills/pg-graph/references/graph-augmented-rag
+    platform_scope: postgresql
+    expected_activation: true
+    expected_patterns:
+      - "pgvector|embedding|similar"
+      - "traversal|MATCH|RESOLVED_BY"
+      - "rerank|fusion"
+    anti_patterns:
+      - "ai\\.build_graph"
+    correctness_checks:
+      - "Does the response seed with vector similarity, expand along graph edges, and rerank?"
+      - "Does it explain why graph traversal adds value over flat vector search?"
+
+  - id: graph-explain-01
+    task: "When the graph recommends a resolution for an incident, how do I show why it was suggested and trace each fact back to its source?"
+    difficulty: hard
+    target_skill: plugin/skills/pg-graph/references/graph-explainability
+    platform_scope: postgresql
+    expected_activation: true
+    expected_patterns:
+      - "provenance|source_id|source_ref"
+      - "reasoning path|path|evidence"
+      - "confidence"
+    anti_patterns:
+      - "ai\\.explain"
+    correctness_checks:
+      - "Does the response carry provenance on vertices and edges and trace a fact back to its source?"
+      - "Does it return a reasoning path with a path confidence bounded by the weakest edge, not just the answer?"
+
+  - id: graph-azureai-01
+    task: "I want in-database embeddings for graph semantic search over my graph content on Azure PostgreSQL. How do I set that up?"
+    difficulty: medium
+    target_skill: plugin/skills/pg-graph/references/azure-ai-semantic-search
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "azure_ai|azure_openai"
+      - "create_embeddings"
+      - "vector"
+    anti_patterns:
+      - "hardcoded endpoint|made-up deployment"
+    correctness_checks:
+      - "Does the response enable and configure the azure_ai extension and ask the user for endpoint, key, and deployment rather than inventing them?"
+      - "Does it generate embeddings with azure_openai.create_embeddings and store them as pgvector vectors?"

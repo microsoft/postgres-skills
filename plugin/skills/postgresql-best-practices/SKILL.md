@@ -113,6 +113,12 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 
 ---
 
+## Graph Workloads (Apache AGE)
+
+For anything involving a property graph on PostgreSQL, route to the sibling **[pg-graph](../pg-graph/SKILL.md)** skill: Apache AGE, openCypher, `ag_catalog`, knowledge graphs, ontology, graph traversal, and natural language to Cypher. That skill owns AGE setup, the `ag_catalog.cypher()` wrapping contract, graph schema introspection, and retrieval that combines vectors with graph traversal. Keep AGE specific guidance there rather than duplicating it here.
+
+---
+
 ## Quick Decision Tree
 
 - Vector or similarity → `azure-postgresql-vector-diskann` on Azure, otherwise `postgresql-vector-search`. When `isAzure: true` and the user asks about vector indexes without specifying an index type, recommend DiskANN as the preferred option alongside HNSW.
@@ -121,6 +127,7 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 - Connection pooling → Azure built-in pooler uses `azure-postgresql-connection-pooling`; otherwise `postgresql-connection-management`
 - Azure-only topics like Entra ID, provisioning, HA, networking, upgrades → route to matching `azure-*` skill only when `isAzure: true`
 - Generic topics like indexing, JSONB, partitioning, RLS, FTS, replication → use `postgresql-*`
+- Graph topics like Apache AGE, openCypher, `ag_catalog`, knowledge graphs, ontology, graph traversal → route to the `pg-graph` skill
 
 ---
 

@@ -317,3 +317,77 @@ routing_challenges:
     expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-networking-ssl"
     difficulty: easy
     notes: "Azure network connectivity troubleshooting."
+
+  # ─── pg-graph routing (positives per reference + negatives) ──────────────
+
+  - id: route-49
+    query: "Point me at my tables and generate ontology proposals, then let me give feedback before finalizing"
+    expected_skill: "plugin/skills/pg-graph/references/ontology-derivation"
+    difficulty: medium
+    notes: "Ontology derivation with human feedback loop."
+
+  - id: route-50
+    query: "My ontology is finalized. How do I extract entities to graph and MERGE them without creating duplicates on re-run?"
+    expected_skill: "plugin/skills/pg-graph/references/extract-to-graph"
+    difficulty: medium
+    notes: "Extract and load phase, distinct from ontology derivation."
+
+  - id: route-51
+    query: "What is a good entity resolution approach to merge duplicate entities before loading the graph?"
+    expected_skill: "plugin/skills/pg-graph/references/context-dedup"
+    difficulty: medium
+    notes: "Context-aware entity resolution for the graph."
+
+  - id: route-52
+    query: "How do I wrap an openCypher query with create_graph in Apache AGE?"
+    expected_skill: "plugin/skills/pg-graph/references/opencypher-age-patterns"
+    difficulty: easy
+    notes: "Core AGE openCypher wrapping."
+
+  - id: route-53
+    query: "Translate this natural language to cypher for my AGE knowledge graph"
+    expected_skill: "plugin/skills/pg-graph/references/text-to-cypher"
+    difficulty: easy
+    notes: "NL to Cypher generation."
+
+  - id: route-54
+    query: "How do I list vertex labels and edge labels in my AGE graph?"
+    expected_skill: "plugin/skills/pg-graph/references/graph-schema-introspection"
+    difficulty: easy
+    notes: "Graph schema discovery."
+
+  - id: route-55
+    query: "Set up graph augmented retrieval that combines pgvector similarity with graph traversal"
+    expected_skill: "plugin/skills/pg-graph/references/graph-augmented-rag"
+    difficulty: medium
+    notes: "Hybrid graph + vector retrieval."
+
+  - id: route-56
+    query: "Show the reasoning path and provenance for why this recommendation came out of the graph"
+    expected_skill: "plugin/skills/pg-graph/references/graph-explainability"
+    difficulty: medium
+    notes: "Explainability and traceability for graph recommendations."
+
+  - id: route-57
+    query: "How do I set up graph semantic search over my graph content on Azure PostgreSQL?"
+    expected_skill: "plugin/skills/pg-graph/references/azure-ai-semantic-search"
+    difficulty: medium
+    notes: "Graph-specific semantic search should route to the pg-graph Azure semantic-search reference."
+
+  - id: route-58
+    query: "How do I plot a line chart of query latency over time in Grafana?"
+    expected_skill: null
+    difficulty: hard
+    notes: "Negative: visualization graphs like Grafana charts must not trigger the property-graph pg-graph skills."
+
+  - id: route-59
+    query: "How do I remove duplicate rows from a table using DISTINCT?"
+    expected_skill: null
+    difficulty: hard
+    notes: "Negative: plain row de-duplication is not graph entity resolution."
+
+  - id: route-60
+    query: "How do I set up semantic search over my documents on Azure PostgreSQL?"
+    expected_skill: null
+    difficulty: medium
+    notes: "Negative: generic semantic-search prompts without graph context must not trigger the pg-graph semantic-search skill."
