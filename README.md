@@ -1,10 +1,10 @@
 # PostgreSQL Agent Skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![References: 22](https://img.shields.io/badge/References-22-green.svg)](#reference-catalog)
+[![References: 32](https://img.shields.io/badge/References-32-green.svg)](#reference-catalog)
 [![Platforms: 3](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex-purple.svg)](#get-started-in-30-seconds)
 
-**Ship production PostgreSQL faster.** This plugin turns your AI coding assistant into a PostgreSQL and Azure Database for PostgreSQL expert that can *act*, not just advise. It pairs 22 expert-curated skill references with two execution hands — the **postgres-mcp MCP server** for working inside your database and the **Azure CLI** for managing your Flexible Server — so you get safe, version-aware, production-ready results instead of Stack Overflow snippets.
+**Ship production PostgreSQL faster.** This plugin turns your AI coding assistant into a PostgreSQL and Azure Database for PostgreSQL expert that can *act*, not just advise. It pairs 32 expert-curated skill references — including a full graph-database lifecycle on Apache AGE — with two execution hands: the **postgres-mcp MCP server** for working inside your database and the **Azure CLI** for managing your Flexible Server. You get safe, version-aware, production-ready results instead of Stack Overflow snippets.
 
 ## What you get
 
@@ -16,13 +16,14 @@ A default AI assistant gives you plausible-looking PostgreSQL advice. This plugi
 | Confidently recommends commands that break managed databases | Applies managed-service guardrails and the correct Azure workflow |
 | Explains what you *could* do | Executes it — query, index, provision, restore — with confirmation before anything destructive |
 | Can't tell self-hosted from Azure | Detects the connection and routes to the right generic or Azure guidance |
+| Hand-waves "just use a graph database" | Derives an ontology from your data, builds the graph on Apache AGE, and answers questions with openCypher — all inside PostgreSQL |
 
 ## How it works
 
 This repo is the plugin. Installing it gives your agent three things that work together:
 
-- **The skill** — a lightweight routing table that reads your question and connection, then loads the one matching reference (generic or Azure).
-- **The postgres-mcp MCP server** — executes inside your database: runs queries, applies changes, inspects schema, and detects whether you're on Azure.
+- **The skill** — a lightweight routing table that reads your question and connection, then loads the one matching reference (generic, Azure, or graph). A dedicated **pg-graph** skill owns the full Apache AGE lifecycle — ontology derivation, graph construction, and openCypher querying.
+- **The postgres-mcp MCP server** — executes inside your database: runs queries, applies changes, inspects schema, builds and traverses graphs, and detects whether you're on Azure.
 - **The Azure CLI (`az`)** — executes on the managed service: provisioning, scaling, parameters, HA and failover, replicas, point-in-time restore, networking, and upgrades.
 
 ## Get started in 30 seconds
@@ -74,6 +75,20 @@ codex plugin install postgres-skills@postgres-skills
 
 **"Batch-embed 1 million rows without leaving the database"**
 → Routes to **azure-postgresql-genai-patterns** and runs the `azure_ai` embedding loop.
+
+### Building and querying graphs (via the pg-graph skill)
+
+**"Turn my documents into a knowledge graph"**
+→ Routes to **pg-graph → ontology-derivation**, samples your data, proposes node labels, edge types, and properties, and runs a human feedback loop before finalizing — then **extract-to-graph** MERGE-loads the graph on Apache AGE.
+
+**"Generate an ontology from my existing tables"**
+→ Routes to **pg-graph → ontology-derivation**, reads your schema and foreign keys, and proposes tables as node labels and FKs as edges for your review before anything is built.
+
+**"Answer this by traversing my graph"**
+→ Routes to **pg-graph → text-to-cypher**, introspects the graph schema first, then generates and runs a validated openCypher query wrapped in `ag_catalog.cypher(...)`.
+
+**"Why did the graph recommend this?"**
+→ Routes to **pg-graph → graph-explainability** and returns the reasoning path, provenance, and a confidence bounded by the weakest edge.
 
 ### Managing your Azure Flexible Server (via `az` CLI)
 
@@ -135,6 +150,23 @@ These references are gated by the connection capability check. They cover manage
 | **azure-postgresql-provisioning** | IaC, SKU selection, scaling | Burstable limits, storage can't shrink, IOPS scaling |
 | **azure-postgresql-extension-lifecycle** | Extension allowlisting on Azure | `azure.extensions` param, `azure_pg_admin` role requirement |
 | **azure-postgresql-upgrades-maintenance** | Major version upgrades, maintenance | MVU is one-way, no skip-version, `--validate-only` pre-check |
+
+### Graph on PostgreSQL — Apache AGE (pg-graph, 10 references)
+
+The **pg-graph** skill is the single home for graph work on PostgreSQL, covering the full lifecycle: derive an ontology from your data (with a human feedback loop), build the graph, and query it with openCypher, natural-language-to-Cypher, and graph-augmented retrieval. It uses only capabilities available today — agent-driven extraction over the MCP query tools (any PostgreSQL with AGE) or the `azure_ai` extension for in-database work at scale on Azure.
+
+| Reference | Helps you with | What the agent learns that LLMs get wrong |
+|-----------|---------------|------------------------------------------|
+| **ontology-derivation** | Deriving a graph ontology from structured or unstructured data with a human feedback loop | Never finalize an ontology without user approval; agent-driven vs `azure_ai` modes; no unreleased `ai.*` primitives |
+| **extract-to-graph** | Extracting, deduplicating, and MERGE-loading entities into AGE from a finalized ontology | Idempotent `MERGE` on stable business keys to avoid duplicate vertices across repeated extraction |
+| **context-dedup** | Entity resolution and canonicalization of aliases | Blocking for scale, persistent canonical map, resolving via type + graph neighborhood + source snippet |
+| **opencypher-age-patterns** | AGE setup, Cypher wrapping, MATCH/MERGE/CREATE, indexing vertices and edges | Cypher must be wrapped in `ag_catalog.cypher(...)` with a column definition list; `search_path` ordering |
+| **text-to-cypher** | Turning a natural-language question into a validated openCypher query | Ground on schema first, `agtype` casting, no host bind parameters inside `$$...$$` |
+| **graph-schema-introspection** | Discovering labels, edge types, and properties | Use the `ag_label` catalog so generated Cypher is grounded, not hallucinated |
+| **graph-augmented-rag** | Retrieval combining vector similarity with graph traversal and reranking | Hybrid graph retrieval that goes beyond flat vector search |
+| **graph-explainability** | Provenance, reasoning paths, and explainable recommendations | Confidence bounded by the weakest edge on the path; reproducible reasoning trace |
+| **azure-ai-semantic-search** | Enabling and configuring `azure_ai` and generating embeddings for semantic search | Read current settings and ask for endpoint/key/deployment — never invent them |
+| **examples** | End-to-end worked graph examples spanning schema, query, and results | Grounded in the wrapping and safety rules from the other pg-graph references |
 
 ## Contributing
 

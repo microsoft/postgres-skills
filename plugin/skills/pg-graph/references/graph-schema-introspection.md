@@ -24,12 +24,15 @@ SELECT name FROM ag_catalog.ag_graph ORDER BY name;
 
 `ag_label` records each label, its kind (vertex `v` or edge `e`), and its backing relation.
 
+Both `ag_label` and `ag_graph` have a `name` column, so qualify the columns you select or the query fails with `column reference "name" is ambiguous`. AGE also seeds every graph with two internal placeholder labels, `_ag_label_vertex` and `_ag_label_edge`; exclude them so only your real labels are returned.
+
 ```sql no-execute
-SELECT name, kind
+SELECT l.name, l.kind
 FROM ag_catalog.ag_label l
 JOIN ag_catalog.ag_graph g ON l.graph = g.graphid
 WHERE g.name = 'support_kg'
-ORDER BY kind, name;
+  AND l.name NOT IN ('_ag_label_vertex', '_ag_label_edge')
+ORDER BY l.kind, l.name;
 ```
 
 ## Discover property keys for a label
@@ -67,8 +70,9 @@ Keep it compact. A concise, accurate summary beats a long dump.
 ## Common Mistakes
 
 1. **[HIGH] Treating properties as columns**: Property keys live in the `agtype` `properties` value, not as table columns.
-2. **[MEDIUM] Stale summary**: Introspect per session or when the graph may have changed.
-3. **[MEDIUM] Over sampling**: Large scans to enumerate keys are unnecessary. Sample with a `LIMIT`.
+2. **[HIGH] Ambiguous `name` in the label query**: `ag_label` and `ag_graph` both expose `name`. Qualify the selected columns (`l.name`, `l.kind`) or the query errors out. Also filter the internal `_ag_label_vertex` and `_ag_label_edge` placeholders so only real labels are returned.
+3. **[MEDIUM] Stale summary**: Introspect per session or when the graph may have changed.
+4. **[MEDIUM] Over sampling**: Large scans to enumerate keys are unnecessary. Sample with a `LIMIT`.
 
 ## Anti-Hallucination Rules
 
