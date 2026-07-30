@@ -391,3 +391,11 @@ routing_challenges:
     expected_skill: null
     difficulty: medium
     notes: "Negative: generic semantic-search prompts without graph context must not trigger the pg-graph semantic-search skill."
+
+  - id: route-61
+    query: "I'm in VS Code with the PostgreSQL extension and want to visualize my Apache AGE graph. What query should I run so it renders as nodes and edges?"
+    expected_skill: "plugin/skills/pg-graph/references/text-to-cypher"
+    expected_not:
+      - "plugin/skills/pg-graph/references/graph-schema-introspection"
+    difficulty: medium
+    notes: "VS Code AGE graph visualization should route to text-to-cypher (return full objects, set disp_label, match AS arity)."

@@ -12,7 +12,7 @@ Use for graph work on PostgreSQL with Apache AGE: creating a graph, wrapping Cyp
 
 ## Setup and session state
 
-Set a safe search path once per session. On managed **Azure Database for PostgreSQL Flexible Server**, AGE ships in `shared_preload_libraries`, so it is already loaded: do **not** run `LOAD 'age';` there. A non-superuser login will get `access to library "age" is not allowed`. Only run `LOAD 'age';` on self-hosted PostgreSQL where AGE is not preloaded.
+Set a safe search path once per session. On managed **Azure Database for PostgreSQL (Flexible Server and Azure HorizonDB)**, AGE is preloaded via `shared_preload_libraries`, so it is already loaded: do **not** run `LOAD 'age';` there. A non-superuser login will get `access to library "age" is not allowed`. Only run `LOAD 'age';` on self-hosted PostgreSQL where AGE is not preloaded.
 
 ```sql no-execute
 -- Managed Azure (AGE preloaded): search_path only.
@@ -38,6 +38,8 @@ SELECT create_graph('support_kg');
 ## The wrapping contract
 
 Every Cypher statement runs inside `ag_catalog.cypher()` and needs a column definition list whose arity matches the `RETURN` clause. Every returned column is typed `agtype`. The **graph name must be a literal string constant**, not a host bind parameter: `ag_catalog.cypher($1, $$...$$)` fails with `a name constant is expected`. Validate the graph name against your known graphs and inline it as a quoted literal.
+
+To render results in the **PostgreSQL extension for VS Code** graph explorer, return whole vertices and edges (not scalar properties), set `disp_label`, and match the `AS (...)` arity to every returned object. See [text-to-cypher: Visualizing the graph in the VS Code extension](text-to-cypher.md#visualizing-the-graph-in-the-vs-code-extension).
 
 ```sql no-execute
 SELECT *
