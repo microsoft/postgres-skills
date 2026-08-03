@@ -3,8 +3,7 @@
 
 """Secret scanning across the repository.
 
-Hard-fails on any detected secret. Binary checksum verification lives in
-``test_binary_integrity.py``.
+Hard-fails on any detected secret.
 """
 
 import re

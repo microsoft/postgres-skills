@@ -15,9 +15,8 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 ```
 postgres-skills/
 ├── .github/plugin/marketplace.json     # Canonical marketplace manifest (Copilot)
-├── plugin/                             # Plugin root (MCP launcher + skills)
-│   ├── .mcp.json
-│   ├── run_mcp.js                      # MCP server entry point
+├── plugin/                             # Plugin root (MCP server config + skills)
+│   ├── .mcp.json                       # postgres-mcp server launch (npx, pinned version)
 │   └── skills/
 │       ├── postgresql-best-practices/SKILL.md   # Routing table + principles
 │       └── postgresql-best-practices/references/ # 22 detailed reference files
@@ -125,8 +124,8 @@ Tests are grouped into four lanes via pytest markers:
 
 - **default (unmarked)** — no database required; runs on every CI push. Covers
   token budgets, terminology, links, activation precision, licenses, security,
-  manifests/structure, MCP protocol, skill routing, performance budget, binary
-  integrity, and the no-DB structural SQL
+  manifests/structure, MCP protocol, skill routing, performance budget, and the
+  no-DB structural SQL
   fence lint.
 - **`pg`** — SQL fence validation that executes fences against the Docker
   PostgreSQL (`tests/test_sql_syntax.py::test_sql_blocks_parse`). Always uses the

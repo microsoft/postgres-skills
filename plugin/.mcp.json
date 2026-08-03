@@ -2,8 +2,8 @@
   "mcpServers": {
     "postgres-mcp": {
       "type": "stdio",
-      "command": "node",
-      "args": ["${PLUGIN_ROOT}/run_mcp.js"],
+      "command": "npx",
+      "args": ["-y", "@microsoft/postgres-mcp@0.1.0-rc.2", "run"],
       "env": {
         "PGSQL_MCP_QUERY_TIMEOUT_MS": "540000"
       },

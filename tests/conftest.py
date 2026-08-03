@@ -3,10 +3,11 @@
 
 """Shared pytest fixtures and helpers for the PostgreSQL Agent Skills test suite.
 
-The MCP server (``plugin/run_mcp.js``) is a Node process that speaks
-newline-delimited JSON-RPC 2.0 (NDJSON) over stdio. These helpers spawn it via
-``subprocess`` and provide a small JSON-RPC client plus the skill-routing engine
-used by the routing/dogfood tests.
+The MCP server is launched exactly as ``plugin/.mcp.json`` declares it
+(``npx @microsoft/postgres-mcp@<pinned> run``) and speaks newline-delimited
+JSON-RPC 2.0 (NDJSON) over stdio. These helpers spawn it via ``subprocess`` and
+provide a small JSON-RPC client plus the skill-routing engine used by the
+routing/dogfood tests.
 """
 
 from __future__ import annotations
@@ -27,10 +28,10 @@ import pytest
 TESTS_DIR = Path(__file__).resolve().parent
 ROOT = TESTS_DIR.parent
 PLUGIN_DIR = Path(os.environ.get("PLUGIN_DIR", ROOT / "plugin")).resolve()
-RUN_MCP = PLUGIN_DIR / "run_mcp.js"
+MCP_CONFIG = PLUGIN_DIR / ".mcp.json"
 SKILLS_MANIFEST = TESTS_DIR / ".skills.json"
 
-# Server boot budget (binary download on cold cache + startup).
+# Server boot budget (package download on cold npx cache + startup).
 BOOT_WAIT_S = float(os.environ.get("MCP_BOOT_WAIT_S", "5"))
 MSG_TIMEOUT_S = float(os.environ.get("MCP_MSG_TIMEOUT_S", "30"))
 
@@ -161,6 +162,17 @@ def to_libpq_string(cs: str) -> str:
 # ---------------------------------------------------------------------------
 # MCP JSON-RPC client over stdio
 # ---------------------------------------------------------------------------
+def mcp_server_command() -> list[str]:
+    """Return the argv the plugin uses to launch the postgres-mcp server.
+
+    Read from ``plugin/.mcp.json`` so the suite exercises the shipped launch
+    command (and its pinned package version) instead of a duplicate of it.
+    """
+    config = json.loads(MCP_CONFIG.read_text(encoding="utf-8"))
+    server = config["mcpServers"]["postgres-mcp"]
+    return [server["command"], *server.get("args", [])]
+
+
 class MCPClient:
     """Minimal NDJSON JSON-RPC client for the postgres-mcp MCP server.
 
@@ -177,7 +189,7 @@ class MCPClient:
         if extra_env:
             env.update(extra_env)
         self.proc = subprocess.Popen(
-            ["node", str(RUN_MCP)],
+            mcp_server_command(),
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
