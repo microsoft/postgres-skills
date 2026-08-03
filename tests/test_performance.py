@@ -10,7 +10,7 @@ The MCP server cold-start (15s budget) is also asserted here.
 import subprocess
 import time
 
-from conftest import ROOT, RUN_MCP
+from conftest import ROOT, mcp_server_command
 
 ROUTING_BUDGET_MS = 100
 ITERATIONS = 1000
@@ -38,13 +38,13 @@ def test_routing_within_budget(skills):
 def test_mcp_cold_start_within_budget():
     """The server must download/initialize and exit on EOF within the budget.
 
-    Mirrors the old performance-budget bash check
-    (``timeout 15 node plugin/run_mcp.js < /dev/null``).
+    Launches the server exactly as ``plugin/.mcp.json`` declares it
+    (``npx @microsoft/postgres-mcp@<pinned> run``).
     """
     start = time.perf_counter()
     try:
         subprocess.run(
-            ["node", str(RUN_MCP)],
+            mcp_server_command(),
             cwd=str(ROOT),
             stdin=subprocess.DEVNULL,
             capture_output=True,

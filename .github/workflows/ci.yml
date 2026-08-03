@@ -20,7 +20,7 @@ jobs:
   #
   # Covers content quality (manifests, structure, skill size, terminology, links,
   # activation precision, skill routing), security (secrets, licenses), MCP protocol
-  # & skill routing, performance budget, binary integrity, and the
+  # & skill routing, performance budget, and the
   # no-DB structural SQL fence lint. Database-backed lanes run in dedicated jobs:
   # `sql-validation` (marker: pg), `integration` (marker: integration), and
   # `azure-dogfood` (marker: azure, test_ai_app) which runs against a real Azure
@@ -130,8 +130,8 @@ jobs:
           fi
           echo "✓ postgres-skills present and installed"
 
-  cross-platform-binary:
-    name: "Compat: Binary ${{ matrix.os }}"
+  cross-platform-launch:
+    name: "Compat: npx launch ${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -142,20 +142,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Download and verify binary
-        run: node plugin/run_mcp.js --version 2>&1 || true
-        timeout-minutes: 3
-      - name: Verify binary exists in cache
+      - name: Launch the MCP server via npx
         shell: bash
         run: |
-          CACHE_DIR="$HOME/.postgres-mcp"
-          if [ -d "$CACHE_DIR" ]; then
-            echo "✓ Binary cache created at $CACHE_DIR"
-            find "$CACHE_DIR" -type f | sed -n '1,10p'
-          else
-            echo "✗ Binary cache not found"
-            exit 1
-          fi
+          CMD=$(node -e "const s=require('./plugin/.mcp.json').mcpServers['postgres-mcp'];console.log([s.command,...s.args].join(' '))")
+          echo "Launching: $CMD"
+          $CMD < /dev/null
+        timeout-minutes: 3
 
   # ═══════════════════════════════════════════════════════════════════════════════
   # DATABASE

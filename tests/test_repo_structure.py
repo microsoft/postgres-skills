@@ -28,8 +28,6 @@ JSON_FILES = [
 REQUIRED_FILES = [
     "README.md",
     "plugin/.mcp.json",
-    "plugin/run_mcp.js",
-    "plugin/POSTGRES_MCP_CLI_VERSION",
     "plugin/skills/postgresql-best-practices/SKILL.md",
 ]
 
