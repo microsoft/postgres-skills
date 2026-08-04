@@ -467,7 +467,14 @@
         "natural language to cypher",
         "english to cypher",
         "generate cypher",
-        "nl to cypher"
+        "nl to cypher",
+        "visualize graph",
+        "visualize my graph",
+        "vs code graph",
+        "graph explorer",
+        "render the graph",
+        "renders as nodes and edges",
+        "ms-ossdata.vscode-pgsql"
       ],
       "always_load": false
     },

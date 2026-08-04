@@ -8,11 +8,11 @@ tags: [azure-ai, azure-openai, embeddings, pgvector, semantic-search, postgresql
 
 ## When to use this skill
 
-Use when a graph task needs semantic text search: seeding graph-augmented retrieval, embedding entity mentions for context aware dedup, or diverse sampling during ontology derivation. On Azure Database for PostgreSQL Flexible Server, generate embeddings in the database with the `azure_ai` extension instead of shipping text to an external service. Off Azure, generate embeddings with any provider and insert the vectors; only this seed step changes, the graph traversal is identical.
+Use when a graph task needs semantic text search: seeding graph-augmented retrieval, embedding entity mentions for context aware dedup, or diverse sampling during ontology derivation. On managed Azure Database for PostgreSQL (Flexible Server and Azure HorizonDB), generate embeddings in the database with the `azure_ai` extension instead of shipping text to an external service. Off Azure, generate embeddings with any provider and insert the vectors; only this seed step changes, the graph traversal is identical.
 
 ## Enable the extension
 
-`azure_ai` and `vector` must be on the server allowlist (`azure.extensions`) before they can be created. They cannot be enabled with `ALTER SYSTEM`.
+`azure_ai` and `vector` must be allowlisted in `azure.extensions` before they can be created — set this via server parameters on Flexible Server, or via a parameter group connected to the cluster on Azure HorizonDB. They cannot be enabled with `ALTER SYSTEM`.
 
 ```sql no-execute
 CREATE EXTENSION IF NOT EXISTS azure_ai;
