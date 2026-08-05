@@ -1,6 +1,6 @@
 # Agent Challenges
 #
-# 300 challenges across 20 target skills (generic + Azure + root)
+# 313 challenges across 20 target skills (generic + Azure + root)
 # Each challenge tests whether the agent activates the correct skill
 # and produces syntactically valid, non-hallucinated output.
 
@@ -4143,3 +4143,38 @@ challenges:
     correctness_checks:
       - "Does the response enable and configure the azure_ai extension and ask the user for endpoint, key, and deployment rather than inventing them?"
       - "Does it generate embeddings with azure_openai.create_embeddings and store them as pgvector vectors?"
+
+  - id: graph-viz-01
+    task: "I'm using the PostgreSQL extension in VS Code and want my Apache AGE query to render as an interactive graph, not a plain table. How should I write the Cypher?"
+    difficulty: medium
+    target_skill: plugin/skills/pg-graph/references/text-to-cypher
+    platform_scope: postgresql
+    expected_activation: true
+    expected_patterns:
+      - "disp_label"
+      - "ag_catalog\\.cypher|cypher\\("
+      - "agtype"
+    anti_patterns:
+      - "RETURN\\s+\\w+\\.\\w+"
+    correctness_checks:
+      - "Does the response return full vertex and edge objects (for example RETURN a, r, b) instead of scalar properties so the VS Code graph explorer renders them?"
+      - "Does it set disp_label so nodes show meaningful text instead of internal IDs?"
+      - "Does it match the AS (...) column arity to every returned object, including intermediate nodes and edges for multi-hop queries?"
+
+  - id: graph-horizon-01
+    task: "How do I enable the Apache AGE extension on an Azure HorizonDB cluster so I can create a graph?"
+    difficulty: medium
+    target_skill: plugin/skills/pg-graph/references/opencypher-age-patterns
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "azure\\.extensions"
+      - "shared_preload_libraries"
+      - "CREATE EXTENSION IF NOT EXISTS age"
+      - "parameter group"
+    anti_patterns:
+      - "ALTER SYSTEM"
+      - "you must run LOAD 'age'"
+    correctness_checks:
+      - "Does the response allowlist age in azure.extensions and add it to shared_preload_libraries via a parameter group connected to the HorizonDB cluster, then create it with CREATE EXTENSION IF NOT EXISTS age CASCADE?"
+      - "Does it avoid ALTER SYSTEM and note that age is preloaded so LOAD 'age' is unnecessary and blocked for non-superusers?"

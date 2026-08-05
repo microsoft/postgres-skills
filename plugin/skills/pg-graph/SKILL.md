@@ -24,7 +24,7 @@ Construction uses only capabilities available today: agent driven extraction ove
 ## Prerequisites (verify before graph work)
 
 - Apache AGE is an extension. Confirm it is installed and load it once per session before any Cypher call.
-- On Azure Database for PostgreSQL Flexible Server, `age` must be on the allowlist (`azure.extensions`) and, for `shared_preload_libraries` features, added there via server parameters. It cannot be enabled with `ALTER SYSTEM`.
+- On managed Azure Database for PostgreSQL (Flexible Server and Azure HorizonDB), `age` must be allowlisted in `azure.extensions` **and** added to `shared_preload_libraries`, then created with `CREATE EXTENSION IF NOT EXISTS age CASCADE;`. Set both on Flexible Server via server parameters; on Azure HorizonDB via a parameter group connected to the cluster. Both auto-restart to apply. It cannot be enabled with `ALTER SYSTEM`. AGE is preloaded on both, so do NOT run `LOAD 'age';` there (a non-superuser gets `access to library "age" is not allowed`).
 - Non superuser sessions must set `search_path` so `ag_catalog` is available but NOT first. Use `SET search_path = public, ag_catalog;`. Putting `ag_catalog` first makes ordinary `CREATE TABLE` fail with permission denied for schema `ag_catalog`.
 
 ## Key Constraints (what models get wrong)
@@ -49,6 +49,7 @@ Construction uses only capabilities available today: agent driven extraction ove
 | apache age, opencypher, cypher(), create_graph, property graph, vertices and edges, MERGE node | [opencypher-age-patterns](references/opencypher-age-patterns.md) | AGE setup, Cypher wrapping, MATCH/MERGE/CREATE patterns, indexing vertices and edges |
 | text to cypher, natural language to cypher, english to cypher, generate cypher, nl to cypher | [text-to-cypher](references/text-to-cypher.md) | Turning a user question into a validated openCypher query and running it |
 | graph schema, list vertex labels, edge labels, ag_label, describe graph | [graph-schema-introspection](references/graph-schema-introspection.md) | Discovering labels, edge types, and properties so generated Cypher is grounded |
+| visualize graph, vs code graph, render the graph, graph explorer, see the graph, plot the graph, ms-ossdata.vscode-pgsql | [text-to-cypher](references/text-to-cypher.md#visualizing-the-graph-in-the-vs-code-extension) | Generate visualization-ready Cypher (full vertex/edge objects, `disp_label`, matched `AS` columns) for the PostgreSQL extension for VS Code graph explorer |
 | graph rag, graph augmented, graph augmented retrieval, hybrid graph retrieval | [graph-augmented-rag](references/graph-augmented-rag.md) | Retrieval that combines vector similarity with graph traversal and reranking |
 | explainability, traceability, provenance, why this recommendation, reasoning path, audit graph answer | [graph-explainability](references/graph-explainability.md) | Make facts traceable to sources and recommendations explainable: provenance on vertices and edges, returned reasoning path, weakest link path confidence, and a reproducible reasoning trace log |
 | graph semantic search, graph azure_ai embeddings, graph azure openai embeddings, enable azure_ai for graph, configure azure openai for graph | [azure-ai-semantic-search](references/azure-ai-semantic-search.md) | Enable and configure the `azure_ai` extension, prompt the user for endpoint/key/deployment, and generate embeddings for semantic search |
@@ -59,7 +60,7 @@ Construction uses only capabilities available today: agent driven extraction ove
 1. Do NOT present a Cypher query as a bare statement. Always wrap it in `ag_catalog.cypher(...)` with a column definition list.
 2. Do NOT claim host bind parameters work inside the `$$...$$` body.
 3. Do NOT put `ag_catalog` first in `search_path`.
-4. Do NOT enable `age` with `ALTER SYSTEM` on Azure. Use the allowlist and server parameters.
+4. Do NOT enable `age` with `ALTER SYSTEM` on managed Azure. Use the `azure.extensions` + `shared_preload_libraries` allowlist, set via server parameters (Flexible Server) or a parameter group connected to the cluster (Azure HorizonDB).
 5. Verify labels and properties with schema introspection before generating Cypher against an unknown graph.
 6. State uncertainty about exact `agtype` cast helpers rather than inventing function names.
 7. Do NOT finalize a derived ontology without explicit user approval. Treat it as a proposal and run the feedback loop.

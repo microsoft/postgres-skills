@@ -15,7 +15,7 @@ This skill uses only capabilities available today. It does NOT depend on unrelea
 ## Two execution modes
 
 1. **Agent driven (default, any PostgreSQL with AGE).** The agent samples the data through the MCP query tools, reasons over it, and proposes the ontology itself. This is the LLM doing the analysis, so no in-database AI function is required. It works on self hosted, RDS, Cloud SQL, or Azure.
-2. **In-database at scale (Azure Database for PostgreSQL Flexible Server).** For large corpora, use the `azure_ai` extension (`azure_ai.generate()`, `azure_ai.extract()`) to run proposals and extraction inside SQL. This needs `azure_ai` allowlisted and configured.
+2. **In-database at scale (managed Azure Database for PostgreSQL — Flexible Server and Azure HorizonDB).** For large corpora, use the `azure_ai` extension (`azure_ai.generate()`, `azure_ai.extract()`) to run proposals and extraction inside SQL. This needs `azure_ai` allowlisted and configured.
 
 Pick the agent driven mode unless the dataset is too large to sample and the user is on Azure with `azure_ai` available. State which mode you are using.
 

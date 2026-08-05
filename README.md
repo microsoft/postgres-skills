@@ -87,6 +87,9 @@ codex plugin install postgres-skills@postgres-skills
 **"Answer this by traversing my graph"**
 → Routes to **pg-graph → text-to-cypher**, introspects the graph schema first, then generates and runs a validated openCypher query wrapped in `ag_catalog.cypher(...)`.
 
+**"Visualize my graph in VS Code"**
+→ Routes to **pg-graph → text-to-cypher**, which returns full vertex and edge objects and sets `disp_label` so the PostgreSQL extension for VS Code renders the result as an interactive node-edge graph.
+
 **"Why did the graph recommend this?"**
 → Routes to **pg-graph → graph-explainability** and returns the reasoning path, provenance, and a confidence bounded by the weakest edge.
 
@@ -161,7 +164,7 @@ The **pg-graph** skill is the single home for graph work on PostgreSQL, covering
 | **extract-to-graph** | Extracting, deduplicating, and MERGE-loading entities into AGE from a finalized ontology | Idempotent `MERGE` on stable business keys to avoid duplicate vertices across repeated extraction |
 | **context-dedup** | Entity resolution and canonicalization of aliases | Blocking for scale, persistent canonical map, resolving via type + graph neighborhood + source snippet |
 | **opencypher-age-patterns** | AGE setup, Cypher wrapping, MATCH/MERGE/CREATE, indexing vertices and edges | Cypher must be wrapped in `ag_catalog.cypher(...)` with a column definition list; `search_path` ordering |
-| **text-to-cypher** | Turning a natural-language question into a validated openCypher query | Ground on schema first, `agtype` casting, no host bind parameters inside `$$...$$` |
+| **text-to-cypher** | Turning a natural-language question into a validated openCypher query | Ground on schema first, `agtype` casting, no host bind parameters inside `$$...$$`; return full objects + `disp_label` for VS Code graph visualization |
 | **graph-schema-introspection** | Discovering labels, edge types, and properties | Use the `ag_label` catalog so generated Cypher is grounded, not hallucinated |
 | **graph-augmented-rag** | Retrieval combining vector similarity with graph traversal and reranking | Hybrid graph retrieval that goes beyond flat vector search |
 | **graph-explainability** | Provenance, reasoning paths, and explainable recommendations | Confidence bounded by the weakest edge on the path; reproducible reasoning trace |
