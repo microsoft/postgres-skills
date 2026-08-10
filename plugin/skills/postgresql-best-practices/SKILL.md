@@ -74,6 +74,8 @@ On first activation:
 
 These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL, Azure, or local.
 
+| Keyword triggers | Reference | When to use |
+|---|---|---|
 | pgvector, vector column, HNSW index, embedding store, similarity search, cosine distance, vector index, nearest neighbor, pgvector extension | [postgresql-vector-search](references/postgresql-vector-search.md) | pgvector setup, HNSW indexes, distance operators, recall tuning |
 | RAG, embeddings postgresql, semantic search pgvector, hybrid search RRF, reciprocal rank fusion, vector + full text, retrieval augmented, RAG system | [postgresql-genai-rag](references/postgresql-genai-rag.md) | RAG pipelines, hybrid search with RRF, chunking strategy |
 | CREATE EXTENSION, pg_stat_statements, pg_trgm, shared_preload_libraries, manage extensions, extension install, install extension, install the | [postgresql-extensions](references/postgresql-extensions.md) | Extension install/upgrade, common extensions, troubleshooting |
