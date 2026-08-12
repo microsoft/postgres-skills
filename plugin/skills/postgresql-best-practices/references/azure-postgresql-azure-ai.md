@@ -47,6 +47,16 @@ tags: [azure, postgresql, azure-ai, azure-openai, generate, extract, summarize, 
 - Do NOT add trailing slash or path segments to the endpoint URL
 - Do NOT claim batch/array input is supported; it is one text per call
 
+## On Azure HorizonDB (Preview)
+
+The `azure_ai`/`azure_openai` function usage, endpoint, and deployment-name rules above apply on HorizonDB. What HorizonDB adds (extension v2.2.1):
+
+- **Auto-provisioned default models.** AI Model Management supplies `default-chat`, `default-embedding`, and `default-reranker`, so functions work without wiring up your own Azure OpenAI deployment first (pass the default name instead of a deployment). Register more with `model_registry.model_add()`.
+- **Extra in-database functions** beyond `create()`/`create_embeddings()`: `azure_ai.generate()`, `azure_ai.extract()`, `azure_ai.is_true()`, and `azure_ai.rank()` (semantic rerank, default `Cohere-rerank-v4.0-fast`).
+- **Enablement** is through the cluster's parameter group (see extension-lifecycle), not `az postgres flexible-server parameter set`.
+
+See [AI functions](https://learn.microsoft.com/en-us/azure/horizondb/ai/ai-functions) and [AI model management](https://learn.microsoft.com/en-us/azure/horizondb/ai/ai-model-management).
+
 ## References
 - [Azure AI extension for Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/generative-ai-azure-overview)
 - [Integrate Azure AI services](https://learn.microsoft.com/azure/postgresql/flexible-server/generative-ai-azure-openai)

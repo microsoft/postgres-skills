@@ -20,18 +20,20 @@ Use references as supplemental context — combine them with your PostgreSQL kno
 - **Destructive DDL confirmation**: Before executing `pgsql_modify` with `DROP`, `TRUNCATE`, `DELETE` (without WHERE), or `ALTER TABLE ... DROP`, always ask the user for explicit confirmation. List the affected objects and warn about data loss before proceeding.
 - Version-gated features: `MERGE` (PG 15+), `json_table` (PG 17+), `DETACH CONCURRENTLY` (PG 14+)
 
-## Managed Service Guardrails (Azure Flexible Server)
+## Managed Service Guardrails (Azure Flexible Server and Azure HorizonDB)
 
-When the context is Azure Database for PostgreSQL, NEVER suggest:
+When the context is Azure Database for PostgreSQL (either flavor), NEVER suggest:
 
-- **File paths**: `pg_hba.conf`, `postgresql.conf`, `/var/lib/postgresql/` — these are not accessible. Never run `SHOW config_file`, `SHOW hba_file`, or `SHOW data_directory` as these reveal internal paths that are irrelevant on a managed service.
+- **File paths**: `pg_hba.conf`, `postgresql.conf`, `/var/lib/postgresql/` — not accessible. Never run `SHOW config_file`, `SHOW hba_file`, or `SHOW data_directory` (internal paths, irrelevant on managed services).
 - **OS commands**: `systemctl`, `sudo`, `pg_basebackup`, `pg_ctl`, `initdb` — no OS-level access
 - **ALTER SYSTEM SET** — blocked on Azure. Use `az postgres flexible-server parameter set` or portal instead.
-- **ALTER DATABASE SET for server-wide parameters** — while technically permitted, prefer `az postgres flexible-server parameter set` for server-wide changes (e.g., `work_mem`, `shared_buffers`, `max_connections`). Only use `ALTER DATABASE SET` if the user explicitly wants a per-database override. Always clarify scope with the user: "Do you want this server-wide (az CLI) or for this specific database only (ALTER DATABASE SET)?"
-- **Manual replication setup** — use Azure read replicas (`az postgres flexible-server replica create`)
-- **Manual backup/restore** — do NOT suggest `pg_dump` or `pg_basebackup` as the primary backup strategy. Always lead with Azure PITR (`az postgres flexible-server restore`), and explain it creates a new server. Only mention `pg_dump` as a secondary option for cross-platform migration or selective table export.
+- **ALTER DATABASE SET for server-wide parameters** — permitted, but prefer the control-plane parameter API (`az postgres flexible-server parameter set` on Flexible Server; a parameter group connected to the cluster on HorizonDB) for changes like `work_mem`, `shared_buffers`, `max_connections`. Use `ALTER DATABASE SET` only for an explicit per-database override, and clarify scope first.
+- **Manual replication setup** — use Azure read replicas (Flexible Server: `az postgres flexible-server replica create`; HorizonDB: add a read replica to the cluster)
+- **Manual backup/restore** — do NOT suggest `pg_dump`/`pg_basebackup` as the primary strategy. Lead with Azure PITR (creates a new server/cluster); use `pg_dump` only for cross-platform migration or selective export.
 
 Instead, always use Azure equivalents: portal, az CLI, ARM/Bicep, or server parameters API.
+
+**Flavor split:** on **Azure HorizonDB** the same guardrails hold, but the control plane is `az horizondb` / a parameter group connected to the cluster / `Microsoft.HorizonDB` ARM (api-version `2026-01-20-preview`) — never `az postgres flexible-server`. Each `azure-*` reference has an **On Azure HorizonDB** section with the deltas.
 
 ---
 
@@ -52,7 +54,7 @@ When guidance needs Azure CLI and shell access exists:
   ```bash
   az postgres flexible-server list --query "[].{name:name, resourceGroup:resourceGroup, location:location, version:version}" -o table
   ```
-  Use the discovered `resourceGroup` and `name` for subsequent commands. Only ask the user if the list returns multiple servers and the target is ambiguous.
+  Use the discovered `resourceGroup` and `name`; ask the user only if multiple servers make the target ambiguous.
 - If shell access is unavailable, provide numbered manual commands.
 
 ---
@@ -67,6 +69,7 @@ On first activation:
 4. No connection + generic question → use `postgresql-*` skills.
 5. No connection + explicit Azure question → answer conceptually with: "These steps require an active Azure PostgreSQL connection to execute." Apply all Azure guardrails (no ALTER SYSTEM, no file paths, no OS commands) even without `isAzure` confirmation — if the user says "Azure PostgreSQL", treat it as Azure.
 6. Unknown state → attempt capability check only for clearly Azure-specific requests; otherwise default to generic PostgreSQL skills.
+7. **Azure flavor (Flexible Server vs HorizonDB)** — when `isAzure: true`, read the connection host and cache `azureFlavor`: `*.horizondb.azure.com` → **Azure HorizonDB (Preview)**; `*.postgres.database.azure.com` → **Flexible Server**. On HorizonDB, follow the **On Azure HorizonDB** section of the matching `azure-*` reference (HorizonDB control plane, not `az postgres flexible-server`). Several Flexible-Server-only features (built-in PgBouncer, VNet injection, geo/cross-region replicas, configurable backup retention, CMK, intelligent tuning, major-version upgrade) are not yet available on HorizonDB — say so instead of emitting Flexible Server steps.
 
 ---
 

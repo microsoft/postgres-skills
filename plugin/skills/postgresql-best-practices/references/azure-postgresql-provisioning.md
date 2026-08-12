@@ -69,6 +69,29 @@ Provisioning is not complete after `az postgres flexible-server create` or Terra
 - Do NOT claim Terraform uses `storage_gb`; the field is `storage_mb`.
 - When exact limits vary by SKU or region, say so explicitly instead of guessing.
 
+## On Azure HorizonDB (Preview)
+
+HorizonDB is a **cluster** (`Microsoft.HorizonDB/clusters`), not a Flexible Server, and provisions very differently:
+
+- **CLI is `az horizondb`, not `az postgres flexible-server`.** Install with `az extension add --name horizondb`. Many operations aren't in the CLI yet and use `az rest` against `Microsoft.HorizonDB` at api-version `2026-01-20-preview`.
+- **No tier/SKU selection.** There is no Burstable/GeneralPurpose/MemoryOptimized choice — you provision `--v-cores` (8 GB RAM per vCore). PostgreSQL **17 only**.
+- **Storage scales automatically.** There is no storage-size or IOPS parameter to set and no auto-grow toggle — storage grows on its own and is zone-resilient by default. Do not advise provisioning or shrinking storage.
+- **Compute and storage are independent.** Scale compute with `az horizondb cluster update --v-cores <n>` (causes a restart); storage is untouched.
+- **HA at create** with `--replica-count` and `--zone-placement-policy` (`BestEffort` | `Strict`); replicas double as read scale-out (up to 15).
+
+```bash
+# Create a HorizonDB cluster (no tier/SKU, no storage size)
+az extension add --name horizondb
+az horizondb create \
+  --resource-group myRG --name mycluster --location eastus \
+  --version 17 --v-cores 2 --replica-count 2 --zone-placement-policy Strict \
+  --administrator-login myadmin --administrator-login-password '<pwd>'
+
+# Scale compute (brief restart); storage is automatic
+az horizondb cluster update --resource-group myRG --name mycluster --v-cores 4
+```
+
+Not yet available on HorizonDB (do not recommend): VNet injection, customer-managed keys, configurable backup retention, cross-region/geo replicas, and built-in PgBouncer. See [Create an Azure HorizonDB cluster](https://learn.microsoft.com/en-us/azure/horizondb/configure-maintain/quickstart-create-cluster) and [Scale compute](https://learn.microsoft.com/en-us/azure/horizondb/configure-maintain/how-to-scale-compute).
+
 ## References
-- [Quickstart: Create an Azure Database for PostgreSQL Flexible Server](https://learn.microsoft.com/azure/postgresql/flexible-server/quickstart-create-server-portal)
 - [Compute and storage options](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-compute-storage)

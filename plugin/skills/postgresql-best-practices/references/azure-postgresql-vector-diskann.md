@@ -99,6 +99,21 @@ LIMIT 10;
 - Do NOT omit `CREATE EXTENSION pg_diskann` (it is separate from pgvector)
 - Do NOT claim IVFFlat is recommended for new workloads
 
+## On Azure HorizonDB (Preview)
+
+The DiskANN/HNSW/IVFFlat selection, operator/ops-class pairing, and tuning guidance above apply unchanged on HorizonDB (PG 17). Only the differences:
+
+- **Enable through the cluster's parameter group** (see extension-lifecycle), not `az postgres flexible-server parameter set`. There is **no Burstable-tier exclusion** — HorizonDB has no tiers — and DiskANN is the recommended default index.
+- **Up to 16000 dimensions.** Preview **filtered search** adds dot-form session GUCs — `diskann.enable_filter_hook`, `diskann.selectivity_min`, `diskann.l_value_is` — set per session with `SET`, not as a cluster-wide default.
+
+```sql no-execute
+-- HorizonDB Preview filtered search (session GUCs, dot form)
+SET diskann.enable_filter_hook = on;
+SET diskann.l_value_is = 100;
+```
+
+See [DiskANN vector index](https://learn.microsoft.com/en-us/azure/horizondb/ai/vector-index-diskann) and [Vector index selection guide](https://learn.microsoft.com/en-us/azure/horizondb/ai/vector-index-selection-guide).
+
 ## References
 - [pg_diskann extension for Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-use-pgvector)
 - [pgvector extension](https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-use-pgvector)
