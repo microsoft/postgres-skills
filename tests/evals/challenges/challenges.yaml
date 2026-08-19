@@ -4211,9 +4211,8 @@ challenges:
     expected_activation: true
     expected_patterns:
       - "HorizonDB|horizondb"
-      - "az horizondb cluster update"
+      - "az horizondb update"
       - "--v-cores"
-    anti_patterns:
       - "az postgres flexible-server update"
     correctness_checks:
       - "Does the response recognize the *.horizondb.azure.com host as an Azure HorizonDB cluster, not a Flexible Server?"
