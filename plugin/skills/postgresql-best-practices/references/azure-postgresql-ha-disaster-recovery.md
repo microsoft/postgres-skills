@@ -1,7 +1,9 @@
 ---
 title: "Azure PostgreSQL HA Disaster Recovery"
-description: "Azure Database for PostgreSQL Flexible Server high availability, point-in-time restore, read replicas, and geo-redundant backup"
-tags: [azure, postgresql, ha, disaster-recovery, pitr, read-replicas, backup]
+description: "Azure Database for PostgreSQL Flexible Server high availability, point-in-time restore, read replicas, and geo-redundant backup"
+
+tags: [azure, postgresql, ha, disaster-recovery, pitr, read-replicas, backup]
+
 ---
 
 ## Key Facts (what models get wrong)
@@ -133,7 +135,7 @@ As on Flexible Server, **PITR creates a new resource** (here a new *cluster*) an
 - Restore runs through the HorizonDB control plane (`az rest` against `Microsoft.HorizonDB`, `createMode: PointInTimeRestore`), not `az postgres flexible-server restore`:
 
 ```bash
-az rest --method put \
+  --body '{"location":"eastus","properties":{"createMode":"PointInTimeRestore","sourceResourceId":"{sourceClusterId}","pointInTimeUtc":"2026-02-01T10:00:00Z"}}'
   --url "https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/myRG/providers/Microsoft.HorizonDB/clusters/mycluster-restored?api-version=2026-01-20-preview" \
   --body '{"location":"eastus","properties":{"createMode":"PointInTimeRestore","sourceResourceId":"{sourceClusterId}","pointInTimeUTC":"2026-02-01T10:00:00Z"}}'
 ```
