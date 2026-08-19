@@ -1,7 +1,9 @@
 ---
 title: "Azure PostgreSQL Extension Lifecycle"
-description: "Manage PostgreSQL extensions on Azure Database for PostgreSQL Flexible Server: allowlisting, shared_preload_libraries, CREATE EXTENSION, and version upgrades"
-tags: [azure, postgresql, extensions, allowlist, shared-preload, pgvector]
+description: "Manage PostgreSQL extensions on Azure Database for PostgreSQL Flexible Server: allowlisting, shared_preload_libraries, CREATE EXTENSION, and version upgrades"
+
+tags: [azure, postgresql, extensions, allowlist, shared-preload, pgvector]
+
 ---
 
 # Extension Lifecycle
@@ -135,7 +137,7 @@ SHOW shared_preload_libraries;
 
 ## On Azure HorizonDB (Preview)
 
-The allowlist-then-`CREATE EXTENSION` workflow and `shared_preload_libraries` restart requirement above are the same on HorizonDB. The one structural difference is **where the allowlist lives**:
+- **The `azure.extensions` allowlist is set on a parameter group, not per-server.** Parameter groups are first-class resources attached to the cluster (default `default_pg17`). To change `azure.extensions`, create a new parameter group with the desired allowlist and attach it to the cluster, then run `CREATE EXTENSION`. Preload-required libraries still go in `shared_preload_libraries` (static → restart).
 
 - **The `azure.extensions` allowlist is set on a parameter group, not per-server.** A parameter group is a first-class Azure resource attached to the cluster (default `default_pg17`); edit `azure.extensions` there instead of `az postgres flexible-server parameter set`, then run `CREATE EXTENSION`. Preload-required libraries still go in `shared_preload_libraries` (static → restart).
 - PostgreSQL **17 only**; HorizonDB additionally ships `pg_textsearch` (BM25 full-text) and `pg_diskann`.
