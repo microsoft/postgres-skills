@@ -26,7 +26,7 @@ When the context is Azure Database for PostgreSQL (either flavor), NEVER suggest
 
 - **File paths**: `pg_hba.conf`, `postgresql.conf`, `/var/lib/postgresql/` — not accessible. Never run `SHOW config_file`, `SHOW hba_file`, or `SHOW data_directory` (internal paths, irrelevant on managed services).
 - **OS commands**: `systemctl`, `sudo`, `pg_basebackup`, `pg_ctl`, `initdb` — no OS-level access
-- **ALTER SYSTEM SET** — blocked on Azure. Use `az postgres flexible-server parameter set` or portal instead.
+- **ALTER SYSTEM SET** — blocked on Azure. Use the control-plane parameter API instead (Flexible Server: `az postgres flexible-server parameter set`; HorizonDB: parameter groups / `az horizondb`) or the portal.
 - **ALTER DATABASE SET for server-wide parameters** — permitted, but prefer the control-plane parameter API (`az postgres flexible-server parameter set` on Flexible Server; a parameter group connected to the cluster on HorizonDB) for changes like `work_mem`, `shared_buffers`, `max_connections`. Use `ALTER DATABASE SET` only for an explicit per-database override, and clarify scope first.
 - **Manual replication setup** — use Azure read replicas (Flexible Server: `az postgres flexible-server replica create`; HorizonDB: add a read replica to the cluster)
 - **Manual backup/restore** — do NOT suggest `pg_dump`/`pg_basebackup` as the primary strategy. Lead with Azure PITR (creates a new server/cluster); use `pg_dump` only for cross-platform migration or selective export.
