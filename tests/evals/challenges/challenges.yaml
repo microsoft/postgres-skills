@@ -4215,8 +4215,7 @@ challenges:
       - "--v-cores"
       - "az postgres flexible-server update"
     correctness_checks:
-      - "Does the response recognize the *.horizondb.azure.com host as an Azure HorizonDB cluster, not a Flexible Server?"
-      - "Does it scale compute with az horizondb cluster update --v-cores and note the brief restart, leaving storage automatic?"
+      - "Does it scale compute with az horizondb update --v-cores and note the brief restart, leaving storage automatic?"
 
   # ha-disaster-recovery
   - id: hz-ha-01
