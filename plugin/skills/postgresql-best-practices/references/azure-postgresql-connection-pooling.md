@@ -90,6 +90,14 @@ Avoid explaining generic PgBouncer concepts or basic `az parameter set` commands
 10. **[MEDIUM] Client driver defaults disable pooling benefits**: Many ORMs still reconnect per request, for example Django with `CONN_MAX_AGE=0`. Keep client connections warm too with `CONN_MAX_AGE=None` or client-side pooling
 11. **[MEDIUM] Failover behavior with pooled connections**: After HA failover, clients must re-resolve DNS. Built-in PgBouncer moves with the server FQDN, but cached DNS can delay reconnects by the TTL
 
+## On Azure HorizonDB (Preview)
+
+- **Built-in PgBouncer is not yet available on HorizonDB.** Do not point users at `pgbouncer.enabled` / `az postgres flexible-server parameter set` — those apply to Flexible Server only.
+- **Use an external/client-side pooler.** Run PgBouncer yourself (container/VM/sidecar) or use your application framework's pool (for example HikariCP, `asyncpg` pools, PgCat) against the cluster's read-write endpoint. Send read-only traffic to the reader endpoint.
+- HorizonDB does expose PgBouncer-related parameters in its parameter groups for future use, but the managed pooler is not turned on yet — confirm current status in the docs before relying on it.
+
+See [PgBouncer parameters](https://learn.microsoft.com/en-us/azure/horizondb/parameters/parameters-pgbouncer).
+
 ## References
 - [PgBouncer in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-pgbouncer)
 - [Connection pooling best practices](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-connection-pooling-best-practices)

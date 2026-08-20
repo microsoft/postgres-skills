@@ -124,6 +124,23 @@ tags: [azure, postgresql, ssl, tls, private-endpoint, vnet, firewall, networking
 - Baltimore CyberTrust Root cert does NOT work (expired)
 - "Allow Azure services" is NOT scoped to your subscription
 
+## On Azure HorizonDB (Preview)
+
+The TLS/certificate guidance above is the **same on HorizonDB** — dual roots (DigiCert Global Root G2 + Microsoft RSA Root CA 2017), `sslmode=verify-full` recommended, `require` minimum. The differences are all network-model restrictions:
+
+- **No VNet injection.** Connectivity is public access + Azure Private Link only — there is no delegated-subnet/VNet-integrated mode. Firewall rules are cluster-level IPv4 allow-lists (up to ~5-min propagation).
+- **Two endpoints** — a read-write endpoint and a read-only reader endpoint (both `*.horizondb.azure.com`); always connect by FQDN.
+- **TLS 1.2/1.3 only**, **mTLS not supported** (do not set `sslcert`/`sslkey`), and **customer-managed keys** for encryption at rest are not yet available.
+
+```bash
+# Cluster-level firewall rule (uses az horizondb, not az postgres)
+az horizondb firewall-rule create \
+  --resource-group myRG --cluster-name mycluster \
+  --name allow-office --start-ip-address 203.0.113.10 --end-ip-address 203.0.113.10
+```
+
+See [Public network access](https://learn.microsoft.com/en-us/azure/horizondb/network/concepts-network-public) and [TLS/SSL](https://learn.microsoft.com/en-us/azure/horizondb/security/security-tls).
+
 ## References
 - [Networking overview](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-networking)
 - [TLS and SSL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-networking-ssl-tls)

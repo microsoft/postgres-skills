@@ -1,7 +1,9 @@
 ---
 title: "Azure PostgreSQL Extension Lifecycle"
-description: "Manage PostgreSQL extensions on Azure Database for PostgreSQL Flexible Server: allowlisting, shared_preload_libraries, CREATE EXTENSION, and version upgrades"
-tags: [azure, postgresql, extensions, allowlist, shared-preload, pgvector]
+description: "Manage PostgreSQL extensions on Azure Database for PostgreSQL Flexible Server: allowlisting, shared_preload_libraries, CREATE EXTENSION, and version upgrades"
+
+tags: [azure, postgresql, extensions, allowlist, shared-preload, pgvector]
+
 ---
 
 # Extension Lifecycle
@@ -132,6 +134,22 @@ SHOW shared_preload_libraries;
 12. **[HIGH] Version/region extension availability drift**: An extension available in East US may still be missing in West Europe. Check `SELECT * FROM pg_available_extensions` on the specific target server
 13. **[MEDIUM] Extension dependency chains on drop/upgrade**: `DROP EXTENSION vector CASCADE` also removes `pg_diskann` indexes. For upgrades, dependent extensions may need updates before `ALTER EXTENSION ... UPDATE`
 14. **[MEDIUM] CLI vs Portal parameter precedence**: CLI and Portal write the same backend setting, but the Portal can lag by 1-2 minutes. Verify the live value with `SHOW` after changes
+
+## On Azure HorizonDB (Preview)
+
+- **The `azure.extensions` allowlist is set on a parameter group, not per-server.** Parameter groups are first-class resources attached to the cluster (default `default_pg17`). To change `azure.extensions`, create a new parameter group with the desired allowlist and attach it to the cluster, then run `CREATE EXTENSION`. Preload-required libraries still go in `shared_preload_libraries` (static → restart).
+
+- **The `azure.extensions` allowlist is set on a parameter group, not per-server.** A parameter group is a first-class Azure resource attached to the cluster (default `default_pg17`); edit `azure.extensions` there instead of `az postgres flexible-server parameter set`, then run `CREATE EXTENSION`. Preload-required libraries still go in `shared_preload_libraries` (static → restart).
+- PostgreSQL **17 only**; HorizonDB additionally ships `pg_textsearch` (BM25 full-text) and `pg_diskann`.
+
+```bash
+# HorizonDB: allowlist lives on the cluster's parameter group
+az horizondb parameter-group update \
+  --resource-group myRG --name default_pg17 \
+  --parameters '[{"name":"azure.extensions","value":"vector,pg_diskann,pg_textsearch"}]'
+```
+
+See [Extensions in HorizonDB](https://learn.microsoft.com/en-us/azure/horizondb/extensions/concepts-extensions), [Allow extensions](https://learn.microsoft.com/en-us/azure/horizondb/extensions/how-to-allow-extensions), and [Parameter groups](https://learn.microsoft.com/en-us/azure/horizondb/parameters/concepts-parameter-groups).
 
 ## References
 - [Extensions in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-extensions)

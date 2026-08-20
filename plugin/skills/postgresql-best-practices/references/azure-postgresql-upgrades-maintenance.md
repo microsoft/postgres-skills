@@ -67,6 +67,14 @@ These facts are ones models **confidently get wrong**. Override any prior belief
 - Read replicas do NOT auto-upgrade with primary
 - **10-20% free disk space required** for MVU to proceed (pre-check fails otherwise)
 
+## On Azure HorizonDB (Preview)
+
+- **PostgreSQL 17 only.** There is no major-version upgrade path to configure — do not use the Flexible Server `az postgres flexible-server upgrade` flow. Clusters are created on PG 17 and stay there.
+- **Minor updates are applied by the platform** through planned failovers, so keep ≥2 replicas to make patching non-disruptive.
+- **Maintenance windows exist but are system-managed;** a fully customer-configurable window is not yet available. Plan around platform maintenance rather than scheduling `az postgres flexible-server` maintenance.
+
+See [Maintenance](https://learn.microsoft.com/en-us/azure/horizondb/configure-maintain/concepts-maintenance) and [Supported PostgreSQL versions](https://learn.microsoft.com/en-us/azure/horizondb/parameters/parameters-version-platform-compatibility-postgresql-versions).
+
 ## References
 - [Major version upgrades](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-major-version-upgrade)
 - [Scheduled maintenance](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-maintenance)

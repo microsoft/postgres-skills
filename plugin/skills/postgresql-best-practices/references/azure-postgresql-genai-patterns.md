@@ -76,6 +76,22 @@ ORDER BY embedding <=> $1
 LIMIT 10;
 ```
 
+## On Azure HorizonDB (Preview)
+
+The in-database embedding and RRF hybrid-search patterns above apply on HorizonDB (PG 17). The HorizonDB-specific deltas:
+
+- **No manual model setup** — AI Model Management auto-provisions default embedding/chat/reranker models, so `azure_openai.create_embeddings()` / `azure_ai.generate()` work without configuring your own Azure OpenAI deployment or endpoint.
+- **Native BM25 keyword search** via **`pg_textsearch`** (the `bm25` index access method and `<@>` operator; add `pg_textsearch` to `shared_preload_libraries` in the parameter group) as the lexical half of hybrid retrieval.
+- **Semantic reranking in-database** with `azure_ai.rank()` after RRF fusion — the recommended final step for RAG.
+
+```sql no-execute
+-- Rerank RRF-fused candidates in-database
+SELECT id, azure_ai.rank(:query, content) AS score
+FROM candidates ORDER BY score DESC LIMIT 10;
+```
+
+See [Hybrid search](https://learn.microsoft.com/en-us/azure/horizondb/ai/hybrid-search), [Full-text search](https://learn.microsoft.com/en-us/azure/horizondb/ai/full-text-search), and [Semantic rank function](https://learn.microsoft.com/en-us/azure/horizondb/ai/semantic-rank-function).
+
 ## References
 - [Generate embeddings with azure_ai](https://learn.microsoft.com/azure/postgresql/flexible-server/generative-ai-azure-openai)
 - [Semantic search](https://learn.microsoft.com/azure/postgresql/flexible-server/generative-ai-semantic-search)
