@@ -266,6 +266,7 @@ class EvalPipeline:
         self.results: list[EvalResult] = []
         self.skill_metrics: dict[str, SkillMetrics] = {}
         self.winrate_results: list[dict] = []  # Paired win-rate verdicts
+        self.failures: list[dict] = []
         self._judge_agent_fn = None  # Set during run() for judge LLM calls
         self._calibration_mode = False  # When True, trims skill to task-relevant sections
         self._model = "gpt-4o-mini"  # Set during run()
@@ -900,16 +901,30 @@ class EvalPipeline:
                     try:
                         future.result()
                     except Exception as e:
+                        with self._lock:
+                            self.failures.append({
+                                "challenge_id": challenge.id,
+                                "error": f"{type(e).__name__}: {e}",
+                            })
                         print(f"  ERROR on {challenge.id}: {e}")
         else:
             for i, challenge in enumerate(self.challenges):
-                self._run_single_challenge(challenge, agent_fn, model, i + 1, total)
+                try:
+                    self._run_single_challenge(challenge, agent_fn, model, i + 1, total)
+                except Exception as e:
+                    self.failures.append({
+                        "challenge_id": challenge.id,
+                        "error": f"{type(e).__name__}: {e}",
+                    })
+                    print(f"  ERROR on {challenge.id}: {e}")
 
         elapsed = time.time() - start_time
         print(f"\nCompleted in {elapsed:.1f}s ({elapsed/total:.1f}s per challenge)")
 
         # Generate and save report
         report = self.generate_report()
+        report["failures"] = self.failures
+        report["summary"]["failed_challenges"] = len(self.failures)
         self.save_results(report)
 
         # Print summary
@@ -988,6 +1003,12 @@ class EvalPipeline:
         if len(loss_details) > 20:
             print(f"  ... and {len(loss_details) - 20} more")
 
+        if self.failures:
+            raise RuntimeError(
+                f"Eval incomplete: {len(self.failures)} of {total} challenges failed. "
+                "Detailed failures were saved in the report artifact."
+            )
+
         return report
 
 
@@ -1023,6 +1044,7 @@ def azure_openai_agent(task: str, skill_context: str, model: str) -> str:
         azure_endpoint=endpoint,
         api_key=api_key,
         api_version=api_version,
+        max_retries=10,
     )
 
     system_prompt = (

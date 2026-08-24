@@ -182,7 +182,7 @@ class HallucinationDetector:
         r"SET\s+(?:shared_preload_libraries|shared_buffers|max_connections|wal_level|max_wal_senders|max_replication_slots|hot_standby|archive_mode)\s*=",
     }
     NEGATION_CONTEXT = re.compile(
-        r"(cannot|does not allow|not\s+possible|not\s+allowed|not\s+supported|not\s+available"
+        r"(cannot|can['’]t|does\s+not|does not allow|not\s+possible|not\s+allowed|not\s+supported|not\s+available"
         r"|do not|never|don't|doesn't|isn't|aren't|instead of|rather than|avoid|unlike"
         r"|no access to|no direct|inaccessible|managed service|not editable|not accessible"
         r"|won't work|will not work|not applicable|disabled|prohibited|blocked)\s*",
