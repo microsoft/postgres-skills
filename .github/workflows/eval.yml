@@ -40,7 +40,7 @@ jobs:
             exit 0
           fi
           cd tests/evals
-          python pipeline.py --provider azure --model gpt-5.5 --judge-model gpt-5.5 --output results/
+          python pipeline.py --provider azure --model gpt-5.5 --judge-model gpt-5.5 --concurrency 1 --output results/
       - name: Upload eval summary
         if: always()
         uses: actions/upload-artifact@v4
