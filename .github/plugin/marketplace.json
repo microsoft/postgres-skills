@@ -13,7 +13,7 @@
       "name": "postgres-skills",
       "source": "./plugin",
       "description": "Single plugin with intelligent routing — generic PG always available, Azure skills gated by connection detection",
-      "version": "0.1.0"
+      "version": "0.1.1"
     }
   ]
 }
