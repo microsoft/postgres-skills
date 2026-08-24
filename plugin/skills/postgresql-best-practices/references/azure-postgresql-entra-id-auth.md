@@ -117,6 +117,18 @@ GRANT ALL ON DATABASE mydb TO "my-managed-identity-name";
 11. **[MEDIUM] Group membership propagation delay**: Entra group membership can take up to 60 minutes to reach PostgreSQL role grants. Warn users before troubleshooting grants too early
 12. **[MEDIUM] Driver-specific auth quirks**: Match token injection to the driver: psycopg2 uses `password=token`, Npgsql uses `Password`, JDBC uses `authenticationPluginClassName`
 
+## On Azure HorizonDB (Preview)
+
+- **Built-in roles differ.** HorizonDB grants `azure_pg_admin` (a restricted pseudo-superuser) to the admin login; a true superuser (`azuresu`) is reserved for the platform. Do not assume you can `CREATE ROLE ... SUPERUSER` or reset platform roles.
+- **SCRAM-SHA-256** password auth is supported; verify per-role auth type before troubleshooting login failures.
+- **Entra ID** is referenced in the portal but currently has limited standalone documentation on HorizonDB; treat Entra-only flows as Preview and confirm availability before recommending them as the sole auth path.
+
+```sql no-execute
+SELECT * FROM azure_roles_authtype();
+```
+
+See [Access control](https://learn.microsoft.com/en-us/azure/horizondb/security/security-access-control) and [Connect with SCRAM](https://learn.microsoft.com/en-us/azure/horizondb/security/security-connect-scram).
+
 ## References
 - [Microsoft Entra authentication with Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-azure-ad-authentication)
 - [Configure Entra ID authentication](https://learn.microsoft.com/azure/postgresql/flexible-server/how-to-configure-sign-in-azure-ad-authentication)

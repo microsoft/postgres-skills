@@ -1,7 +1,9 @@
 ---
 title: "Azure PostgreSQL HA Disaster Recovery"
-description: "Azure Database for PostgreSQL Flexible Server high availability, point-in-time restore, read replicas, and geo-redundant backup"
-tags: [azure, postgresql, ha, disaster-recovery, pitr, read-replicas, backup]
+description: "Azure Database for PostgreSQL Flexible Server high availability, point-in-time restore, read replicas, and geo-redundant backup"
+
+tags: [azure, postgresql, ha, disaster-recovery, pitr, read-replicas, backup]
+
 ---
 
 ## Key Facts (what models get wrong)
@@ -122,6 +124,23 @@ az postgres flexible-server restore --resource-group myRG \
     --restore-time "2026-05-19T10:00:00Z"
 # Then: reconfigure HA, firewall, VNet, extensions on new server
 ```
+
+## On Azure HorizonDB (Preview)
+
+As on Flexible Server, **PITR creates a new resource** (here a new *cluster*) and is not an in-place rollback. The HA/backup model underneath is different, so do not apply Flexible Server HA steps:
+
+- **Shared zone-resilient storage, not streaming replication.** There is no primary/standby streaming pair to configure; WAL and data are replicated across zones.
+- **Replicas serve HA *and* read scale-out** (up to 15). ≥2 across zones give zonal resilience. HA is "Disabled" or "Zone redundant" — **no same-zone HA, no cross-region/geo replica**.
+- **Backups:** fixed **7-day** retention (configurable 1–35 days not yet available), restore point ≥5 min in the past, no geo-redundant backup, no LTR. Deleted clusters are unrecoverable — enable deletion protection.
+- Restore runs through the HorizonDB control plane (`az rest` against `Microsoft.HorizonDB`, `createMode: PointInTimeRestore`), not `az postgres flexible-server restore`:
+
+```bash
+  --body '{"location":"eastus","properties":{"createMode":"PointInTimeRestore","sourceResourceId":"{sourceClusterId}","pointInTimeUtc":"2026-02-01T10:00:00Z"}}'
+  --url "https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/myRG/providers/Microsoft.HorizonDB/clusters/mycluster-restored?api-version=2026-01-20-preview" \
+  --body '{"location":"eastus","properties":{"createMode":"PointInTimeRestore","sourceResourceId":"{sourceClusterId}","pointInTimeUTC":"2026-02-01T10:00:00Z"}}'
+```
+
+See [High availability and failover](https://learn.microsoft.com/en-us/azure/horizondb/high-availability/concepts-high-availability-failover), [Read replicas](https://learn.microsoft.com/en-us/azure/horizondb/configure-maintain/concepts-compute-replicas), and [Backup and restore](https://learn.microsoft.com/en-us/azure/horizondb/backup-restore/concepts-backup-restore).
 
 ## References
 - [High availability in Azure Database for PostgreSQL](https://learn.microsoft.com/azure/postgresql/flexible-server/concepts-read-replicas)

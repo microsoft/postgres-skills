@@ -116,6 +116,9 @@ codex plugin install postgres-skills@postgres-skills
 **"Upgrade my server from PG13 to PG16"**
 → Routes to **azure-postgresql-upgrades-maintenance** and runs the pre-check before the upgrade.
 
+**"Create an Azure HorizonDB cluster and enable pgvector"**
+→ Detects the `*.horizondb.azure.com` host, recognizes it as an Azure HorizonDB cluster (not a Flexible Server), and routes to the HorizonDB guidance — using `az horizondb` and parameter groups instead of `az postgres flexible-server`.
+
 ## Reference Catalog
 
 ### PostgreSQL Foundational (11 references)
@@ -139,6 +142,8 @@ These references work with any PostgreSQL deployment — self-hosted, RDS, Cloud
 ### Azure Database for PostgreSQL (11 references)
 
 These references are gated by the connection capability check. They cover managed-service workflows, Azure AI integrations, and platform-specific safety guardrails.
+
+Each reference also covers **Azure HorizonDB (Preview)** in an *On Azure HorizonDB* section. When your connection is a HorizonDB cluster (`*.horizondb.azure.com`), the agent routes to the HorizonDB-specific guidance — clusters, `az horizondb`, and parameter groups — instead of falling back to Flexible Server steps, and flags features not yet available on HorizonDB (VNet injection, built-in PgBouncer, index tuning, major-version upgrades, configurable backup retention, cross-region replicas). See [Azure HorizonDB](https://learn.microsoft.com/en-us/azure/horizondb/overview).
 
 | Reference | Helps you with | What the agent learns that LLMs get wrong |
 |-----------|---------------|------------------------------------------|

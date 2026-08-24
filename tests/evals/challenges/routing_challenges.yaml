@@ -399,3 +399,70 @@ routing_challenges:
       - "plugin/skills/pg-graph/references/graph-schema-introspection"
     difficulty: medium
     notes: "VS Code AGE graph visualization should route to text-to-cypher (return full objects, set disp_label, match AS arity)."
+
+  # ─── Azure HorizonDB flavor routing (best-practices Azure references) ───────
+  - id: route-hz-01
+    query: "On Azure HorizonDB, how do I allowlist an extension in azure.extensions?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle"
+    difficulty: medium
+    notes: "HorizonDB extension enablement routes to the Azure extension-lifecycle reference (parameter-group allowlist)."
+
+  - id: route-hz-02
+    query: "How do I increase vcores on my Azure HorizonDB cluster?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-provisioning"
+    difficulty: medium
+    notes: "HorizonDB compute scaling routes to the Azure provisioning reference."
+
+  - id: route-hz-03
+    query: "How do I run PITR to restore my Azure HorizonDB cluster?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery"
+    difficulty: medium
+    notes: "HorizonDB point-in-time restore routes to the Azure HA/DR reference (restore creates a new cluster)."
+
+  - id: route-hz-04
+    query: "Can I use a vnet or private link with Azure HorizonDB?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-networking-ssl"
+    difficulty: medium
+    notes: "HorizonDB networking routes to the Azure networking/SSL reference (no VNet injection; Private Link only)."
+
+  - id: route-hz-05
+    query: "Is built-in pgbouncer available on Azure HorizonDB?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-connection-pooling"
+    difficulty: easy
+    notes: "HorizonDB pooling routes to the Azure connection-pooling reference (built-in PgBouncer not yet available)."
+
+  - id: route-hz-06
+    query: "Does Azure HorizonDB offer intelligent tuning and query store?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning"
+    difficulty: medium
+    notes: "HorizonDB tuning routes to the Azure intelligent-tuning reference (index tuning not yet available)."
+
+  - id: route-hz-07
+    query: "Can I run a major version upgrade on Azure HorizonDB?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance"
+    difficulty: medium
+    notes: "HorizonDB upgrades route to the Azure upgrades-maintenance reference (PG17-only, no major-version upgrade)."
+
+  - id: route-hz-08
+    query: "How do I set up DiskANN filtered vector search on Azure HorizonDB?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-vector-diskann"
+    difficulty: hard
+    notes: "HorizonDB DiskANN routes to the Azure vector-diskann reference (dot-form diskann.* GUCs)."
+
+  - id: route-hz-09
+    query: "How do I call azure_ai functions from SQL on Azure HorizonDB?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-azure-ai"
+    difficulty: medium
+    notes: "HorizonDB in-database AI routes to the Azure azure-ai reference (auto-provisioned default models)."
+
+  - id: route-hz-10
+    query: "How do I build an in-database rag pipeline on Azure HorizonDB?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-genai-patterns"
+    difficulty: hard
+    notes: "HorizonDB hybrid RAG routes to the Azure genai-patterns reference (pgvector/DiskANN + pg_textsearch BM25 + rerank)."
+
+  - id: route-hz-11
+    query: "How do I use managed identity for passwordless auth on Azure HorizonDB?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth"
+    difficulty: medium
+    notes: "HorizonDB auth routes to the Azure entra-id-auth reference (azure_pg_admin, SCRAM; Entra is limited in Preview)."

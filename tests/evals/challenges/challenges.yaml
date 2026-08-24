@@ -1,6 +1,6 @@
 # Agent Challenges
 #
-# 313 challenges across 20 target skills (generic + Azure + root)
+# 326 challenges across 20 target skills (generic + Azure + HorizonDB + root)
 # Each challenge tests whether the agent activates the correct skill
 # and produces syntactically valid, non-hallucinated output.
 
@@ -4178,3 +4178,228 @@ challenges:
     correctness_checks:
       - "Does the response allowlist age in azure.extensions and add it to shared_preload_libraries via a parameter group connected to the HorizonDB cluster, then create it with CREATE EXTENSION IF NOT EXISTS age CASCADE?"
       - "Does it avoid ALTER SYSTEM and note that age is preloaded so LOAD 'age' is unnecessary and blocked for non-superusers?"
+
+  # ─── AZURE HORIZONDB (Preview) (13 challenges: best-practices flavor routing) ─
+  # These verify the agent routes to HorizonDB guidance (cluster / az horizondb /
+  # parameter groups) instead of falling back to Flexible Server steps.
+
+  # provisioning
+  - id: hz-prov-01
+    task: "Provision a production Azure HorizonDB cluster with 4 vCores and high availability. Give me the CLI commands."
+    difficulty: medium
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-provisioning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "az horizondb create"
+      - "--v-cores"
+      - "--replica-count|--zone-placement-policy"
+    anti_patterns:
+      - "az postgres flexible-server create"
+      - "Burstable|GeneralPurpose|MemoryOptimized"
+      - "--storage-size|--iops"
+    correctness_checks:
+      - "Does the response use az horizondb (installed via az extension add --name horizondb) rather than az postgres flexible-server?"
+      - "Does it provision compute with --v-cores and PostgreSQL 17 without selecting a tier/SKU or a storage size?"
+      - "Does it note that storage auto-scales and that HA/read scale-out comes from replicas (--replica-count / --zone-placement-policy)?"
+
+  - id: hz-prov-02
+    task: "My connection host is mycluster.abcd1234.eastus.horizondb.azure.com. Is this a Flexible Server, and how do I scale its compute?"
+    difficulty: medium
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-provisioning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "HorizonDB|horizondb"
+      - "az horizondb update"
+      - "--v-cores"
+      - "az postgres flexible-server update"
+    correctness_checks:
+      - "Does it scale compute with az horizondb update --v-cores and note the brief restart, leaving storage automatic?"
+
+  # ha-disaster-recovery
+  - id: hz-ha-01
+    task: "My Azure HorizonDB cluster has a bad data change. I need to restore it to 2 hours ago."
+    difficulty: hard
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "point-in-time|PointInTimeRestore"
+      - "new cluster"
+    anti_patterns:
+      - "az postgres flexible-server restore"
+      - "in-place restore"
+    correctness_checks:
+      - "Does the response explain that HorizonDB PITR creates a NEW cluster in the same region rather than restoring in place?"
+      - "Does it use the HorizonDB control plane (az rest against Microsoft.HorizonDB with createMode PointInTimeRestore) rather than an az postgres flexible-server command?"
+      - "Does it note the fixed 7-day backup retention and that the restore point must be at least ~5 minutes in the past?"
+
+  - id: hz-ha-02
+    task: "How does high availability work on Azure HorizonDB, and can I put a replica in another region for DR?"
+    difficulty: medium
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-ha-disaster-recovery
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "replica"
+      - "zone"
+    anti_patterns:
+      - "streaming replication"
+      - "cross-region replica|geo-redundant"
+    correctness_checks:
+      - "Does the response explain that HorizonDB HA uses zone-resilient shared storage plus replicas (up to 15, doubling as read scale-out), not a streaming primary/standby pair?"
+      - "Does it state that cross-region/geo replicas are not available and recommend enabling deletion protection?"
+
+  # extension-lifecycle
+  - id: hz-ext-01
+    task: "How do I enable the pgvector and pg_diskann extensions on my Azure HorizonDB cluster?"
+    difficulty: medium
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-extension-lifecycle
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "parameter group"
+      - "azure.extensions"
+      - "CREATE EXTENSION"
+    anti_patterns:
+      - "ALTER SYSTEM"
+      - "az postgres flexible-server parameter set"
+    correctness_checks:
+      - "Does the response allowlist the extensions in azure.extensions on the cluster's parameter group (default_pg17) rather than a per-server az postgres flexible-server parameter?"
+      - "Does it then run CREATE EXTENSION and note that preload-required libraries go in shared_preload_libraries (static, needs restart)?"
+      - "Does it avoid ALTER SYSTEM entirely?"
+
+  # networking-ssl
+  - id: hz-net-01
+    task: "Can I deploy Azure HorizonDB with VNet injection into my delegated subnet? How is network access and TLS handled?"
+    difficulty: medium
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-networking-ssl
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "Private Link|private endpoint"
+      - "firewall"
+      - "TLS 1.2|TLS 1.3|verify-full"
+    anti_patterns:
+      - "VNet injection|delegated subnet"
+      - "sslcert=|sslkey="
+    correctness_checks:
+      - "Does the response state that VNet injection is not available on HorizonDB and that connectivity is public access plus Private Link only, with cluster-level IPv4 firewall rules?"
+      - "Does it require TLS (verify-full recommended, DigiCert Global Root G2 + Microsoft RSA Root CA 2017) and note that mTLS/client certificates are not supported?"
+
+  # entra-id-auth
+  - id: hz-auth-01
+    task: "On Azure HorizonDB, my admin login says permission denied when I try to create a SUPERUSER role. How do admin privileges work here?"
+    difficulty: medium
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "azure_pg_admin"
+      - "SCRAM|azure_roles_authtype"
+    anti_patterns:
+      - "grant.*superuser|CREATE ROLE.*SUPERUSER"
+    correctness_checks:
+      - "Does the response explain that the HorizonDB admin gets azure_pg_admin (a restricted pseudo-superuser) and that a true superuser is reserved for the platform?"
+      - "Does it mention SCRAM-SHA-256 auth and verifying per-role auth type with azure_roles_authtype() rather than promising superuser escalation?"
+
+  # connection-pooling
+  - id: hz-pool-01
+    task: "How do I turn on built-in PgBouncer for my Azure HorizonDB cluster?"
+    difficulty: easy
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-connection-pooling
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "not.*available|not yet"
+      - "external|client-side"
+    anti_patterns:
+      - "pgbouncer.enabled"
+      - "az postgres flexible-server parameter set"
+    correctness_checks:
+      - "Does the response state that a managed/built-in PgBouncer is not yet available on HorizonDB?"
+      - "Does it recommend an external or client-side pooler and suggest routing read-only traffic to the reader endpoint?"
+
+  # intelligent-tuning
+  - id: hz-tune-01
+    task: "Enable automatic index tuning on my Azure HorizonDB cluster."
+    difficulty: medium
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "not.*available|not yet"
+      - "Query Store|CREATE INDEX CONCURRENTLY|EXPLAIN"
+    anti_patterns:
+      - "index_tuning.mode"
+      - "az postgres flexible-server parameter set"
+    correctness_checks:
+      - "Does the response state that intelligent/index tuning is not yet available on HorizonDB?"
+      - "Does it recommend manual tuning via Query Store plus normal indexing (CREATE INDEX CONCURRENTLY, EXPLAIN ANALYZE) and parameter-group settings?"
+
+  # upgrades-maintenance
+  - id: hz-upg-01
+    task: "I want to upgrade my Azure HorizonDB cluster from PostgreSQL 16 to 17. How do I run the major version upgrade?"
+    difficulty: medium
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-upgrades-maintenance
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "PostgreSQL 17|PG 17|version 17"
+      - "no major.*upgrade|not.*supported|only"
+    anti_patterns:
+      - "az postgres flexible-server upgrade"
+    correctness_checks:
+      - "Does the response explain that HorizonDB runs PostgreSQL 17 only, so there is no major-version upgrade to perform (a PG16 source doesn't apply)?"
+      - "Does it note that minor updates are applied by the platform via planned failovers and maintenance is system-managed, not driven by az postgres flexible-server?"
+
+  # vector-diskann
+  - id: hz-vec-01
+    task: "Set up DiskANN vector search with filtered queries on my Azure HorizonDB cluster."
+    difficulty: hard
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-vector-diskann
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "pg_diskann|diskann"
+      - "azure.extensions|parameter group"
+      - "diskann\\.(enable_filter_hook|selectivity_min|l_value_is)"
+    anti_patterns:
+      - "ALTER SYSTEM"
+      - "diskann_\\w+\\s*="
+      - "increase search list size"
+    correctness_checks:
+      - "Does the response enable vector/pg_diskann via the cluster's parameter group (azure.extensions) and CREATE INDEX ... USING diskann?"
+      - "Does it configure advanced filtering with dot-form session GUCs (diskann.enable_filter_hook / diskann.selectivity_min / diskann.l_value_is) set with SET, not ALTER SYSTEM?"
+
+  # azure-ai
+  - id: hz-ai-01
+    task: "I want in-database GenAI on Azure HorizonDB without deploying my own Azure OpenAI resource first. What can I use?"
+    difficulty: medium
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-azure-ai
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "azure_ai"
+      - "model_registry|AI Model Management|default-embedding|default-chat"
+    correctness_checks:
+      - "Does the response note that HorizonDB's AI Model Management auto-provisions default models (default-chat / default-embedding / default-reranker) so no manual Azure OpenAI deployment is required?"
+      - "Does it show azure_ai functions (for example azure_ai.generate / azure_ai.rank / azure_openai.create_embeddings) enabled through the parameter group?"
+
+  # genai-patterns
+  - id: hz-genai-01
+    task: "Build a hybrid search retrieval layer for RAG on Azure HorizonDB combining keyword and vector search."
+    difficulty: hard
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-genai-patterns
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "pg_textsearch|BM25"
+      - "pgvector|DiskANN|vector"
+      - "rank|rerank|RRF"
+    anti_patterns:
+      - "Elasticsearch|external search service"
+    correctness_checks:
+      - "Does the response combine vector search (pgvector/DiskANN) with pg_textsearch BM25 keyword search and fuse them (Reciprocal Rank Fusion)?"
+      - "Does it rerank with azure_ai.rank and generate embeddings in-database rather than depending on an external search service?"
