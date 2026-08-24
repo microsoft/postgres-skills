@@ -1,10 +1,9 @@
-# PostgreSQL Agent Skills
+# PostgreSQL Skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![References: 32](https://img.shields.io/badge/References-32-green.svg)](#reference-catalog)
 [![Platforms: 3](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex-purple.svg)](#get-started-in-30-seconds)
 
-**Ship production PostgreSQL faster.** This plugin turns your AI coding assistant into a PostgreSQL and Azure Database for PostgreSQL expert that can *act*, not just advise. It pairs 32 expert-curated skill references — including a full graph-database lifecycle on Apache AGE — with two execution hands: the **postgres-mcp MCP server** for working inside your database and the **Azure CLI** for managing your Flexible Server. You get safe, version-aware, production-ready results instead of Stack Overflow snippets.
+**Build, tune, and operate PostgreSQL with an AI assistant that can act, not just advise.** PostgreSQL Skills gives developers 32 expert-curated sub-skills for PostgreSQL anywhere: local, self-hosted, other clouds, Azure Database for PostgreSQL, and Azure HorizonDB. It covers application development, query performance, indexing, vector search, RAG, security, operations, and the full Apache AGE graph lifecycle. With **postgres-mcp** for database actions and the **Azure CLI** for Azure resource management, your assistant can inspect the real environment and safely execute approved changes instead of returning generic snippets.
 
 ## What you get
 
@@ -22,7 +21,7 @@ A default AI assistant gives you plausible-looking PostgreSQL advice. This plugi
 
 This repo is the plugin. Installing it gives your agent three things that work together:
 
-- **The skill** — a lightweight routing table that reads your question and connection, then loads the one matching reference (generic, Azure, or graph). A dedicated **pg-graph** skill owns the full Apache AGE lifecycle — ontology derivation, graph construction, and openCypher querying.
+- **The skill** — a lightweight routing table that reads your question and connection, then loads the matching sub-skill (generic, Azure, or graph). A dedicated **pg-graph** skill owns the full Apache AGE lifecycle — ontology derivation, graph construction, and openCypher querying.
 - **The postgres-mcp MCP server** — executes inside your database: runs queries, applies changes, inspects schema, builds and traverses graphs, and detects whether you're on Azure.
 - **The Azure CLI (`az`)** — executes on the managed service: provisioning, scaling, parameters, HA and failover, replicas, point-in-time restore, networking, and upgrades.
 
@@ -53,79 +52,79 @@ codex plugin install postgres-skills@postgres-skills
 
 ## Real-world examples
 
-### Working inside your database (via the postgres-mcp MCP server)
+### PostgreSQL anywhere
 
 **"What tables do I have, and which are the biggest?"**
 → Introspects your live schema and reports tables, row estimates, and sizes.
 
 **"Set up vector search for my product catalog"**
-→ Routes to **postgresql-vector-search** (or **azure-postgresql-vector-diskann** on Azure) and applies the extension and index after you confirm.
+→ Selects the right vector index for your environment and applies the extension and index after you confirm.
 
 **"My query went from 200ms to 8 seconds after deployment"**
-→ Routes to **postgresql-query-performance** and runs `EXPLAIN (ANALYZE, BUFFERS)` live to find the regression.
+→ Analyzes the live execution plan and buffer usage to identify the regression.
 
 **"Add multi-tenant isolation to these tables"**
-→ Routes to **postgresql-row-level-security** and writes and applies the policies.
+→ Designs row-level security policies for your tenancy model and applies them after confirmation.
 
 **"Partition my 500M-row events table by month"**
-→ Routes to **postgresql-table-partitioning** and applies the DDL with confirmation.
+→ Designs the partition layout, checks pruning requirements, and applies the DDL with confirmation.
 
 **"Index my JSONB documents for containment queries"**
-→ Routes to **postgresql-jsonb-patterns** and creates the right GIN index.
+→ Examines the query pattern and creates the appropriate GIN index.
+
+### Azure Database for PostgreSQL and HorizonDB
 
 **"Batch-embed 1 million rows without leaving the database"**
-→ Routes to **azure-postgresql-genai-patterns** and runs the `azure_ai` embedding loop.
-
-### Building and querying graphs (via the pg-graph skill)
-
-**"Turn my documents into a knowledge graph"**
-→ Routes to **pg-graph → ontology-derivation**, samples your data, proposes node labels, edge types, and properties, and runs a human feedback loop before finalizing — then **extract-to-graph** MERGE-loads the graph on Apache AGE.
-
-**"Generate an ontology from my existing tables"**
-→ Routes to **pg-graph → ontology-derivation**, reads your schema and foreign keys, and proposes tables as node labels and FKs as edges for your review before anything is built.
-
-**"Answer this by traversing my graph"**
-→ Routes to **pg-graph → text-to-cypher**, introspects the graph schema first, then generates and runs a validated openCypher query wrapped in `ag_catalog.cypher(...)`.
-
-**"Visualize my graph in VS Code"**
-→ Routes to **pg-graph → text-to-cypher**, which returns full vertex and edge objects and sets `disp_label` so the PostgreSQL extension for VS Code renders the result as an interactive node-edge graph.
-
-**"Why did the graph recommend this?"**
-→ Routes to **pg-graph → graph-explainability** and returns the reasoning path, provenance, and a confidence bounded by the weakest edge.
-
-### Managing your Azure Flexible Server (via `az` CLI)
+→ Processes embeddings safely in batches with the `azure_ai` extension while respecting service limits.
 
 **"Provision a General Purpose server and scale it to 8 vCores"**
-→ Routes to **azure-postgresql-provisioning**, discovers your server and resource group, and runs the `create` / `update` after confirming.
+→ Selects the right Azure resources and provisions or scales the server after confirmation.
 
 **"Change `work_mem` on my Azure server"**
-→ Clarifies server-wide vs per-database scope, then runs `az postgres flexible-server parameter set`.
+→ Clarifies server-wide vs per-database scope, validates the current configuration, and safely applies the parameter change.
 
 **"Set up zone-redundant HA and add a read replica"**
-→ Routes to **azure-postgresql-ha-disaster-recovery** and runs the HA and `replica create` commands.
+→ Configures high availability and a read replica with the required topology and safety checks.
 
 **"Roll my database back to 2pm yesterday"**
-→ Routes to **azure-postgresql-ha-disaster-recovery** and runs a point-in-time restore after confirming.
+→ Validates the restore window and creates a point-in-time restored server after confirming the target time.
 
 **"I can't connect — 'SSL connection is required'"**
-→ Routes to **azure-postgresql-networking-ssl** and checks firewall and private-endpoint/VNet setup.
+→ Diagnoses firewall, private endpoint, VNet, DNS, and certificate configuration.
 
 **"Add passwordless Entra ID authentication to my app"**
-→ Routes to **azure-postgresql-entra-id-auth** and generates the connection code and managed-identity setup.
+→ Generates the application connection code and managed-identity configuration.
 
 **"Upgrade my server from PG13 to PG16"**
-→ Routes to **azure-postgresql-upgrades-maintenance** and runs the pre-check before the upgrade.
+→ Validates extension and application compatibility and performs the required pre-check before the upgrade.
 
 **"Create an Azure HorizonDB cluster and enable pgvector"**
-→ Detects the `*.horizondb.azure.com` host, recognizes it as an Azure HorizonDB cluster (not a Flexible Server), and routes to the HorizonDB guidance — using `az horizondb` and parameter groups instead of `az postgres flexible-server`.
+→ Recognizes the HorizonDB environment and uses cluster and parameter-group guidance instead of applying Flexible Server workflows.
 
-## Reference Catalog
+### Graph workloads with Apache AGE
 
-### PostgreSQL Foundational (11 references)
+**"Turn my documents into a knowledge graph"**
+→ Samples your data, proposes node labels, edge types, and properties for review, then safely MERGE-loads the approved graph into Apache AGE.
 
-These references work with any PostgreSQL deployment — self-hosted, RDS, Cloud SQL, Azure, or local.
+**"Generate an ontology from my existing tables"**
+→ Reads your schema and foreign keys and proposes tables as node labels and relationships as edges for review before anything is built.
 
-| Reference | Helps you with | What the agent learns that LLMs get wrong |
+**"Answer this by traversing my graph"**
+→ Introspects the graph schema, then generates and runs a validated openCypher query.
+
+**"Visualize my graph in VS Code"**
+→ Returns complete vertices and edges with display labels so VS Code renders an interactive node-edge graph.
+
+**"Why did the graph recommend this?"**
+→ Returns the reasoning path, provenance, and confidence bounded by the weakest supporting edge.
+
+## Sub-skill Catalog
+
+### PostgreSQL Foundational (11 sub-skills)
+
+These sub-skills work with any PostgreSQL deployment — self-hosted, RDS, Cloud SQL, Azure, or local.
+
+| Sub-skill | Helps you with | What the agent learns that LLMs get wrong |
 |-----------|---------------|------------------------------------------|
 | **postgresql-vector-search** | pgvector setup, HNSW indexes, distance operators | Index type selection, recall tuning, operator/index mismatch |
 | **postgresql-genai-rag** | RAG pipelines, hybrid search, chunking | RRF scoring, dimension mismatch, FTS + vector combination |
@@ -139,13 +138,13 @@ These references work with any PostgreSQL deployment — self-hosted, RDS, Cloud
 | **postgresql-replication** | Publications, subscriptions, CDC | Row filter (PG15+), conflict resolution, initial data sync strategies |
 | **postgresql-query-performance** | EXPLAIN analysis, vacuum, statistics | JIT thresholds, parallel query pitfalls, vacuum/bloat tuning |
 
-### Azure Database for PostgreSQL (11 references)
+### Azure Database for PostgreSQL (11 sub-skills)
 
-These references are gated by the connection capability check. They cover managed-service workflows, Azure AI integrations, and platform-specific safety guardrails.
+These sub-skills are gated by the connection capability check. They cover managed-service workflows, Azure AI integrations, and platform-specific safety guardrails.
 
-Each reference also covers **Azure HorizonDB (Preview)** in an *On Azure HorizonDB* section. When your connection is a HorizonDB cluster (`*.horizondb.azure.com`), the agent routes to the HorizonDB-specific guidance — clusters, `az horizondb`, and parameter groups — instead of falling back to Flexible Server steps, and flags features not yet available on HorizonDB (VNet injection, built-in PgBouncer, index tuning, major-version upgrades, configurable backup retention, cross-region replicas). See [Azure HorizonDB](https://learn.microsoft.com/en-us/azure/horizondb/overview).
+Each Azure sub-skill also covers **Azure HorizonDB (Preview)** in an *On Azure HorizonDB* section. When your connection is a HorizonDB cluster (`*.horizondb.azure.com`), the agent routes to the HorizonDB-specific guidance — clusters, `az horizondb`, and parameter groups — instead of falling back to Flexible Server steps, and flags features not yet available on HorizonDB (VNet injection, built-in PgBouncer, index tuning, major-version upgrades, configurable backup retention, cross-region replicas). See [Azure HorizonDB](https://learn.microsoft.com/en-us/azure/horizondb/overview).
 
-| Reference | Helps you with | What the agent learns that LLMs get wrong |
+| Sub-skill | Helps you with | What the agent learns that LLMs get wrong |
 |-----------|---------------|------------------------------------------|
 | **azure-postgresql-vector-diskann** | DiskANN for billion-scale vector search | `lists` vs `m`/`ef_construction` tuning, DiskANN is Azure-only |
 | **azure-postgresql-genai-patterns** | In-database embeddings + RAG with azure_ai | Batch processing limits, rate limit handling, Path A vs B decision |
@@ -159,11 +158,11 @@ Each reference also covers **Azure HorizonDB (Preview)** in an *On Azure Horizon
 | **azure-postgresql-extension-lifecycle** | Extension allowlisting on Azure | `azure.extensions` param, `azure_pg_admin` role requirement |
 | **azure-postgresql-upgrades-maintenance** | Major version upgrades, maintenance | MVU is one-way, no skip-version, `--validate-only` pre-check |
 
-### Graph on PostgreSQL — Apache AGE (pg-graph, 10 references)
+### Graph on PostgreSQL — Apache AGE (pg-graph, 10 sub-skills)
 
 The **pg-graph** skill is the single home for graph work on PostgreSQL, covering the full lifecycle: derive an ontology from your data (with a human feedback loop), build the graph, and query it with openCypher, natural-language-to-Cypher, and graph-augmented retrieval. It uses only capabilities available today — agent-driven extraction over the MCP query tools (any PostgreSQL with AGE) or the `azure_ai` extension for in-database work at scale on Azure.
 
-| Reference | Helps you with | What the agent learns that LLMs get wrong |
+| Sub-skill | Helps you with | What the agent learns that LLMs get wrong |
 |-----------|---------------|------------------------------------------|
 | **ontology-derivation** | Deriving a graph ontology from structured or unstructured data with a human feedback loop | Never finalize an ontology without user approval; agent-driven vs `azure_ai` modes; no unreleased `ai.*` primitives |
 | **extract-to-graph** | Extracting, deduplicating, and MERGE-loading entities into AGE from a finalized ontology | Idempotent `MERGE` on stable business keys to avoid duplicate vertices across repeated extraction |
@@ -174,11 +173,11 @@ The **pg-graph** skill is the single home for graph work on PostgreSQL, covering
 | **graph-augmented-rag** | Retrieval combining vector similarity with graph traversal and reranking | Hybrid graph retrieval that goes beyond flat vector search |
 | **graph-explainability** | Provenance, reasoning paths, and explainable recommendations | Confidence bounded by the weakest edge on the path; reproducible reasoning trace |
 | **azure-ai-semantic-search** | Enabling and configuring `azure_ai` and generating embeddings for semantic search | Read current settings and ask for endpoint/key/deployment — never invent them |
-| **examples** | End-to-end worked graph examples spanning schema, query, and results | Grounded in the wrapping and safety rules from the other pg-graph references |
+| **examples** | End-to-end worked graph examples spanning schema, query, and results | Grounded in the wrapping and safety rules from the other pg-graph sub-skills |
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on adding or improving the skill and its references.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on adding or improving skills and sub-skills.
 
 ## License
 
