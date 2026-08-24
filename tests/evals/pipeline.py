@@ -1051,15 +1051,18 @@ def azure_openai_agent(task: str, skill_context: str, model: str) -> str:
             f"{skill_context}"
         )
 
-    response = client.chat.completions.create(
-        model=deployment,
-        messages=[
+    completion_args = {
+        "model": deployment,
+        "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": task},
         ],
-        temperature=0.2,
-        max_completion_tokens=1500,
-    )
+        "max_completion_tokens": 1500,
+    }
+    if not deployment.lower().startswith("gpt-5"):
+        completion_args["temperature"] = 0.2
+
+    response = client.chat.completions.create(**completion_args)
 
     return response.choices[0].message.content or ""
 
