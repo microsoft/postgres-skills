@@ -107,12 +107,12 @@ ORDER BY last_recommended DESC;
 ## On Azure HorizonDB (Preview)
 
 - **Index/intelligent tuning is not yet available on HorizonDB.** Do not recommend the Flexible Server `intelligent_tuning`, `index_tuning.mode`, or `az postgres flexible-server parameter set` workflow — those are Flexible Server features.
-- **Tune manually via parameter groups + Query Store.** HorizonDB includes Query Store for identifying slow/regressed queries; act on it with normal PostgreSQL indexing (`CREATE INDEX CONCURRENTLY`), `EXPLAIN (ANALYZE, BUFFERS)`, and planner/memory parameters set in the cluster's parameter group.
-SELECT qtv.query_sql_text, qs.calls, qs.mean_exec_time_ms
-FROM query_store.qs_view qs
-LEFT JOIN query_store.query_texts_view qtv ON qs.query_text_id = qtv.query_text_id
-ORDER BY qs.mean_exec_time_ms DESC
+- **Tune manually via parameter groups + Query Store.** Enable Query Store with the cluster parameter group, then query it from the `azure_sys` database. Act on findings with normal PostgreSQL indexing (`CREATE INDEX CONCURRENTLY`), `EXPLAIN (ANALYZE, BUFFERS)`, and planner/memory parameters set in the cluster's parameter group.
+
+```sql no-execute
+SELECT query_sql_text, calls, mean_time, total_time
 FROM query_store.qs_view
+ORDER BY total_time DESC
 LIMIT 10;
 ```
 

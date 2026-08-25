@@ -119,6 +119,7 @@ GRANT ALL ON DATABASE mydb TO "my-managed-identity-name";
 
 ## On Azure HorizonDB (Preview)
 
+- **For admin or superuser questions, always state both auth checks:** HorizonDB uses SCRAM-SHA-256 password authentication, and `azure_roles_authtype()` shows the authentication type configured for each role.
 - **Built-in roles differ.** HorizonDB grants `azure_pg_admin` (a restricted pseudo-superuser) to the admin login; a true superuser (`azuresu`) is reserved for the platform. Do not assume you can `CREATE ROLE ... SUPERUSER` or reset platform roles.
 - **SCRAM-SHA-256** password auth is supported; verify per-role auth type before troubleshooting login failures.
 - **Entra ID** is referenced in the portal but currently has limited standalone documentation on HorizonDB; treat Entra-only flows as Preview and confirm availability before recommending them as the sole auth path.

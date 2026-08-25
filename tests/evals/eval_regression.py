@@ -83,6 +83,20 @@ def main() -> int:
         )
         return 1
 
+    parse_errors = {
+        name: summary.get(name, 0)
+        for name in (
+            "judge_parse_errors",
+            "correctness_parse_errors",
+            "winrate_parse_errors",
+        )
+        if summary.get(name, 0) > 0
+    }
+    if args.require_results and parse_errors:
+        details = ", ".join(f"{name}={count}" for name, count in parse_errors.items())
+        print(f"FAIL — eval contains unparseable judge responses: {details}.")
+        return 1
+
     regressions = {
         sid: m["avg_judge_score"]
         for sid, m in per_skill.items()

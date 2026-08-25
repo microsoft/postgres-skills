@@ -148,11 +148,11 @@ class HallucinationDetector:
 
         ext_pattern = "|".join(re.escape(ext) for ext in self.known_extensions)
         self.UNIVERSAL_PATTERNS = [
-            (rf"CREATE\s+EXTENSION\s+(?!IF\s+NOT\s+EXISTS)(?!(?:{ext_pattern}|your_\w+|some_\w+|example\w*|failed|my_\w+)\b)\w+\b",
+            (rf"CREATE\s+EXTENSION\s+(?!IF\s+NOT\s+EXISTS)(?!(?:{ext_pattern}|your_\w+|some_\w+|example\w*|extension_\w+|failed|my_\w+)\b)\w+\b",
              "References non-existent PostgreSQL extension"),
-            (r"pg_catalog\.(?!pg_class|pg_attribute|pg_namespace|pg_type|pg_index|pg_stat_user_tables|pg_stat_user_indexes|pg_stat_activity|pg_locks|pg_settings|pg_roles|pg_database|pg_tablespace|pg_constraint|pg_trigger|pg_proc|pg_depend|pg_description|pg_am|pg_operator|pg_opclass|pg_statistic|pg_replication_slots|pg_stat_replication|pg_stat_wal_receiver|pg_publication|pg_subscription|pg_stat_progress_vacuum|pg_stat_bgwriter|pg_stat_archiver|pg_ts_config|pg_ts_dict|pg_ts_parser|pg_ts_template|pg_available_extensions|pg_extension|pg_indexes|pg_views|pg_tables|pg_sequences|pg_matviews|pg_policies|pg_cursors|english|simple|spanish|french|german|italian|portuguese|russian|swedish|norwegian|danish|dutch|finnish|hungarian|turkish|arabic|hindi)\w*",
+            (r"pg_catalog\.(?!pg_class|pg_attribute|pg_namespace|pg_type|pg_index|pg_stat_user_tables|pg_stat_user_indexes|pg_statio_user_tables|pg_stat_activity|pg_locks|pg_settings|pg_roles|pg_database|pg_tablespace|pg_constraint|pg_trigger|pg_proc|pg_depend|pg_description|pg_am|pg_operator|pg_opclass|pg_statistic|pg_replication_slots|pg_stat_replication|pg_stat_wal_receiver|pg_publication|pg_subscription|pg_stat_progress_vacuum|pg_stat_bgwriter|pg_stat_archiver|pg_ts_config|pg_ts_dict|pg_ts_parser|pg_ts_template|pg_available_extensions|pg_extension|pg_indexes|pg_views|pg_tables|pg_sequences|pg_matviews|pg_policies|pg_cursors|english|simple|spanish|french|german|italian|portuguese|russian|swedish|norwegian|danish|dutch|finnish|hungarian|turkish|arabic|hindi)\w*",
              "References non-existent pg_catalog object"),
-            (r"SET\s+(?:shared_preload_libraries|shared_buffers|max_connections|wal_level|max_wal_senders|max_replication_slots|hot_standby|archive_mode)\s*=",
+            (r"(?<!ALTER SYSTEM )SET\s+(?:shared_preload_libraries|shared_buffers|max_connections|wal_level|max_wal_senders|max_replication_slots|hot_standby|archive_mode)\s*=",
              "SET cannot change postmaster-level GUC at runtime (requires restart)"),
         ]
 
@@ -179,12 +179,12 @@ class HallucinationDetector:
         r"/var/lib/postgresql",
         r"systemctl\s+.*postgresql",
         r"sudo\s+.*postgres",
-        r"SET\s+(?:shared_preload_libraries|shared_buffers|max_connections|wal_level|max_wal_senders|max_replication_slots|hot_standby|archive_mode)\s*=",
+        r"(?<!ALTER SYSTEM )SET\s+(?:shared_preload_libraries|shared_buffers|max_connections|wal_level|max_wal_senders|max_replication_slots|hot_standby|archive_mode)\s*=",
     }
     NEGATION_CONTEXT = re.compile(
         r"(cannot|can['’]t|does\s+not|does not allow|not\s+possible|not\s+allowed|not\s+supported|not\s+available"
-        r"|do not|never|don't|doesn't|isn't|aren't|instead of|rather than|avoid|unlike"
-        r"|no access to|no direct|inaccessible|managed service|not editable|not accessible"
+        r"|do\s+\*{0,2}not|never|don['’]t|doesn't|isn't|aren't|instead of|rather than|avoid|unlike"
+        r"|no access to|no direct|there\s+(?:is|are)\s+no|inaccessible|managed service|not editable|not accessible"
         r"|won't work|will not work|not applicable|disabled|prohibited|blocked)\s*",
         re.IGNORECASE
     )
@@ -194,6 +194,10 @@ class HallucinationDetector:
         r"|on self-hosted|on-premises|unlike managed|in contrast|traditional|self-managed"
         r"|if you were|would require|only on self-hosted|outside azure)",
         re.IGNORECASE
+    )
+    ERROR_CONTEXT = re.compile(
+        r"(?:error|message|says?|reported|fatal)[\s\S]{0,140}$",
+        re.IGNORECASE,
     )
 
     def check(self, output: str, platform_scope: str = "azure") -> list[dict]:
@@ -224,6 +228,10 @@ class HallucinationDetector:
                         following = output[m.end():min(len(output), m.end() + 80)]
                         if (not self.NEGATION_CONTEXT.search(preceding)
                                 and not self.WARNING_CONTEXT.search(preceding)
+                                and not (
+                                    pattern == r"pg_hba\.conf"
+                                    and self.ERROR_CONTEXT.search(preceding)
+                                )
                                 and not self.NEGATION_CONTEXT.search(following)
                                 and not self.WARNING_CONTEXT.search(following)):
                             real_matches.append(m.group())
