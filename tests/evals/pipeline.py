@@ -28,7 +28,7 @@ from typing import Optional
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 from matchers import PatternMatcher, HallucinationDetector, SQLSyntaxValidator, TokenBudgetValidator
-from judges import SkillJudge
+from judges import SkillJudge, parse_json_object
 
 EVALS_DIR = Path(__file__).resolve().parent
 DEFAULT_CHALLENGES_PATH = EVALS_DIR / "challenges" / "challenges.yaml"
@@ -266,6 +266,7 @@ class EvalPipeline:
         self.results: list[EvalResult] = []
         self.skill_metrics: dict[str, SkillMetrics] = {}
         self.winrate_results: list[dict] = []  # Paired win-rate verdicts
+        self.failures: list[dict] = []
         self._judge_agent_fn = None  # Set during run() for judge LLM calls
         self._calibration_mode = False  # When True, trims skill to task-relevant sections
         self._model = "gpt-4o-mini"  # Set during run()
@@ -539,10 +540,7 @@ class EvalPipeline:
     def _parse_correctness_verdict(self, raw: str) -> dict:
         """Parse structured correctness check response."""
         try:
-            text = raw.strip()
-            if text.startswith("```"):
-                text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-            parsed = json.loads(text)
+            parsed = parse_json_object(raw)
             answers = parsed.get("answers", [])
             pass_count = sum(1 for a in answers if a.get("answer", False))
             return {
@@ -696,6 +694,19 @@ class EvalPipeline:
         overall_correctness = _avg_correctness(correctness_results)
         control_correctness = _avg_correctness(control_correctness_results)
         test_correctness = _avg_correctness(test_correctness_results)
+        judge_parse_errors = sum(
+            1 for r in self.results
+            if r.judge_verdict
+            and r.judge_verdict.get("reasoning", "").startswith("Parse error:")
+        )
+        correctness_parse_errors = sum(
+            1 for r in self.results
+            if r.correctness_verdict and "parse_error" in r.correctness_verdict
+        )
+        winrate_parse_errors = sum(
+            1 for verdict in self.winrate_results
+            if verdict.get("reasoning", "").startswith("Parse error:")
+        )
 
         # MDD warning (A6)
         n_per_skill = {}
@@ -755,6 +766,9 @@ class EvalPipeline:
                 "correctness_pass_rate_test": round(test_correctness, 3) if test_correctness is not None else None,
                 "correctness_results_count": len(correctness_results),
                 "correctness_challenge_count": len({r.challenge_id for r in correctness_results}),
+                "judge_parse_errors": judge_parse_errors,
+                "correctness_parse_errors": correctness_parse_errors,
+                "winrate_parse_errors": winrate_parse_errors,
             },
             "delta": {
                 "method": delta_method,
@@ -900,16 +914,30 @@ class EvalPipeline:
                     try:
                         future.result()
                     except Exception as e:
+                        with self._lock:
+                            self.failures.append({
+                                "challenge_id": challenge.id,
+                                "error": f"{type(e).__name__}: {e}",
+                            })
                         print(f"  ERROR on {challenge.id}: {e}")
         else:
             for i, challenge in enumerate(self.challenges):
-                self._run_single_challenge(challenge, agent_fn, model, i + 1, total)
+                try:
+                    self._run_single_challenge(challenge, agent_fn, model, i + 1, total)
+                except Exception as e:
+                    self.failures.append({
+                        "challenge_id": challenge.id,
+                        "error": f"{type(e).__name__}: {e}",
+                    })
+                    print(f"  ERROR on {challenge.id}: {e}")
 
         elapsed = time.time() - start_time
         print(f"\nCompleted in {elapsed:.1f}s ({elapsed/total:.1f}s per challenge)")
 
         # Generate and save report
         report = self.generate_report()
+        report["failures"] = self.failures
+        report["summary"]["failed_challenges"] = len(self.failures)
         self.save_results(report)
 
         # Print summary
@@ -988,6 +1016,12 @@ class EvalPipeline:
         if len(loss_details) > 20:
             print(f"  ... and {len(loss_details) - 20} more")
 
+        if self.failures:
+            raise RuntimeError(
+                f"Eval incomplete: {len(self.failures)} of {total} challenges failed. "
+                "Detailed failures were saved in the report artifact."
+            )
+
         return report
 
 
@@ -1023,6 +1057,7 @@ def azure_openai_agent(task: str, skill_context: str, model: str) -> str:
         azure_endpoint=endpoint,
         api_key=api_key,
         api_version=api_version,
+        max_retries=10,
     )
 
     system_prompt = (
@@ -1037,6 +1072,7 @@ def azure_openai_agent(task: str, skill_context: str, model: str) -> str:
             "When answering about Azure managed PostgreSQL, focus on Azure-native approaches "
             "(portal, az CLI, ARM). Do NOT explain self-hosted internals like pg_hba.conf, "
             "postgresql.conf, systemctl, or filesystem paths — these are inaccessible on managed services. "
+            "Do NOT use ALTER SYSTEM; configure server parameters through the Azure control plane. "
         ) if is_azure else ""
         system_prompt += (
             "\n\n## Reference Material (background knowledge)\n"
@@ -1051,15 +1087,25 @@ def azure_openai_agent(task: str, skill_context: str, model: str) -> str:
             f"{skill_context}"
         )
 
-    response = client.chat.completions.create(
-        model=deployment,
-        messages=[
+    is_judge_prompt = task.lstrip().startswith((
+        "You are evaluating",
+        "You are comparing",
+        "You are verifying factual correctness",
+    ))
+    completion_args = {
+        "model": deployment,
+        "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": task},
         ],
-        temperature=0.2,
-        max_completion_tokens=1500,
-    )
+        "max_completion_tokens": 3000 if is_judge_prompt else 1500,
+    }
+    if is_judge_prompt:
+        completion_args["response_format"] = {"type": "json_object"}
+    if not deployment.lower().startswith("gpt-5"):
+        completion_args["temperature"] = 0.2
+
+    response = client.chat.completions.create(**completion_args)
 
     return response.choices[0].message.content or ""
 
@@ -1091,6 +1137,7 @@ def openai_agent(task: str, skill_context: str, model: str) -> str:
             "When answering about Azure managed PostgreSQL, focus on Azure-native approaches "
             "(portal, az CLI, ARM). Do NOT explain self-hosted internals like pg_hba.conf, "
             "postgresql.conf, systemctl, or filesystem paths — these are inaccessible on managed services. "
+            "Do NOT use ALTER SYSTEM; configure server parameters through the Azure control plane. "
         ) if is_azure else ""
         system_prompt += (
             "\n\n## Reference Material (background knowledge)\n"
@@ -1105,15 +1152,24 @@ def openai_agent(task: str, skill_context: str, model: str) -> str:
             f"{skill_context}"
         )
 
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
+    is_judge_prompt = task.lstrip().startswith((
+        "You are evaluating",
+        "You are comparing",
+        "You are verifying factual correctness",
+    ))
+    completion_args = {
+        "model": model,
+        "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": task},
         ],
-        temperature=0.2,
-        max_completion_tokens=1500,
-    )
+        "max_completion_tokens": 3000 if is_judge_prompt else 1500,
+    }
+    if is_judge_prompt:
+        completion_args["response_format"] = {"type": "json_object"}
+    if not model.lower().startswith("gpt-5"):
+        completion_args["temperature"] = 0.2
+    response = client.chat.completions.create(**completion_args)
 
     return response.choices[0].message.content or ""
 

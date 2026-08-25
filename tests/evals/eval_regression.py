@@ -66,6 +66,37 @@ def main() -> int:
         print(f"{msg} — skipping regression guard.")
         return 0
 
+    summary = results.get("summary", {})
+    total_challenges = summary.get("total_challenges")
+    total_results = summary.get("total_results")
+    expected_results = total_challenges * 2 if isinstance(total_challenges, int) else None
+    if args.require_results and (
+        summary.get("failed_challenges", 0) > 0
+        or expected_results is None
+        or total_results != expected_results
+    ):
+        print(
+            "FAIL — eval results are incomplete: "
+            f"{total_results} results for {total_challenges} challenges "
+            f"(expected {expected_results}), "
+            f"{summary.get('failed_challenges', 0)} challenge failures."
+        )
+        return 1
+
+    parse_errors = {
+        name: summary.get(name, 0)
+        for name in (
+            "judge_parse_errors",
+            "correctness_parse_errors",
+            "winrate_parse_errors",
+        )
+        if summary.get(name, 0) > 0
+    }
+    if args.require_results and parse_errors:
+        details = ", ".join(f"{name}={count}" for name, count in parse_errors.items())
+        print(f"FAIL — eval contains unparseable judge responses: {details}.")
+        return 1
+
     regressions = {
         sid: m["avg_judge_score"]
         for sid, m in per_skill.items()

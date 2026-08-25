@@ -525,6 +525,11 @@ challenges:
     expected_patterns:
       - "azure_ai|set_setting"
       - "endpoint|openai"
+    anti_patterns:
+      - "ALTER SYSTEM"
+    correctness_checks:
+      - Does the response use Azure CLI, portal, or ARM rather than ALTER SYSTEM to configure azure.extensions?
+      - Does it distinguish Azure control-plane permissions from the database role used to create the extension?
 
   - id: az-aiext-02
     task: "I want to use managed identity instead of API keys for my azure_ai extension connection."
@@ -1459,6 +1464,11 @@ challenges:
     expected_patterns:
       - "azure_ai|azure_openai"
       - "create\\(|create_embeddings"
+    anti_patterns:
+      - "ALTER SYSTEM"
+    correctness_checks:
+      - Does the response avoid ALTER SYSTEM and use the Azure control plane for extension allowlisting?
+      - Does it use the azure_openai schema and a deployment name when showing the classification call?
 
   # Tests: DiskANN migration from HNSW
   - id: az-new-04
@@ -1803,7 +1813,7 @@ challenges:
     task: How should I tune autovacuum_naptime in postgresql.conf on my self-managed Ubuntu VM? I don't need Azure-specific features.
     difficulty: hard
     target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-intelligent-tuning
-    platform_scope: azure-postgresql
+    platform_scope: generic
     expected_activation: false
     expected_patterns: []
     anti_patterns:
@@ -2753,9 +2763,9 @@ challenges:
     - SHOW POOLS|SHOW STATS
     - Azure Monitor|metrics|not expose
     correctness_checks:
-    - Does the response explain that the built-in Azure pooler does not expose the usual PgBouncer admin console?
-    - Does it redirect toward Azure Monitor metrics or backend views instead?
-    - Does it avoid inventing unsupported SHOW commands for this service?
+    - Does the response explain that the built-in pooler's admin console is available after configuring pgBouncer.stats_users?
+    - Does it connect to the pgbouncer database on port 6432 before using SHOW POOLS or SHOW STATS?
+    - Does it also recommend Azure Monitor metrics for production monitoring?
 
   - id: az-pool-08
     task: We still hit queueing spikes after enabling the pooler because each request opens and closes ORM connections immediately. Is that expected?
@@ -3352,11 +3362,11 @@ challenges:
     platform_scope: azure-postgresql
     expected_activation: true
     expected_patterns:
-    - sequential|one version at a time
-    - cannot skip
+    - skip|direct|straight
+    - validate|validate-only
     correctness_checks:
-    - Does the response explain that Azure MVU requires sequential major-version upgrades?
-    - Does it avoid suggesting a direct skip-version command?
+    - Does the response explain that Azure Flexible Server supports skipping major versions when the target version is available?
+    - Does it recommend validation before running the irreversible upgrade?
     - Does it stay within Azure Flexible Server MVU behavior?
 
   - id: az-upg-05
@@ -3538,10 +3548,10 @@ challenges:
     expected_activation: true
     expected_patterns:
     - Burstable
-    - new server|migration|GP|MO
+    - in-place|restart|GP|General Purpose
     correctness_checks:
-    - Does the response explain that moving from Burstable to GP/MO requires new-server migration rather than an in-place tier flip?
-    - Does it help the user weigh starting cheap against future migration cost?
+    - Does the response explain that moving from Burstable to GP/MO is supported in place with a restart?
+    - Does it help the user weigh starting cheap against Burstable feature limitations and restart downtime?
     - Does it stay within Azure provisioning facts?
 
   - id: az-prov-08
