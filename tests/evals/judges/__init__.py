@@ -6,6 +6,26 @@ LLM-as-Judge for PostgreSQL Agent Skills Evals
 Semantic evaluation of agent outputs using structured prompts.
 """
 from dataclasses import dataclass
+import json
+
+
+def parse_json_object(raw: str) -> dict:
+    """Parse a JSON object from plain text, fenced JSON, or leading prose."""
+    text = raw.strip()
+    if not text:
+        raise ValueError("Judge returned an empty response")
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find("{")
+        if start < 0:
+            raise
+        parsed, _ = json.JSONDecoder().raw_decode(text[start:])
+    if not isinstance(parsed, dict):
+        raise ValueError("Judge response must be a JSON object")
+    return parsed
 
 
 @dataclass
@@ -187,11 +207,7 @@ class SkillJudge:
         raw = call_llm_fn(prompt)
 
         try:
-            import json as _json
-            text = raw.strip()
-            if text.startswith("```"):
-                text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-            parsed = _json.loads(text)
+            parsed = parse_json_object(raw)
             return {
                 "winner": parsed.get("winner", "tie"),
                 "reasoning": parsed.get("reasoning", ""),
@@ -206,12 +222,7 @@ class SkillJudge:
         raw = call_llm_fn(prompt)
 
         try:
-            import json as _json
-            # Extract JSON from response (handle markdown code fences)
-            text = raw.strip()
-            if text.startswith("```"):
-                text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-            parsed = _json.loads(text)
+            parsed = parse_json_object(raw)
 
             criteria = {
                 "correctness": parsed.get("correctness", 0) / 10.0,
@@ -238,4 +249,4 @@ class SkillJudge:
             )
         except Exception:
             # Fallback if LLM output isn't valid JSON
-            return JudgeVerdict(score=0.5, passed=True, reasoning=f"Parse error: {raw[:100]}", criteria_scores={})
+            return JudgeVerdict(score=0.0, passed=False, reasoning=f"Parse error: {raw[:100]}", criteria_scores={})
