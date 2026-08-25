@@ -6,7 +6,7 @@ tags: [azure, postgresql, azure-ai, azure-openai, generate, extract, summarize, 
 
 ## Key Facts (what models get wrong)
 
-> **Response focus:** Prioritize deployment name vs model name confusion, function schema (`azure_openai` not `azure_ai`), endpoint format, and managed identity RBAC. Avoid explaining basic Azure OpenAI or SQL concepts.
+> **Response focus:** Prioritize deployment name vs model name confusion, function schema (`azure_openai` not `azure_ai`), endpoint format, managed identity RBAC, and the Azure control-plane allowlist workflow. Never use `ALTER SYSTEM` on Azure managed PostgreSQL.
 
 | Fact | Detail |
 |------|--------|
@@ -15,7 +15,7 @@ tags: [azure, postgresql, azure-ai, azure-openai, generate, extract, summarize, 
 | Deployment name not model name | First arg is your deployment name (e.g., `my-gpt4o`), NOT the model name (`gpt-4o`) |
 | Endpoint format | `https://<resource>.openai.azure.com` with no trailing slash, no `/openai/` path |
 | Managed identity RBAC | Server identity needs "Cognitive Services OpenAI User" role on the OpenAI resource; propagation up to 10 min |
-| azure.extensions allowlist | `azure_ai` must be added to `azure.extensions` server parameter before CREATE EXTENSION |
+| azure.extensions allowlist | Add `azure_ai` through the Azure control plane before `CREATE EXTENSION`; `ALTER SYSTEM` is not supported |
 | Single-text-per-call | Each `create()` call processes one text value; batch with SQL LIMIT + loops |
 | Key stored per-session | `set_setting()` values are session-scoped unless persisted via server parameters |
 
@@ -28,7 +28,25 @@ tags: [azure, postgresql, azure-ai, azure-openai, generate, extract, summarize, 
 
 ## Critical Gotchas
 
-1. **Extension not in allowlist**: Must add `azure_ai` to `azure.extensions` server parameter first; requires `azure_pg_admin` role
+1. **Extension not in allowlist**: Add `azure_ai` to the `azure.extensions` server parameter through Azure CLI, portal, or ARM. This requires Azure control-plane permissions. The database admin role is used afterward for `CREATE EXTENSION`.
+
+   ```bash
+   # Read the current comma-separated allowlist first.
+   az postgres flexible-server parameter show \
+     --resource-group myRG --server-name myserver \
+     --name azure.extensions --query value --output tsv
+
+   # Set the complete updated list; this operation replaces the existing value.
+   az postgres flexible-server parameter set \
+     --resource-group myRG --server-name myserver \
+     --name azure.extensions --value "existing_extension,azure_ai"
+   ```
+
+   Then connect as an authorized database administrator:
+
+   ```sql
+   CREATE EXTENSION IF NOT EXISTS azure_ai;
+   ```
 2. **Wrong endpoint format**: No trailing slash, no `/openai/` suffix
 3. **Deployment name is case-sensitive**: Must match exactly what is in Azure OpenAI Studio
 4. **Rate limiting (429)**: Batch with `LIMIT 50-100` per query; use `pg_sleep()` between batches
@@ -42,6 +60,7 @@ tags: [azure, postgresql, azure-ai, azure-openai, generate, extract, summarize, 
 ## Anti-Hallucination Rules
 
 - Do NOT use model name (e.g., `gpt-4o`) as the first argument; use deployment name
+- Do NOT use `ALTER SYSTEM SET azure.extensions`; use Azure CLI, portal, or ARM
 - Do NOT claim `azure_openai.create()` returns embeddings; it returns text
 - Do NOT omit the allowlist step; CREATE EXTENSION will fail without it
 - Do NOT add trailing slash or path segments to the endpoint URL
