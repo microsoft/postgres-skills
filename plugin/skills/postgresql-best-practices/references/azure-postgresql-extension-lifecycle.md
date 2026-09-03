@@ -13,7 +13,7 @@ tags: [azure, postgresql, extensions, allowlist, shared-preload, pgvector]
 ## Prerequisites
 
 - `azure_pg_admin` role (default admin role; never superuser)
-- **Shell execution:** Steps 1-3 below require az CLI (execute directly via shell). Step 4 (`CREATE EXTENSION`) is executable via `pgsql_modify`. Server restart requires user confirmation.
+- **Shell execution:** Steps 1-3 below require az CLI (execute directly via shell). Step 4 (`CREATE EXTENSION`) is executable via `postgres_mcp_modify`. Server restart requires user confirmation.
 
 ## Instructions
 

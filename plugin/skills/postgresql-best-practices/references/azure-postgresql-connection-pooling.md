@@ -17,7 +17,7 @@ Use for Azure PostgreSQL built-in PgBouncer issues involving:
 
 Avoid explaining generic PgBouncer concepts or basic `az parameter set` commands. Focus on Azure-specific behavior and failure modes.
 
-> **Shell execution:** Pool mode and parameter changes require az CLI. Execute directly via shell. Read pool status via `pgsql_query` against `pg_stat_activity`.
+> **Shell execution:** Pool mode and parameter changes require az CLI. Execute directly via shell. Read pool status via `postgres_mcp_query` against `pg_stat_activity`.
 
 ## ⚠️ Confident Hallucination Corrections
 

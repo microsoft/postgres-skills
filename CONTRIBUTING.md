@@ -16,7 +16,7 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 postgres-skills/
 ├── .github/plugin/marketplace.json     # Canonical marketplace manifest (Copilot)
 ├── plugin/                             # Plugin root (MCP server config + skills)
-│   ├── .mcp.json                       # postgres-mcp server launch (npx, pinned version)
+│   ├── .mcp.json                       # postgres-mcp server launch (npx)
 │   └── skills/
 │       ├── postgresql-best-practices/SKILL.md   # Routing table + principles
 │       └── postgresql-best-practices/references/ # 22 detailed reference files
@@ -43,7 +43,7 @@ postgres-skills/
 
 1. Agent loads `plugin/skills/postgresql-best-practices/SKILL.md` (lightweight routing table)
 2. Routing table matches user's question to a reference file via keyword triggers
-3. Azure references are gated: `pgsql_get_server_capabilities` must confirm `isAzure: true`
+3. Azure references are gated: `postgres_mcp_get_server_capabilities` must confirm `isAzure: true`
 4. Agent loads the specific reference file and combines it with its own knowledge
 5. Reference provides Azure-specific constraints, decision guides, and anti-hallucination guardrails
 

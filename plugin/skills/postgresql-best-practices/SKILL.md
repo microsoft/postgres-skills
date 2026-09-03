@@ -4,7 +4,7 @@ description: "Expert PostgreSQL skills with intelligent routing. Covers both gen
 tags: [postgresql, azure, database, skills, routing]
 activation:
   user_intent: ["work with PostgreSQL", "database query", "connect to postgres", "Azure PostgreSQL", "show tables", "list tables", "describe schema", "database schema", "what tables exist"]
-  technical_keywords: ["postgresql", "postgres", "psql", "pg_", "azure database for postgresql", "flexible server", "pgvector", "diskann", "pgsql_", "postgres-mcp"]
+  technical_keywords: ["postgresql", "postgres", "psql", "pg_", "azure database for postgresql", "flexible server", "pgvector", "diskann", "postgres_mcp_", "postgres-mcp"]
 ---
 
 # PostgreSQL Agent Skills — Routing Table
@@ -16,8 +16,8 @@ Use references as supplemental context — combine them with your PostgreSQL kno
 - Never use `ALTER SYSTEM` on managed services — use portal/CLI/ARM instead
 - Never assume `SUPERUSER` — use `azure_pg_admin` (Azure) or equivalent managed role
 - Use `CONCURRENTLY` for `CREATE INDEX` / `REINDEX` / `DETACH PARTITION` in production
-- `pgsql_modify` does NOT return row data (no RETURNING support)
-- **Destructive DDL confirmation**: Before executing `pgsql_modify` with `DROP`, `TRUNCATE`, `DELETE` (without WHERE), or `ALTER TABLE ... DROP`, always ask the user for explicit confirmation. List the affected objects and warn about data loss before proceeding.
+- `postgres_mcp_modify` does NOT return row data (no RETURNING support)
+- **Destructive DDL confirmation**: Before executing `postgres_mcp_modify` with `DROP`, `TRUNCATE`, `DELETE` (without WHERE), or `ALTER TABLE ... DROP`, always ask the user for explicit confirmation. List the affected objects and warn about data loss before proceeding.
 - Version-gated features: `MERGE` (PG 15+), `json_table` (PG 17+), `DETACH CONCURRENTLY` (PG 14+)
 
 ## Managed Service Guardrails (Azure Flexible Server and Azure HorizonDB)
@@ -63,7 +63,7 @@ When guidance needs Azure CLI and shell access exists:
 
 On first activation:
 
-1. If an MCP connection exists, call `pgsql_get_server_capabilities` once and cache `isAzure`.
+1. If an MCP connection exists, call `postgres_mcp_get_server_capabilities` once and cache `isAzure`.
 2. `isAzure: true` → all skills available; prefer `azure-postgresql-*` for overlapping topics.
 3. `isAzure: false` → use only `postgresql-*` skills.
 4. No connection + generic question → use `postgresql-*` skills.
@@ -95,7 +95,7 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 
 ## Azure PostgreSQL Skills (requires `isAzure: true`)
 
-> **GATE:** Only use these when `pgsql_get_server_capabilities` confirms `isAzure: true`. For conceptual questions without a connection, provide informational answers with a disclaimer.
+> **GATE:** Only use these when `postgres_mcp_get_server_capabilities` confirms `isAzure: true`. For conceptual questions without a connection, provide informational answers with a disclaimer.
 
 | Keyword triggers | Reference | When to use INSTEAD OF generic |
 |---|---|---|

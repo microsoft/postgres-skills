@@ -3,9 +3,9 @@
     "postgres-mcp": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@microsoft/postgres-mcp@0.1.0-rc.9", "run"],
+      "args": ["-y", "@microsoft/postgres-mcp", "run"],
       "env": {
-        "PGSQL_MCP_QUERY_TIMEOUT_MS": "540000"
+        "POSTGRES_MCP_QUERY_TIMEOUT_MS": "540000"
       },
       "timeout": 90000
     }

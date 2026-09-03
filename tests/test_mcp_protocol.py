@@ -13,10 +13,10 @@ import time
 import pytest
 
 EXPECTED_TOOLS = [
-    "pgsql_query",
-    "pgsql_modify",
-    "pgsql_db_context",
-    "pgsql_get_server_capabilities",
+    "postgres_mcp_query",
+    "postgres_mcp_modify",
+    "postgres_mcp_db_context",
+    "postgres_mcp_get_server_capabilities",
 ]
 
 
@@ -60,7 +60,7 @@ def test_expected_tool_present(initialized, tool_name):
 def test_expected_tools_have_input_schema(initialized):
     # Core tools all take parameters (connectionId, query, ...), so they must
     # expose an inputSchema with properties. Argument-less tools (e.g.
-    # pgsql_list_connection_profiles) legitimately have none.
+    # postgres_mcp_list_connection_profiles) legitimately have none.
     tools = {t["name"]: t for t in initialized["tools_res"]["result"]["tools"]}
     missing = [
         name
