@@ -68,17 +68,17 @@ def build_app(client, conn_id, skills, g: Grades):
     g.add("1", "routing", "azure skill activated",
           any("azure" in i or i == "vector-diskann" for i in ids) or bool(ids),
           f"Routed to: {ids}")
-    caps_text = _text(client, "pgsql_get_server_capabilities", {"connectionId": conn_id})
+    caps_text = _text(client, "postgres_mcp_get_server_capabilities", {"connectionId": conn_id})
     is_azure = "isAzure" in caps_text and "true" in caps_text
     g.add("1", "mcp", "server detection", is_azure, f"isAzure: {is_azure}")
 
     # Step 2: create schema
-    _text(client, "pgsql_modify",
+    _text(client, "postgres_mcp_modify",
           {"connectionId": conn_id, "statement": f"DROP SCHEMA IF EXISTS {SCHEMA} CASCADE;"})
-    created = _text(client, "pgsql_modify",
+    created = _text(client, "postgres_mcp_modify",
                     {"connectionId": conn_id, "statement": f"CREATE SCHEMA {SCHEMA};"})
     g.add("2", "mcp", "schema created", not has_error(created), f"Schema {SCHEMA}")
-    _text(client, "pgsql_query",
+    _text(client, "postgres_mcp_query",
           {"connectionId": conn_id, "query": f"SET search_path TO {SCHEMA}, public;"})
 
     # Step 3: install extensions (extension-lifecycle)
@@ -90,11 +90,11 @@ def build_app(client, conn_id, skills, g: Grades):
           ext_content and "azure.extensions" in ext_content, "azure.extensions allowlist")
     g.add("3", "extension-lifecycle", "mentions azure_pg_admin",
           ext_content and "azure_pg_admin" in ext_content, "required role")
-    allowlist = _text(client, "pgsql_query",
+    allowlist = _text(client, "postgres_mcp_query",
                       {"connectionId": conn_id, "query": "SHOW azure.extensions;"})
     g.add("3", "mcp", "allowlist check works",
           "vector" in allowlist or len(allowlist) > 0, allowlist[:80])
-    install = _text(client, "pgsql_modify",
+    install = _text(client, "postgres_mcp_modify",
                     {"connectionId": conn_id,
                      "statement": "CREATE EXTENSION IF NOT EXISTS vector;"})
     g.add("3", "mcp", "pgvector installed", not has_error(install), "CREATE EXTENSION vector")
@@ -111,7 +111,7 @@ def build_app(client, conn_id, skills, g: Grades):
           genai and "1536" in genai, "specifies dimension matching model output")
     g.add("4", "genai-patterns", "shows hybrid search",
           genai and "RRF" in genai, "includes RRF hybrid search pattern")
-    create_products = _text(client, "pgsql_modify", {"connectionId": conn_id, "statement": f"""
+    create_products = _text(client, "postgres_mcp_modify", {"connectionId": conn_id, "statement": f"""
         CREATE TABLE {SCHEMA}.products (
           id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
           tenant_id text NOT NULL,
@@ -130,7 +130,7 @@ def build_app(client, conn_id, skills, g: Grades):
           not has_error(create_products), "table with vector + tsvector")
 
     # Step 5: conversations table
-    create_convos = _text(client, "pgsql_modify", {"connectionId": conn_id, "statement": f"""
+    create_convos = _text(client, "postgres_mcp_modify", {"connectionId": conn_id, "statement": f"""
         CREATE TABLE {SCHEMA}.conversations (
           id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
           tenant_id text NOT NULL,
@@ -145,7 +145,7 @@ def build_app(client, conn_id, skills, g: Grades):
           not has_error(create_convos), "Q&A history table")
 
     # ---- PHASE 3: Populate Test Data ----
-    insert = _text(client, "pgsql_modify", {"connectionId": conn_id, "statement": f"""
+    insert = _text(client, "postgres_mcp_modify", {"connectionId": conn_id, "statement": f"""
         INSERT INTO {SCHEMA}.products (tenant_id, name, description, category, metadata)
         VALUES
           ('acme_corp', 'Enterprise Database Server', 'High-performance PostgreSQL managed database service with automatic failover and read replicas.', 'Database', '{{"tier": "enterprise", "sla": "99.99%"}}'),
@@ -157,7 +157,7 @@ def build_app(client, conn_id, skills, g: Grades):
           ('initech', 'Developer Sandbox', 'Instant PostgreSQL instances for development and testing with sample datasets.', 'DevTools', '{{"tier": "free", "auto_shutdown_hours": 8}}'),
           ('initech', 'Serverless PostgreSQL', 'Auto-scaling PostgreSQL that scales to zero when idle. Cold start under 500ms.', 'Infrastructure', '{{"tier": "standard", "min_scale": 0}}');"""})
     g.add("6", "mcp", "product data inserted", not has_error(insert), "products across tenants")
-    _text(client, "pgsql_modify", {"connectionId": conn_id, "statement": f"""
+    _text(client, "postgres_mcp_modify", {"connectionId": conn_id, "statement": f"""
         INSERT INTO {SCHEMA}.conversations (tenant_id, question, answer, feedback_score)
         VALUES
           ('acme_corp', 'What is the maximum RAM?', '512 GB RAM with up to 64 vCores.', 5),
@@ -175,7 +175,7 @@ def build_app(client, conn_id, skills, g: Grades):
           vec and "< 1M" in vec and "HNSW" in vec, "recommends HNSW for < 1M vectors")
     g.add("7", "vector-diskann", "shows HNSW parameters",
           vec and "ef_construction" in vec, "mentions ef_construction tuning")
-    hnsw = _text(client, "pgsql_modify", {"connectionId": conn_id, "statement":
+    hnsw = _text(client, "postgres_mcp_modify", {"connectionId": conn_id, "statement":
         f"CREATE INDEX idx_products_embedding ON {SCHEMA}.products "
         f"USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 200);"})
     g.add("7", "mcp", "HNSW index created", not has_error(hnsw), "vector_cosine_ops")
@@ -184,7 +184,7 @@ def build_app(client, conn_id, skills, g: Grades):
     ids = route_ids("full text search with tsvector and ts_rank", skills)
     g.add("8", "routing", "full-text-search activated",
           "full-text-search" in ids, f"Routed to: {ids}")
-    gin = _text(client, "pgsql_modify", {"connectionId": conn_id, "statement":
+    gin = _text(client, "postgres_mcp_modify", {"connectionId": conn_id, "statement":
         f"CREATE INDEX idx_products_search ON {SCHEMA}.products USING gin(search_vector);"})
     g.add("8", "mcp", "GIN FTS index created", not has_error(gin), "gin(search_vector)")
 
@@ -195,7 +195,7 @@ def build_app(client, conn_id, skills, g: Grades):
     jsonb_skill = load_skill_content("jsonb-patterns", skills)
     g.add("9", "jsonb-patterns", "shows jsonb_path_ops",
           jsonb_skill and "jsonb_path_ops" in jsonb_skill, "recommends jsonb_path_ops")
-    jidx = _text(client, "pgsql_modify", {"connectionId": conn_id, "statement":
+    jidx = _text(client, "postgres_mcp_modify", {"connectionId": conn_id, "statement":
         f"CREATE INDEX idx_products_metadata ON {SCHEMA}.products USING gin(metadata jsonb_path_ops);"})
     g.add("9", "mcp", "JSONB GIN index created", not has_error(jidx), "jsonb_path_ops index")
 
@@ -203,7 +203,7 @@ def build_app(client, conn_id, skills, g: Grades):
     ids = route_ids("create index strategy for tenant lookups", skills)
     g.add("10", "routing", "advanced-indexing activated",
           "advanced-indexing" in ids, f"Routed to: {ids}")
-    btree = _text(client, "pgsql_modify", {"connectionId": conn_id, "statement":
+    btree = _text(client, "postgres_mcp_modify", {"connectionId": conn_id, "statement":
         f"CREATE INDEX idx_products_tenant_cat ON {SCHEMA}.products (tenant_id, category);"})
     g.add("10", "mcp", "B-tree composite index created",
           not has_error(btree), "(tenant_id, category)")
@@ -219,15 +219,15 @@ def build_app(client, conn_id, skills, g: Grades):
           rls and "FORCE ROW LEVEL SECURITY" in rls, "FORCE RLS for owner")
     g.add("11", "row-level-security", "shows current_setting pattern",
           rls and "current_setting" in rls, "current_setting('app.current_tenant')")
-    enable = _text(client, "pgsql_modify", {"connectionId": conn_id, "statement": f"""
+    enable = _text(client, "postgres_mcp_modify", {"connectionId": conn_id, "statement": f"""
         ALTER TABLE {SCHEMA}.products ENABLE ROW LEVEL SECURITY;
         ALTER TABLE {SCHEMA}.products FORCE ROW LEVEL SECURITY;"""})
     g.add("11", "mcp", "RLS enabled", not has_error(enable), "enabled + forced")
-    policy = _text(client, "pgsql_modify", {"connectionId": conn_id, "statement": f"""
+    policy = _text(client, "postgres_mcp_modify", {"connectionId": conn_id, "statement": f"""
         CREATE POLICY tenant_isolation ON {SCHEMA}.products
           USING (tenant_id = current_setting('app.current_tenant', true));"""})
     g.add("11", "mcp", "RLS policy created", not has_error(policy), "tenant isolation policy")
-    _text(client, "pgsql_modify", {"connectionId": conn_id, "statement": f"""
+    _text(client, "postgres_mcp_modify", {"connectionId": conn_id, "statement": f"""
         ALTER TABLE {SCHEMA}.conversations ENABLE ROW LEVEL SECURITY;
         ALTER TABLE {SCHEMA}.conversations FORCE ROW LEVEL SECURITY;
         CREATE POLICY tenant_isolation ON {SCHEMA}.conversations
@@ -235,9 +235,9 @@ def build_app(client, conn_id, skills, g: Grades):
 
     # ---- PHASE 6: Query Testing ----
     # Step 12: FTS query
-    _text(client, "pgsql_query",
+    _text(client, "postgres_mcp_query",
           {"connectionId": conn_id, "query": "SET LOCAL app.current_tenant = 'acme_corp';"})
-    fts = _text(client, "pgsql_query", {"connectionId": conn_id, "query": f"""
+    fts = _text(client, "postgres_mcp_query", {"connectionId": conn_id, "query": f"""
         SELECT name, ts_rank(search_vector, query) AS rank
         FROM {SCHEMA}.products, websearch_to_tsquery('english', 'database performance') query
         WHERE search_vector @@ query
@@ -246,7 +246,7 @@ def build_app(client, conn_id, skills, g: Grades):
           "Database" in fts or "name" in fts, fts[:120])
 
     # Step 13: JSONB containment
-    jsonb_q = _text(client, "pgsql_query", {"connectionId": conn_id, "query": f"""
+    jsonb_q = _text(client, "postgres_mcp_query", {"connectionId": conn_id, "query": f"""
         SELECT name, metadata->>'tier' AS tier
         FROM {SCHEMA}.products
         WHERE metadata @> '{{"tier": "enterprise"}}'
@@ -264,7 +264,7 @@ def build_app(client, conn_id, skills, g: Grades):
           "warns actual_time is per loop")
     g.add("14", "query-performance", "mentions stale statistics",
           perf and "n_mod_since_analyze" in perf, "stale-stats detection")
-    explain = _text(client, "pgsql_query", {"connectionId": conn_id, "query": f"""
+    explain = _text(client, "postgres_mcp_query", {"connectionId": conn_id, "query": f"""
         EXPLAIN ANALYZE
         SELECT name, ts_rank(search_vector, query) AS rank
         FROM {SCHEMA}.products, websearch_to_tsquery('english', 'vector similarity') query
@@ -273,36 +273,36 @@ def build_app(client, conn_id, skills, g: Grades):
           "Execution Time" in explain or "Planning Time" in explain, "plan returned")
 
     # Step 15: schema introspection
-    tables_ctx = _text(client, "pgsql_db_context",
+    tables_ctx = _text(client, "postgres_mcp_db_context",
                        {"connectionId": conn_id, "objectType": "tables", "schemaName": SCHEMA})
     g.add("15", "mcp", "introspection includes app tables",
           "products" in tables_ctx and "conversations" in tables_ctx, "both tables visible")
-    indexes_ctx = _text(client, "pgsql_db_context",
+    indexes_ctx = _text(client, "postgres_mcp_db_context",
                         {"connectionId": conn_id, "objectType": "indexes", "schemaName": SCHEMA})
     g.add("15", "mcp", "indexes visible in introspection",
           "idx_products" in indexes_ctx or "hnsw" in indexes_ctx, "indexes visible")
 
     # Step 16: RLS admin view
-    all_count = _text(client, "pgsql_query",
+    all_count = _text(client, "postgres_mcp_query",
                       {"connectionId": conn_id, "query": f"SELECT count(*) AS total FROM {SCHEMA}.products;"})
     g.add("16", "mcp", "admin sees all rows", "8" in all_count, all_count[:50])
 
     # Step 17: Q&A logging
-    log = _text(client, "pgsql_modify", {"connectionId": conn_id, "statement": f"""
+    log = _text(client, "postgres_mcp_modify", {"connectionId": conn_id, "statement": f"""
         INSERT INTO {SCHEMA}.conversations (tenant_id, question, answer, context_product_ids, feedback_score)
         VALUES ('acme_corp', 'Which product supports billion-scale similarity search?',
           'The Vector Search Add-on supports billion-scale similarity search with DiskANN.',
           ARRAY[2], 5);"""})
     session_ok = False
     if not has_error(log):
-        verify = _text(client, "pgsql_query", {"connectionId": conn_id, "query":
+        verify = _text(client, "postgres_mcp_query", {"connectionId": conn_id, "query":
             f"SELECT id, session_id FROM {SCHEMA}.conversations WHERE question LIKE '%billion-scale%' LIMIT 1;"})
         session_ok = "session_id" in verify and "id" in verify
     g.add("17", "mcp", "Q&A logged with session tracking",
           not has_error(log) and session_ok, "auto-generated session_id")
 
     # Step 18: analytics
-    metrics = _text(client, "pgsql_query", {"connectionId": conn_id, "query": f"""
+    metrics = _text(client, "postgres_mcp_query", {"connectionId": conn_id, "query": f"""
         SELECT tenant_id, count(*) AS total_questions,
                round(avg(feedback_score), 2) AS avg_score
         FROM {SCHEMA}.conversations GROUP BY tenant_id ORDER BY avg_score DESC;"""})
@@ -310,7 +310,7 @@ def build_app(client, conn_id, skills, g: Grades):
           "tenant_id" in metrics or "avg_score" in metrics, metrics[:120])
 
     # ---- PHASE 7: Cleanup ----
-    drop = _text(client, "pgsql_modify",
+    drop = _text(client, "postgres_mcp_modify",
                  {"connectionId": conn_id, "statement": f"DROP SCHEMA {SCHEMA} CASCADE;"})
     g.add("cleanup", "mcp", "schema dropped", not has_error(drop), f"{SCHEMA} dropped")
 
@@ -322,9 +322,9 @@ def build_app(client, conn_id, skills, g: Grades):
 def validate_skill_quality(client, conn_id, skills, g: Grades):
     # ---- Phase B: execute a subset of skill SQL examples ----
     snippet_schema = SNIPPET_SCHEMA
-    _text(client, "pgsql_modify",
+    _text(client, "postgres_mcp_modify",
           {"connectionId": conn_id, "statement": f"DROP SCHEMA IF EXISTS {snippet_schema} CASCADE;"})
-    _text(client, "pgsql_modify",
+    _text(client, "postgres_mcp_modify",
           {"connectionId": conn_id, "statement": f"CREATE SCHEMA {snippet_schema};"})
     for skill_id in ("vector-diskann", "table-partitioning", "row-level-security"):
         content = load_skill_content(skill_id, skills)
@@ -351,7 +351,7 @@ def validate_skill_quality(client, conn_id, skills, g: Grades):
             is_select = re.search(r"^\s*SELECT|^\s*EXPLAIN|^\s*WITH", sql, re.IGNORECASE | re.MULTILINE)
             is_ddl = re.search(r"^\s*CREATE|^\s*ALTER|^\s*DROP", sql, re.IGNORECASE | re.MULTILINE)
             if is_select:
-                out = _text(client, "pgsql_query",
+                out = _text(client, "postgres_mcp_query",
                             {"connectionId": conn_id, "query": f"EXPLAIN {sql.rstrip(';')}"})
                 errors, valid = (errors + 1, valid) if has_error(out) else (errors, valid + 1)
             elif is_ddl:
@@ -359,22 +359,22 @@ def validate_skill_quality(client, conn_id, skills, g: Grades):
                 scoped = re.sub(r"CREATE\s+TABLE\s+(\w+)", rf"CREATE TABLE {snippet_schema}.\1", scoped, flags=re.IGNORECASE)
                 if scoped == sql:
                     continue
-                out = _text(client, "pgsql_modify", {"connectionId": conn_id, "statement": scoped})
+                out = _text(client, "postgres_mcp_modify", {"connectionId": conn_id, "statement": scoped})
                 errors, valid = (errors + 1, valid) if has_error(out) else (errors, valid + 1)
         total = valid + errors
         g.add("B", "sql-validity", f"{skill_id} SQL examples execute",
               errors == 0 or total == 0,
               "no executable examples" if total == 0 else f"{valid}/{total} valid")
-    _text(client, "pgsql_modify",
+    _text(client, "postgres_mcp_modify",
           {"connectionId": conn_id, "statement": f"DROP SCHEMA IF EXISTS {snippet_schema} CASCADE;"})
 
     # ---- Phase D: semantic verification ----
     verify_schema = VERIFY_SCHEMA
-    _text(client, "pgsql_modify",
+    _text(client, "postgres_mcp_modify",
           {"connectionId": conn_id, "statement": f"DROP SCHEMA IF EXISTS {verify_schema} CASCADE;"})
-    _text(client, "pgsql_modify",
+    _text(client, "postgres_mcp_modify",
           {"connectionId": conn_id, "statement": f"CREATE SCHEMA {verify_schema};"})
-    create_verify = _text(client, "pgsql_modify", {"connectionId": conn_id, "statement": f"""
+    create_verify = _text(client, "postgres_mcp_modify", {"connectionId": conn_id, "statement": f"""
         CREATE TABLE {verify_schema}.docs (
           id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
           tenant_id text NOT NULL,
@@ -386,7 +386,7 @@ def validate_skill_quality(client, conn_id, skills, g: Grades):
           USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
         CREATE INDEX idx_verify_gin ON {verify_schema}.docs USING gin(metadata jsonb_path_ops);"""})
     if not has_error(create_verify):
-        col = _text(client, "pgsql_query", {"connectionId": conn_id, "query": f"""
+        col = _text(client, "postgres_mcp_query", {"connectionId": conn_id, "query": f"""
             SELECT column_name, udt_name, is_nullable
             FROM information_schema.columns
             WHERE table_schema = '{verify_schema}' AND table_name = 'docs'
@@ -394,7 +394,7 @@ def validate_skill_quality(client, conn_id, skills, g: Grades):
         g.add("D", "semantic", "vector column type correct", "vector" in col, "embedding vector")
         g.add("D", "semantic", "jsonb column type correct", "jsonb" in col, "metadata jsonb")
         g.add("D", "semantic", "tsvector column type correct", "tsvector" in col, "search_vector tsvector")
-        idx = _text(client, "pgsql_query", {"connectionId": conn_id, "query": f"""
+        idx = _text(client, "postgres_mcp_query", {"connectionId": conn_id, "query": f"""
             SELECT ic.relname AS index_name, am.amname AS index_method, opc.opcname AS opclass
             FROM pg_index i
             JOIN pg_class ic ON ic.oid = i.indexrelid
@@ -409,7 +409,7 @@ def validate_skill_quality(client, conn_id, skills, g: Grades):
         g.add("D", "semantic", "index method is hnsw", "hnsw" in idx, "access method hnsw")
     else:
         g.add("D", "semantic", "verification schema setup", False, "could not create objects")
-    _text(client, "pgsql_modify",
+    _text(client, "postgres_mcp_modify",
           {"connectionId": conn_id, "statement": f"DROP SCHEMA IF EXISTS {verify_schema} CASCADE;"})
 
 
@@ -426,13 +426,13 @@ def test_dogfood_app_build(azure_db_client, skills):
         # own cleanup ran, then disconnect.
         for schema in (SCHEMA, SNIPPET_SCHEMA, VERIFY_SCHEMA):
             try:
-                db_client.call_tool("pgsql_modify", {
+                db_client.call_tool("postgres_mcp_modify", {
                     "connectionId": conn_id,
                     "statement": f"DROP SCHEMA IF EXISTS {schema} CASCADE;",
                 })
             except Exception:
                 pass
-        db_client.call_tool("pgsql_disconnect", {"connectionId": conn_id})
+        db_client.call_tool("postgres_mcp_disconnect", {"connectionId": conn_id})
 
     passed = len(g.items) - len(g.failures)
     print(f"\nDOGFOOD REPORT: {passed}/{len(g.items)} checks passed")

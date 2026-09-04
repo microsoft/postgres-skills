@@ -4,7 +4,7 @@
 """Shared pytest fixtures and helpers for the PostgreSQL Agent Skills test suite.
 
 The MCP server is launched exactly as ``plugin/.mcp.json`` declares it
-(``npx @microsoft/postgres-mcp@<pinned> run``) and speaks newline-delimited
+(``npx @microsoft/postgres-mcp@latest run``) and speaks newline-delimited
 JSON-RPC 2.0 (NDJSON) over stdio. These helpers spawn it via ``subprocess`` and
 provide a small JSON-RPC client plus the skill-routing engine used by the
 routing/dogfood tests.
@@ -328,7 +328,7 @@ def has_error(tool_text: str) -> bool:
 
 
 def parse_connection_id(text: str) -> Optional[str]:
-    m = re.search(r"pgsql/[0-9a-f-]+(?:/[\w-]+)?", text, re.IGNORECASE)
+    m = re.search(r"postgres-mcp/[0-9a-f-]+(?:/[\w-]+)?", text, re.IGNORECASE)
     if m:
         return m.group(0)
     try:
@@ -345,7 +345,7 @@ def find_profile_id(text: str) -> Optional[str]:
     """Return the connection profile to use.
 
     Prefers the ``default (env)`` profile that the server auto-registers from
-    ``PGSQL_MCP_CONNECTION_STRING`` so the suite is isolated from any pre-existing
+    ``POSTGRES_MCP_CONNECTION_STRING`` so the suite is isolated from any pre-existing
     developer profiles in ``~/.postgres-mcp/connections.yaml``. Falls back to
     the first UUID found when that named profile is not present.
     """
@@ -374,7 +374,7 @@ def skills() -> list[dict]:
 @pytest.fixture(scope="module")
 def mcp_client():
     """MCP server without a DB connection string (protocol/tool-listing tests)."""
-    client = MCPClient(extra_env={"PGSQL_MCP_QUERY_TIMEOUT_MS": "10000"})
+    client = MCPClient(extra_env={"POSTGRES_MCP_QUERY_TIMEOUT_MS": "10000"})
     time.sleep(BOOT_WAIT_S)
     yield client
     client.close()
@@ -409,15 +409,15 @@ def _require_azure_conn_string() -> str:
 
 @pytest.fixture(scope="module")
 def db_client():
-    """MCP server wired to the Docker-backed database via PGSQL_MCP_CONNECTION_STRING.
+    """MCP server wired to the Docker-backed database via POSTGRES_MCP_CONNECTION_STRING.
 
     Connects to the local compose Postgres by default; fails (does not skip) when
     no database is reachable.
     """
     cs = _require_conn_string()
     client = MCPClient(extra_env={
-        "PGSQL_MCP_CONNECTION_STRING": to_libpq_string(cs),
-        "PGSQL_MCP_QUERY_TIMEOUT_MS": "30000",
+        "POSTGRES_MCP_CONNECTION_STRING": to_libpq_string(cs),
+        "POSTGRES_MCP_QUERY_TIMEOUT_MS": "30000",
         # Disable GSSAPI encryption negotiation. Without this, libpq/pgx attempts a
         # Kerberos handshake against the local Docker Postgres on hosts that have
         # GSS libraries (e.g. macOS), which fails before the normal auth flow.
@@ -437,8 +437,8 @@ def azure_db_client():
     """
     cs = _require_azure_conn_string()
     client = MCPClient(extra_env={
-        "PGSQL_MCP_CONNECTION_STRING": to_libpq_string(cs),
-        "PGSQL_MCP_QUERY_TIMEOUT_MS": "30000",
+        "POSTGRES_MCP_CONNECTION_STRING": to_libpq_string(cs),
+        "POSTGRES_MCP_QUERY_TIMEOUT_MS": "30000",
     })
     time.sleep(BOOT_WAIT_S)
     client.initialize(client_name="pytest-dogfood")
@@ -448,13 +448,13 @@ def azure_db_client():
 
 def connect_to_database(client: "MCPClient", max_attempts: int = 3) -> str:
     """List profiles → connect → return connectionId (with retry)."""
-    list_res = client.call_tool("pgsql_list_connection_profiles", {})
+    list_res = client.call_tool("postgres_mcp_list_connection_profiles", {})
     profile_id = find_profile_id(get_tool_text(list_res))
     assert profile_id, "Should find a connection profile UUID"
 
     last = ""
     for attempt in range(1, max_attempts + 1):
-        conn_res = client.call_tool("pgsql_connect", {"profileId": profile_id})
+        conn_res = client.call_tool("postgres_mcp_connect", {"profileId": profile_id})
         text = get_tool_text(conn_res)
         last = text
         conn_id = parse_connection_id(text)

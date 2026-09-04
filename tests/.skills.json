@@ -561,10 +561,10 @@
     }
   ],
   "connection_gating": {
-    "description": "Azure-prefixed references require isAzure: true from pgsql_get_server_capabilities",
+    "description": "Azure-prefixed references require isAzure: true from postgres_mcp_get_server_capabilities",
     "azure_gate_prefix": "azure-postgresql-",
     "generic_prefix": "postgresql-",
-    "capability_check_tool": "pgsql_get_server_capabilities",
+    "capability_check_tool": "postgres_mcp_get_server_capabilities",
     "gate_field": "isAzure"
   }
 }
