@@ -39,7 +39,7 @@ def test_mcp_cold_start_within_budget():
     """The server must download/initialize and exit on EOF within the budget.
 
     Launches the server exactly as ``plugin/.mcp.json`` declares it
-    (``npx @microsoft/postgres-mcp run``).
+    (``npx @microsoft/postgres-mcp@latest run``).
     """
     start = time.perf_counter()
     try:

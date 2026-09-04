@@ -4,7 +4,7 @@
 """Shared pytest fixtures and helpers for the PostgreSQL Agent Skills test suite.
 
 The MCP server is launched exactly as ``plugin/.mcp.json`` declares it
-(``npx @microsoft/postgres-mcp run``) and speaks newline-delimited
+(``npx @microsoft/postgres-mcp@latest run``) and speaks newline-delimited
 JSON-RPC 2.0 (NDJSON) over stdio. These helpers spawn it via ``subprocess`` and
 provide a small JSON-RPC client plus the skill-routing engine used by the
 routing/dogfood tests.
