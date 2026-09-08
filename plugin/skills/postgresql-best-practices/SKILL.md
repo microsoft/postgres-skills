@@ -1,10 +1,6 @@
 ---
 name: postgresql-best-practices
-description: "Expert PostgreSQL skills with intelligent routing. Covers both generic PostgreSQL and Azure Database for PostgreSQL."
-tags: [postgresql, azure, database, skills, routing]
-activation:
-  user_intent: ["work with PostgreSQL", "database query", "connect to postgres", "Azure PostgreSQL", "show tables", "list tables", "describe schema", "database schema", "what tables exist"]
-  technical_keywords: ["postgresql", "postgres", "psql", "pg_", "azure database for postgresql", "flexible server", "pgvector", "diskann", "postgres_mcp_", "postgres-mcp"]
+description: "PostgreSQL & Azure Database for PostgreSQL: connect, query, tables, index, JSONB, partition, RLS, FTS, pooling, replication, restart, upgrade, scale, backup, Entra auth."
 ---
 
 # PostgreSQL Agent Skills — Routing Table
@@ -18,6 +14,7 @@ Use references as supplemental context — combine them with your PostgreSQL kno
 - Use `CONCURRENTLY` for `CREATE INDEX` / `REINDEX` / `DETACH PARTITION` in production
 - `postgres_mcp_modify` does NOT return row data (no RETURNING support)
 - **Destructive DDL confirmation**: Before executing `postgres_mcp_modify` with `DROP`, `TRUNCATE`, `DELETE` (without WHERE), or `ALTER TABLE ... DROP`, always ask the user for explicit confirmation. List the affected objects and warn about data loss before proceeding.
+- **Escalation policy**: on a blocked/denied path, state the blocker and ask — never silently switch method or target.
 - Version-gated features: `MERGE` (PG 15+), `json_table` (PG 17+), `DETACH CONCURRENTLY` (PG 14+)
 
 ## Managed Service Guardrails (Azure Flexible Server and Azure HorizonDB)
@@ -25,7 +22,7 @@ Use references as supplemental context — combine them with your PostgreSQL kno
 When the context is Azure Database for PostgreSQL (either flavor), NEVER suggest:
 
 - **File paths**: `pg_hba.conf`, `postgresql.conf`, `/var/lib/postgresql/` — not accessible. Never run `SHOW config_file`, `SHOW hba_file`, or `SHOW data_directory` (internal paths, irrelevant on managed services).
-- **OS commands**: `systemctl`, `sudo`, `pg_basebackup`, `pg_ctl`, `initdb` — no OS-level access
+- **OS/service commands, any platform**: no OS-level access — `systemctl`, `sudo`, `pg_ctl`, `initdb`, `Restart-Service`, `services.msc`, `brew services`, `docker restart` are all invalid; use portal/az/ARM instead.
 - **ALTER SYSTEM SET** — blocked on Azure. Use the control-plane parameter API instead (Flexible Server: `az postgres flexible-server parameter set`; HorizonDB: parameter groups / `az horizondb`) or the portal.
 - **ALTER DATABASE SET for server-wide parameters** — permitted, but prefer the control-plane parameter API (`az postgres flexible-server parameter set` on Flexible Server; a parameter group connected to the cluster on HorizonDB) for changes like `work_mem`, `shared_buffers`, `max_connections`. Use `ALTER DATABASE SET` only for an explicit per-database override, and clarify scope first.
 - **Manual replication setup** — use Azure read replicas (Flexible Server: `az postgres flexible-server replica create`; HorizonDB: add a read replica to the cluster)
@@ -48,7 +45,7 @@ When guidance needs Azure CLI and shell access exists:
   ```
 - If `az account show` fails, ask the user to run `az login` or `az login --use-device-code`. Do not run login automatically.
 - Execute non-destructive `az` commands directly.
-- **NEVER execute destructive az CLI commands without explicit user confirmation.** Before running `delete`, `restart`, `upgrade`, `failover`, `stop-replication`, or PITR restore, state what will happen (including expected downtime) and ask "Do you want me to proceed?" Wait for a yes before executing.
+- **NEVER execute destructive az CLI commands without confirmation.** Before `delete`, `restart`, `upgrade`, `failover`, `stop-replication`, `PITR restore`, or Entra ID auth/admin/password-auth toggles, state the impact and ask "Proceed?"
 - Always pass `--subscription <id>`.
 - If target server or resource group is unknown, **always discover before prompting the user**:
   ```bash
@@ -64,12 +61,13 @@ When guidance needs Azure CLI and shell access exists:
 On first activation:
 
 1. If an MCP connection exists, call `postgres_mcp_get_server_capabilities` once and cache `isAzure`.
-2. `isAzure: true` → all skills available; prefer `azure-postgresql-*` for overlapping topics.
-3. `isAzure: false` → use only `postgresql-*` skills.
-4. No connection + generic question → use `postgresql-*` skills.
-5. No connection + explicit Azure question → answer conceptually with: "These steps require an active Azure PostgreSQL connection to execute." Apply all Azure guardrails (no ALTER SYSTEM, no file paths, no OS commands) even without `isAzure` confirmation — if the user says "Azure PostgreSQL", treat it as Azure.
-6. Unknown state → attempt capability check only for clearly Azure-specific requests; otherwise default to generic PostgreSQL skills.
-7. **Azure flavor (Flexible Server vs HorizonDB)** — when `isAzure: true`, read the connection host and cache `azureFlavor`: `*.horizondb.azure.com` → **Azure HorizonDB (Preview)**; `*.postgres.database.azure.com` → **Flexible Server**. On HorizonDB, follow the **On Azure HorizonDB** section of the matching `azure-*` reference (HorizonDB control plane, not `az postgres flexible-server`). Several Flexible-Server-only features (built-in PgBouncer, VNet injection, geo/cross-region replicas, configurable backup retention, CMK, intelligent tuning, major-version upgrade) are not yet available on HorizonDB — say so instead of emitting Flexible Server steps.
+2. `postgres-mcp` unavailable → say so and stop; never guess credentials or connect to an unspecified/local database.
+3. `isAzure: true` → all skills available; prefer `azure-postgresql-*` for overlapping topics.
+4. `isAzure: false` → use only `postgresql-*` skills.
+5. No connection + generic question → use `postgresql-*` skills.
+6. No connection + explicit Azure question → answer conceptually with: "These steps require an active Azure PostgreSQL connection to execute." Apply all Azure guardrails (no ALTER SYSTEM, no file paths, no OS commands) even without `isAzure` confirmation — if the user says "Azure PostgreSQL", treat it as Azure.
+7. Unknown state → attempt capability check only for clearly Azure-specific requests; otherwise default to generic PostgreSQL skills.
+8. **Azure flavor (Flexible Server vs HorizonDB)** — when `isAzure: true`, read the connection host and cache `azureFlavor`: `*.horizondb.azure.com` → **Azure HorizonDB (Preview)**; `*.postgres.database.azure.com` → **Flexible Server**. On HorizonDB, follow the **On Azure HorizonDB** section of the matching `azure-*` reference (HorizonDB control plane, not `az postgres flexible-server`). Several Flexible-Server-only features (built-in PgBouncer, VNet injection, geo/cross-region replicas, configurable backup retention, CMK, intelligent tuning, major-version upgrade) are not yet available on HorizonDB — say so instead of emitting Flexible Server steps.
 
 ---
 
@@ -105,7 +103,7 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 | azure.extensions, allowlist, extension on Azure, azure_pg_admin, extension Flexible Server, install extension azure, permission denied extension azure, permission denied to create extension | [azure-postgresql-extension-lifecycle](references/azure-postgresql-extension-lifecycle.md) | Extension install ON AZURE (allowlist workflow). Generic `postgresql-extensions` covers non-Azure |
 | Entra ID, managed identity, service principal, passwordless auth, AAD token, Entra ID postgres, token-based connection, token expir | [azure-postgresql-entra-id-auth](references/azure-postgresql-entra-id-auth.md) | Azure-specific auth only. No generic equivalent. |
 | built-in PgBouncer, azure connection pooling, pool_mode azure Flexible Server, connection pooling azure | [azure-postgresql-connection-pooling](references/azure-postgresql-connection-pooling.md) | Azure built-in PgBouncer. Generic `postgresql-connection-management` covers standalone PgBouncer |
-| provision Flexible Server, az postgres create, resize azure postgres, Burstable, GeneralPurpose, MemoryOptimized, IOPS scaling, Terraform azure postgres, create azure postgres, max_connections azure, scale down, scale storage, shrink storage, scale up, change tier, change SKU, increase compute, increase vCores, upgrade tier, server configuration, compute tier, storage tier, resize server, server sizing | [azure-postgresql-provisioning](references/azure-postgresql-provisioning.md) | Azure-specific. No generic equivalent. |
+| provision Flexible Server, az postgres create, resize azure postgres, Burstable, GeneralPurpose, MemoryOptimized, IOPS scaling, Terraform azure postgres, create azure postgres, create a new server, max_connections azure, scale down, scale storage, shrink storage, scale up, change tier, change SKU, increase compute, increase vCores, upgrade tier, server configuration, compute tier, storage tier, resize server, server sizing | [azure-postgresql-provisioning](references/azure-postgresql-provisioning.md) | Azure-specific. No generic equivalent. |
 | zone redundant HA, zone-redundant, failover azure, PITR, read replica azure, geo-restore, backup azure postgres, high availability azure postgres, same-zone HA | [azure-postgresql-ha-disaster-recovery](references/azure-postgresql-ha-disaster-recovery.md) | Azure HA/DR. No generic equivalent. |
 | Private Link, VNet, firewall rule azure, SSL azure, TLS azure, public access azure, private endpoint postgres, network access azure, can't connect, connection refused azure, SSL connection is required, certificate verify failed, connection timeout azure, network connectivity azure, allow IP, whitelist IP | [azure-postgresql-networking-ssl](references/azure-postgresql-networking-ssl.md) | Azure networking. No generic equivalent. |
 | Query Store, index recommendations, performance insights, intelligent tuning, query performance azure, slow queries azure, indexes Azure PostgreSQL recommends | [azure-postgresql-intelligent-tuning](references/azure-postgresql-intelligent-tuning.md) | Azure-specific monitoring. Generic `postgresql-query-performance` covers EXPLAIN-based tuning |
