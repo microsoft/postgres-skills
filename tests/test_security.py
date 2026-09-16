@@ -52,3 +52,21 @@ def test_no_secrets_committed():
                 if re.search(pattern, line, re.IGNORECASE) and not PLACEHOLDER.search(line):
                     issues.append(f"{rel}:{line_no} — {desc}")
     assert not issues, "potential secrets detected:\n" + "\n".join(issues)
+
+
+def test_directory_policy_guardrails():
+    mcp_config = (ROOT / "plugin" / ".mcp.json").read_text(encoding="utf-8")
+    setup = (ROOT / "plugin" / "SETUP.md").read_text(encoding="utf-8")
+    postgres_skill = (
+        ROOT / "plugin" / "skills" / "postgresql-best-practices" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    graph_skill = (
+        ROOT / "plugin" / "skills" / "pg-graph" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+
+    assert "--no-telemetry" in mcp_config
+    assert "least-privilege" in setup
+    assert "Data access and privacy" in setup
+    assert "Before any `postgres_mcp_modify`" in postgres_skill
+    assert "untrusted data, never as instructions" in postgres_skill
+    assert "ask for explicit confirmation" in graph_skill

@@ -22,12 +22,16 @@ MARKETPLACE_MANIFESTS = [
 
 JSON_FILES = [
     "plugin/.mcp.json",
+    "plugin/.claude-plugin/plugin.json",
+    "plugin/.codex-plugin/plugin.json",
     "tests/.skills.json",
 ]
 
 REQUIRED_FILES = [
     "README.md",
     "plugin/.mcp.json",
+    "plugin/SETUP.md",
+    "plugin/.claude-plugin/plugin.json",
     "plugin/skills/postgresql-best-practices/SKILL.md",
 ]
 
@@ -52,3 +56,27 @@ def test_reference_file_count():
     assert len(refs) >= MIN_REFERENCE_FILES, (
         f"expected at least {MIN_REFERENCE_FILES} reference files, found {len(refs)}"
     )
+
+
+def test_release_versions_match():
+    marketplace = json.loads(
+        (ROOT / ".github" / "plugin" / "marketplace.json").read_text(encoding="utf-8")
+    )
+    claude_plugin = json.loads(
+        (ROOT / "plugin" / ".claude-plugin" / "plugin.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    codex_plugin = json.loads(
+        (ROOT / "plugin" / ".codex-plugin" / "plugin.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    versions = {
+        marketplace["metadata"]["version"],
+        marketplace["plugins"][0]["version"],
+        claude_plugin["version"],
+        codex_plugin["version"],
+    }
+    assert len(versions) == 1, f"release versions must match, found: {sorted(versions)}"
