@@ -14,7 +14,9 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 
 ```
 postgres-skills/
-├── .github/plugin/marketplace.json     # Canonical marketplace manifest (Copilot)
+├── .github/plugin/marketplace.json     # Copilot marketplace manifest
+├── .claude-plugin/marketplace.json     # Claude Code marketplace manifest
+├── .agents/plugins/marketplace.json    # Codex marketplace manifest
 ├── plugin/                             # Plugin root (MCP server config + skills)
 │   ├── .mcp.json                       # postgres-mcp server launch (npx)
 │   └── skills/
@@ -38,6 +40,10 @@ postgres-skills/
 ├── .github/workflows/ci.yml             # CI pipeline (default pytest lane + pg/integration/eval jobs)
 └── README.md
 ```
+
+Keep the three marketplace manifests identical. They are regular JSON files
+rather than symlinks because marketplace clients on Windows may check out Git
+symlinks as plain text, which makes the manifest invalid.
 
 ## How routing works
 

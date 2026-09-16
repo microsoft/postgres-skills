@@ -42,6 +42,7 @@ MIN_REFERENCE_FILES = 10
 def test_json_is_parseable(rel):
     path = ROOT / rel
     assert path.exists(), f"missing JSON file: {rel}"
+    assert not path.is_symlink(), f"marketplace manifests must be regular files: {rel}"
     json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -80,3 +81,13 @@ def test_release_versions_match():
         codex_plugin["version"],
     }
     assert len(versions) == 1, f"release versions must match, found: {sorted(versions)}"
+
+
+def test_marketplace_manifests_match():
+    manifests = [
+        json.loads((ROOT / rel).read_text(encoding="utf-8"))
+        for rel in MARKETPLACE_MANIFESTS
+    ]
+    assert all(manifest == manifests[0] for manifest in manifests[1:]), (
+        "marketplace manifests must remain identical across supported hosts"
+    )
