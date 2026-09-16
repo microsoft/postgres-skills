@@ -2,7 +2,7 @@
   "name": "postgres-skills",
   "metadata": {
     "description": "Expert PostgreSQL and Azure Database for PostgreSQL skills with connection-aware routing",
-    "version": "0.1.0"
+    "version": "0.1.1"
   },
   "owner": {
     "name": "Microsoft",
