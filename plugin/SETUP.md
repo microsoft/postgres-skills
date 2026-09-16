@@ -1,4 +1,4 @@
-# PostgreSQL Skills setup
+# Postgres Skills setup
 
 This plugin starts `@microsoft/postgres-mcp` as a local stdio process through
 `npx`. It does not include database credentials or connect to a database until

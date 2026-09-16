@@ -91,3 +91,16 @@ def test_marketplace_manifests_match():
     assert all(manifest == manifests[0] for manifest in manifests[1:]), (
         "marketplace manifests must remain identical across supported hosts"
     )
+
+
+def test_product_display_name():
+    plugin = json.loads(
+        (ROOT / "plugin" / ".claude-plugin" / "plugin.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert plugin["name"] == "postgres-skills"
+    assert plugin["displayName"] == "Postgres Skills"
+    assert readme.startswith("# Postgres Skills\n")

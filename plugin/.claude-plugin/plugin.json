@@ -1,6 +1,6 @@
 {
   "name": "postgres-skills",
-  "displayName": "PostgreSQL Skills",
+  "displayName": "Postgres Skills",
   "description": "Expert PostgreSQL skills with connection-aware guidance and integrated database tools",
   "version": "0.1.1",
   "author": {

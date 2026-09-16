@@ -20,3 +20,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Disable optional postgres-mcp telemetry in the bundled plugin configuration
 - Require confirmation before database, graph, file-import, and Azure resource changes
 - Store marketplace entrypoints as regular JSON files for Windows compatibility
+- Use "Postgres Skills" as the human-facing product name
