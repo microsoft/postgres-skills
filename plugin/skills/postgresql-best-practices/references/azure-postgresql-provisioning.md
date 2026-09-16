@@ -8,6 +8,10 @@ tags: [azure, postgresql, provisioning, terraform, bicep, sku, storage]
 
 # Provisioning Azure Database for PostgreSQL Flexible Server
 
+## Ambiguous "create a server" requests
+
+If the session already has an Azure connection and the user asks to "create a new PostgreSQL server" without saying local or Azure, default to `az postgres flexible-server create` (ask only for required specs like tier/storage) — do not build a local Docker/`initdb` server unless the user explicitly asks for a local/test/community instance. Any locally-spawned dev/test server (Docker, `initdb`) must use password authentication; never `POSTGRES_HOST_AUTH_METHOD=trust` or other trust auth.
+
 ## Response focus
 
 Prioritize the constraints that are hard to reverse after creation: network mode, HA mode, zone placement, storage growth, backup economics, and SKU-format mismatches across tooling. Skip generic Azure provisioning walkthroughs.
