@@ -1,9 +1,9 @@
-# PostgreSQL Skills
+# Postgres Skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platforms: 3](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex-purple.svg)](#get-started)
 
-**Build, tune, and operate PostgreSQL with an AI assistant that can act, not just advise.** PostgreSQL Skills gives developers 32 expert-curated sub-skills for PostgreSQL anywhere: local, self-hosted, other clouds, Azure Database for PostgreSQL, and Azure HorizonDB. It covers application development, query performance, indexing, vector search, RAG, security, operations, and the full Apache AGE graph lifecycle. With **postgres-mcp** for database actions and the **Azure CLI** for Azure resource management, your assistant can inspect the real environment and safely execute approved changes instead of returning generic snippets.
+**Build, tune, and operate PostgreSQL with an AI assistant that can act, not just advise.** Postgres Skills gives developers 32 expert-curated sub-skills for PostgreSQL anywhere: local, self-hosted, other clouds, Azure Database for PostgreSQL, and Azure HorizonDB. It covers application development, query performance, indexing, vector search, RAG, security, operations, and the full Apache AGE graph lifecycle. With **postgres-mcp** for database actions and the **Azure CLI** for Azure resource management, your assistant can inspect the real environment and safely execute approved changes instead of returning generic snippets.
 
 ## What you get
 
@@ -101,7 +101,7 @@ runs the bundled PostgreSQL MCP server.
 
    Exit the agent after sign-in so you are back at your normal terminal prompt.
 
-4. **Install PostgreSQL Skills** from that terminal:
+4. **Install Postgres Skills** from that terminal:
 
    | Agent | Installation commands |
    | --- | --- |
