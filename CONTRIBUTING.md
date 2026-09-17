@@ -18,6 +18,8 @@ postgres-skills/
 ├── .claude-plugin/marketplace.json     # Claude Code marketplace manifest
 ├── .agents/plugins/marketplace.json    # Codex marketplace manifest
 ├── plugin/                             # Plugin root (MCP server config + skills)
+│   ├── plugin.json                     # Agent Plugins v1.0 manifest
+│   ├── mcp.json                        # Agent Plugins v1.0 MCP declaration
 │   ├── .mcp.json                       # postgres-mcp server launch (npx)
 │   └── skills/
 │       ├── postgresql-best-practices/SKILL.md   # Routing table + principles
