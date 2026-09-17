@@ -8,8 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Agent Plugins v1.0 manifests for GitHub Copilot marketplace compatibility
 - Initial repository structure with 21 P0 skills
 - 8 generic PostgreSQL foundational skills
 - 13 Azure Database for PostgreSQL skills
 - Plugin manifests for Claude Code, Copilot CLI, Codex CLI, Cursor
 - Eval framework scaffolding
+- Beginner installation guidance for Claude Code, Copilot CLI, and Codex CLI
+- Plugin setup, permissions, data-access, and privacy documentation
+
+### Changed
+- Keep cross-skill routing references compatible with isolated skill validation
+- Disable optional postgres-mcp telemetry in the bundled plugin configuration
+- Require confirmation before database, graph, file-import, and Azure resource changes
+- Store marketplace entrypoints as regular JSON files for Windows compatibility
+- Use "Postgres Skills" as the human-facing product name

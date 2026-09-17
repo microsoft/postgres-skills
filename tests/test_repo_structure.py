@@ -21,13 +21,21 @@ MARKETPLACE_MANIFESTS = [
 ]
 
 JSON_FILES = [
+    "plugin/plugin.json",
+    "plugin/mcp.json",
     "plugin/.mcp.json",
+    "plugin/.claude-plugin/plugin.json",
+    "plugin/.codex-plugin/plugin.json",
     "tests/.skills.json",
 ]
 
 REQUIRED_FILES = [
     "README.md",
+    "plugin/plugin.json",
+    "plugin/mcp.json",
     "plugin/.mcp.json",
+    "plugin/SETUP.md",
+    "plugin/.claude-plugin/plugin.json",
     "plugin/skills/postgresql-best-practices/SKILL.md",
 ]
 
@@ -38,6 +46,7 @@ MIN_REFERENCE_FILES = 10
 def test_json_is_parseable(rel):
     path = ROOT / rel
     assert path.exists(), f"missing JSON file: {rel}"
+    assert not path.is_symlink(), f"marketplace manifests must be regular files: {rel}"
     json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -52,3 +61,77 @@ def test_reference_file_count():
     assert len(refs) >= MIN_REFERENCE_FILES, (
         f"expected at least {MIN_REFERENCE_FILES} reference files, found {len(refs)}"
     )
+
+
+def test_release_versions_match():
+    marketplace = json.loads(
+        (ROOT / ".github" / "plugin" / "marketplace.json").read_text(encoding="utf-8")
+    )
+    claude_plugin = json.loads(
+        (ROOT / "plugin" / ".claude-plugin" / "plugin.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    codex_plugin = json.loads(
+        (ROOT / "plugin" / ".codex-plugin" / "plugin.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    agent_plugin = json.loads(
+        (ROOT / "plugin" / "plugin.json").read_text(encoding="utf-8")
+    )
+
+    versions = {
+        marketplace["metadata"]["version"],
+        marketplace["plugins"][0]["version"],
+        claude_plugin["version"],
+        codex_plugin["version"],
+        agent_plugin["version"],
+    }
+    assert len(versions) == 1, f"release versions must match, found: {sorted(versions)}"
+
+
+def test_agent_plugin_manifests():
+    plugin = json.loads(
+        (ROOT / "plugin" / "plugin.json").read_text(encoding="utf-8")
+    )
+    mcp = json.loads((ROOT / "plugin" / "mcp.json").read_text(encoding="utf-8"))
+    legacy_mcp = json.loads(
+        (ROOT / "plugin" / ".mcp.json").read_text(encoding="utf-8")
+    )
+
+    assert plugin["$schema"] == (
+        "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+    )
+    assert plugin["name"] == "postgres-skills"
+    assert mcp["$schema"] == (
+        "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
+    )
+    assert mcp["mcpServers"]["postgres-mcp"] == {
+        key: value
+        for key, value in legacy_mcp["mcpServers"]["postgres-mcp"].items()
+        if key != "timeout"
+    }
+
+
+def test_marketplace_manifests_match():
+    manifests = [
+        json.loads((ROOT / rel).read_text(encoding="utf-8"))
+        for rel in MARKETPLACE_MANIFESTS
+    ]
+    assert all(manifest == manifests[0] for manifest in manifests[1:]), (
+        "marketplace manifests must remain identical across supported hosts"
+    )
+
+
+def test_product_display_name():
+    plugin = json.loads(
+        (ROOT / "plugin" / ".claude-plugin" / "plugin.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert plugin["name"] == "postgres-skills"
+    assert plugin["displayName"] == "Postgres Skills"
+    assert readme.startswith("# Postgres Skills\n")

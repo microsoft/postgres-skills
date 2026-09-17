@@ -1,9 +1,9 @@
-# PostgreSQL Skills
+# Postgres Skills
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platforms: 3](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex-purple.svg)](#get-started-in-30-seconds)
+[![Platforms: 3](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex-purple.svg)](#get-started)
 
-**Build, tune, and operate PostgreSQL with an AI assistant that can act, not just advise.** PostgreSQL Skills gives developers 32 expert-curated sub-skills for PostgreSQL anywhere: local, self-hosted, other clouds, Azure Database for PostgreSQL, and Azure HorizonDB. It covers application development, query performance, indexing, vector search, RAG, security, operations, and the full Apache AGE graph lifecycle. With **postgres-mcp** for database actions and the **Azure CLI** for Azure resource management, your assistant can inspect the real environment and safely execute approved changes instead of returning generic snippets.
+**Build, tune, and operate PostgreSQL with an AI assistant that can act, not just advise.** Postgres Skills gives developers 32 expert-curated sub-skills for PostgreSQL anywhere: local, self-hosted, other clouds, Azure Database for PostgreSQL, and Azure HorizonDB. It covers application development, query performance, indexing, vector search, RAG, security, operations, and the full Apache AGE graph lifecycle. With **postgres-mcp** for database actions and the **Azure CLI** for Azure resource management, your assistant can inspect the real environment and safely execute approved changes instead of returning generic snippets.
 
 ## What you get
 
@@ -25,30 +25,101 @@ This repo is the plugin. Installing it gives your agent three things that work t
 - **The postgres-mcp MCP server** — executes inside your database: runs queries, applies changes, inspects schema, builds and traverses graphs, and detects whether you're on Azure.
 - **The Azure CLI (`az`)** — executes on the managed service: provisioning, scaling, parameters, HA and failover, replicas, point-in-time restore, networking, and upgrades.
 
-## Get started in 30 seconds
+## Security, permissions, and privacy
 
-Installation differs by host. Each host registers the marketplace, then installs the plugin.
+Installing the plugin launches
+[`@microsoft/postgres-mcp`](https://github.com/microsoft/postgres-mcp) locally
+through `npx`. The MCP server can access the database selected by the user and
+has the permissions of that PostgreSQL role. Query results and diagnostics
+returned by the server become part of the user's AI-assistant interaction.
 
-### GitHub Copilot CLI
+Use a dedicated, least-privilege role and a read-only connection profile for
+exploration. The skills require explicit confirmation before database writes,
+CSV imports, graph writes, or Azure resource changes. They treat database
+content as untrusted data and minimize retrieval to what the task needs.
 
-```bash
-copilot plugin marketplace add microsoft/postgres-skills
-copilot plugin install postgres-skills@postgres-skills
-```
+The bundled MCP configuration disables postgres-mcp telemetry and does not
+transmit database content to Microsoft for plugin telemetry. Package installation
+requires access to the npm registry, and Azure workflows may use the Azure CLI
+to communicate with Azure after the user authenticates. See the
+[plugin setup and data-access disclosure](plugin/SETUP.md) before connecting a
+sensitive or production database.
 
-### Claude Code
+## Get started
 
-```bash
-claude plugin marketplace add microsoft/postgres-skills
-claude plugin install postgres-skills@postgres-skills
-```
+### Starting with nothing
 
-### Codex CLI
+You need an internet connection, an account for one supported AI agent, and
+[Node.js LTS](https://nodejs.org/en/download). Node.js includes `npx`, which
+runs the bundled PostgreSQL MCP server.
 
-```bash
-codex plugin marketplace add microsoft/postgres-skills
-codex plugin install postgres-skills@postgres-skills
-```
+1. **Install Node.js LTS**, then open a new terminal and verify:
+
+   ```text
+   node --version
+   npx --version
+   ```
+
+2. **Install one AI agent:**
+
+   **Claude Code** — requires a
+   [Pro, Max, Team, Enterprise, or Console account](https://claude.com/pricing).
+   The free Claude plan does not include Claude Code.
+
+   | Operating system | Installation command |
+   | --- | --- |
+   | Windows PowerShell | `irm https://claude.ai/install.ps1 \| iex` |
+   | macOS, Linux, or WSL | `curl -fsSL https://claude.ai/install.sh \| bash` |
+
+   **GitHub Copilot CLI** — requires an active
+   [GitHub Copilot subscription](https://github.com/features/copilot/plans).
+   Organization administrators must allow Copilot CLI. The npm installation
+   requires Node.js 22 or later; Windows also requires PowerShell 6 or later.
+
+   ```text
+   npm install -g @github/copilot
+   ```
+
+   **Codex CLI** — supports ChatGPT Plus, Pro, Business, Edu, or Enterprise, or
+   an OpenAI API key.
+
+   | Operating system | Installation command |
+   | --- | --- |
+   | Windows PowerShell | `powershell -ExecutionPolicy ByPass -c "irm https://chatgpt.com/codex/install.ps1 \| iex"` |
+   | macOS or Linux | `curl -fsSL https://chatgpt.com/codex/install.sh \| sh` |
+
+   On Windows, [Git for Windows](https://git-scm.com/downloads/win) is optional
+   but recommended for Claude Code and Codex.
+
+3. **Start the agent and sign in:**
+
+   | Agent | Start command | First-time sign-in |
+   | --- | --- | --- |
+   | Claude Code | `claude` | Follow the browser prompt. |
+   | GitHub Copilot CLI | `copilot` | Enter `/login` and follow the prompts. |
+   | Codex CLI | `codex` | Select **Sign in with ChatGPT**, or configure an API key. |
+
+   Exit the agent after sign-in so you are back at your normal terminal prompt.
+
+4. **Install Postgres Skills** from that terminal:
+
+   | Agent | Installation commands |
+   | --- | --- |
+   | Claude Code | `claude plugin marketplace add microsoft/postgres-skills`<br>`claude plugin install postgres-skills@postgres-skills` |
+   | GitHub Copilot CLI | `copilot plugin marketplace add microsoft/postgres-skills`<br>`copilot plugin install postgres-skills@postgres-skills` |
+   | Codex CLI | `codex plugin marketplace add microsoft/postgres-skills`<br>`codex plugin install postgres-skills@postgres-skills` |
+
+   Already have an agent installed? Start here.
+
+5. **Start your agent again and connect safely.** Ask:
+
+   ```text
+   Help me connect postgres-skills to my PostgreSQL database using a read-only profile.
+   ```
+
+   Have your database host, port, database name, and user name ready. Enter the
+   password only in the hidden password prompt, never in chat. See the
+   [setup and security guide](plugin/SETUP.md) for details.
 
 ## Real-world examples
 
