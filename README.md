@@ -121,6 +121,26 @@ runs the bundled PostgreSQL MCP server.
    password only in the hidden password prompt, never in chat. See the
    [setup and security guide](plugin/SETUP.md) for details.
 
+### Install skills through skills.sh
+
+To install the guidance without the full plugin, use the
+[skills.sh](https://skills.sh) CLI:
+
+```text
+npx skills add microsoft/postgres-skills --full-depth
+```
+
+The CLI discovers both `postgresql-best-practices` and `pg-graph` and lets you
+choose which to install. To install one directly:
+
+```text
+npx skills add microsoft/postgres-skills --skill postgresql-best-practices --full-depth
+npx skills add microsoft/postgres-skills --skill pg-graph --full-depth
+```
+
+This installs the skills only. Use the plugin installation above when you also
+want the bundled `postgres-mcp` server and live database tools.
+
 ## Real-world examples
 
 ### PostgreSQL anywhere

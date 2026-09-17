@@ -23,3 +23,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Require confirmation before database, graph, file-import, and Azure resource changes
 - Store marketplace entrypoints as regular JSON files for Windows compatibility
 - Use "Postgres Skills" as the human-facing product name
+- Document skills-only installation through skills.sh
