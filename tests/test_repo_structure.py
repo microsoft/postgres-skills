@@ -21,6 +21,8 @@ MARKETPLACE_MANIFESTS = [
 ]
 
 JSON_FILES = [
+    "plugin/plugin.json",
+    "plugin/mcp.json",
     "plugin/.mcp.json",
     "plugin/.claude-plugin/plugin.json",
     "plugin/.codex-plugin/plugin.json",
@@ -29,6 +31,8 @@ JSON_FILES = [
 
 REQUIRED_FILES = [
     "README.md",
+    "plugin/plugin.json",
+    "plugin/mcp.json",
     "plugin/.mcp.json",
     "plugin/SETUP.md",
     "plugin/.claude-plugin/plugin.json",
@@ -73,14 +77,41 @@ def test_release_versions_match():
             encoding="utf-8"
         )
     )
+    agent_plugin = json.loads(
+        (ROOT / "plugin" / "plugin.json").read_text(encoding="utf-8")
+    )
 
     versions = {
         marketplace["metadata"]["version"],
         marketplace["plugins"][0]["version"],
         claude_plugin["version"],
         codex_plugin["version"],
+        agent_plugin["version"],
     }
     assert len(versions) == 1, f"release versions must match, found: {sorted(versions)}"
+
+
+def test_agent_plugin_manifests():
+    plugin = json.loads(
+        (ROOT / "plugin" / "plugin.json").read_text(encoding="utf-8")
+    )
+    mcp = json.loads((ROOT / "plugin" / "mcp.json").read_text(encoding="utf-8"))
+    legacy_mcp = json.loads(
+        (ROOT / "plugin" / ".mcp.json").read_text(encoding="utf-8")
+    )
+
+    assert plugin["$schema"] == (
+        "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+    )
+    assert plugin["name"] == "postgres-skills"
+    assert mcp["$schema"] == (
+        "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
+    )
+    assert mcp["mcpServers"]["postgres-mcp"] == {
+        key: value
+        for key, value in legacy_mcp["mcpServers"]["postgres-mcp"].items()
+        if key != "timeout"
+    }
 
 
 def test_marketplace_manifests_match():

@@ -1,7 +1,7 @@
 {
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "postgres-skills",
-  "displayName": "Postgres Skills",
-  "description": "Expert PostgreSQL skills with connection-aware guidance and integrated database tools",
+  "description": "Expert PostgreSQL guidance and live database tools for Postgres anywhere",
   "version": "0.1.2",
   "author": {
     "name": "Microsoft",

@@ -119,7 +119,7 @@ These skills apply to any PostgreSQL deployment — self-hosted, RDS, Cloud SQL,
 
 ## Graph Workloads (Apache AGE)
 
-For anything involving a property graph on PostgreSQL, route to the sibling **[pg-graph](../pg-graph/SKILL.md)** skill: Apache AGE, openCypher, `ag_catalog`, knowledge graphs, ontology, graph traversal, and natural language to Cypher. That skill owns AGE setup, the `ag_catalog.cypher()` wrapping contract, graph schema introspection, and retrieval that combines vectors with graph traversal. Keep AGE specific guidance there rather than duplicating it here.
+For anything involving a property graph on PostgreSQL, route to the sibling **pg-graph** skill: Apache AGE, openCypher, `ag_catalog`, knowledge graphs, ontology, graph traversal, and natural language to Cypher. That skill owns AGE setup, the `ag_catalog.cypher()` wrapping contract, graph schema introspection, and retrieval that combines vectors with graph traversal. Keep AGE specific guidance there rather than duplicating it here.
 
 ---
 

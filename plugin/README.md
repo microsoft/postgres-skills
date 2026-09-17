@@ -9,6 +9,8 @@ Claude Code, Codex) can route PostgreSQL work to the right guidance and tools.
 | Path | Purpose |
 | --- | --- |
 | `skills/postgresql-best-practices/` | The skill (SKILL.md routing table + reference docs). |
+| `plugin.json` | Agent Plugins v1.0 manifest used by GitHub Copilot. |
+| `mcp.json` | Agent Plugins v1.0 declaration for the `postgres-mcp` server. |
 | `.mcp.json` | Declares the `postgres-mcp` MCP server (local stdio through `npx`, with optional telemetry disabled). |
 | `SETUP.md` | Connection, permissions, data-access, privacy, and removal guidance. |
 | `.claude-plugin/plugin.json` | Plugin identity and display metadata for Claude Code. |
@@ -20,9 +22,10 @@ Codex requires a manifest at **`.codex-plugin/plugin.json`** inside the plugin f
 Without it, `codex plugin add postgres-skills@postgres-skills` fails with
 `Error: missing plugin.json`.
 
-Claude Code reads plugin metadata from **`.claude-plugin/plugin.json`**. Keep both
-manifests and the marketplace metadata in `.github/plugin/marketplace.json` at the
-same release version.
+Claude Code reads plugin metadata from **`.claude-plugin/plugin.json`**. GitHub
+Copilot reads the Agent Plugins v1.0 **`plugin.json`** and **`mcp.json`** files at
+the plugin root. Keep the host manifests and marketplace metadata in
+`.github/plugin/marketplace.json` at the same release version.
 
 ## Security and privacy
 
