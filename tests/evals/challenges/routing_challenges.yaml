@@ -466,3 +466,40 @@ routing_challenges:
     expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-entra-id-auth"
     difficulty: medium
     notes: "HorizonDB auth routes to the Azure entra-id-auth reference (azure_pg_admin, SCRAM; Entra is limited in Preview)."
+
+  # ─── Restore a deleted server (Flexible Server ReviveDropped + HorizonDB) ────
+  - id: route-del-01
+    query: "I accidentally deleted my Flexible Server two days ago. Can I get it back?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-restore-deleted-server"
+    difficulty: easy
+    notes: "Deleted-server recovery within the 5-day window."
+
+  - id: route-del-02
+    query: "How do I use createMode ReviveDropped to recover a deleted server?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-restore-deleted-server"
+    difficulty: medium
+    notes: "Direct ReviveDropped REST phrasing."
+
+  - id: route-del-03
+    query: "How do I add deletion protection so nobody can remove our production Azure PostgreSQL server?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-restore-deleted-server"
+    difficulty: medium
+    notes: "Prevention via CanNotDelete resource lock."
+
+  - id: route-hz-12
+    query: "Our Azure HorizonDB cluster was removed by mistake. How do I restore deleted resources like that?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-restore-deleted-server"
+    difficulty: hard
+    notes: "HorizonDB deleted clusters can't be restored today; the reference says so and recommends Delete locks."
+
+  - id: route-hz-13
+    query: "I deleted my Azure HorizonDB cluster by mistake an hour ago. How do I restore it?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-restore-deleted-server"
+    difficulty: medium
+    notes: "Natural HorizonDB deletion phrasing (eval hz-del-01) must reach the deleted-server reference."
+
+  - id: route-del-04
+    query: "Someone accidentally deleted our production Azure Database for PostgreSQL Flexible Server three days ago. How do I get it back?"
+    expected_skill: "plugin/skills/postgresql-best-practices/references/azure-postgresql-restore-deleted-server"
+    difficulty: medium
+    notes: "Natural Flexible Server deletion phrasing (eval az-del-01)."

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Eval framework scaffolding
 - Beginner installation guidance for Claude Code, Copilot CLI, and Codex CLI
 - Plugin setup, permissions, data-access, and privacy documentation
+- `azure-postgresql-restore-deleted-server` reference: recover a deleted Flexible Server within the 5-day `ReviveDropped` window, VNet-integrated restores, Azure Backup vault fallback, and delete locks (HorizonDB deleted clusters are unrecoverable)
 
 ### Changed
 - Keep cross-skill routing references compatible with isolated skill validation

@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platforms: 3](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex-purple.svg)](#get-started)
 
-**Build, tune, and operate PostgreSQL with an AI assistant that can act, not just advise.** Postgres Skills gives developers 32 expert-curated sub-skills for PostgreSQL anywhere: local, self-hosted, other clouds, Azure Database for PostgreSQL, and Azure HorizonDB. It covers application development, query performance, indexing, vector search, RAG, security, operations, and the full Apache AGE graph lifecycle. With **postgres-mcp** for database actions and the **Azure CLI** for Azure resource management, your assistant can inspect the real environment and safely execute approved changes instead of returning generic snippets.
+**Build, tune, and operate PostgreSQL with an AI assistant that can act, not just advise.** Postgres Skills gives developers 33 expert-curated sub-skills for PostgreSQL anywhere: local, self-hosted, other clouds, Azure Database for PostgreSQL, and Azure HorizonDB. It covers application development, query performance, indexing, vector search, RAG, security, operations, and the full Apache AGE graph lifecycle. With **postgres-mcp** for database actions and the **Azure CLI** for Azure resource management, your assistant can inspect the real environment and safely execute approved changes instead of returning generic snippets.
 
 ## What you get
 
@@ -180,6 +180,9 @@ want the bundled `postgres-mcp` server and live database tools.
 **"Roll my database back to 2pm yesterday"**
 → Validates the restore window and creates a point-in-time restored server after confirming the target time.
 
+**"I accidentally deleted my server yesterday — get it back"**
+→ Finds the delete event in the activity log and, after confirmation, revives the server from its retained backup within the 5-day window.
+
 **"I can't connect — 'SSL connection is required'"**
 → Diagnoses firewall, private endpoint, VNet, DNS, and certificate configuration.
 
@@ -229,7 +232,7 @@ These sub-skills work with any PostgreSQL deployment — self-hosted, RDS, Cloud
 | **postgresql-replication** | Publications, subscriptions, CDC | Row filter (PG15+), conflict resolution, initial data sync strategies |
 | **postgresql-query-performance** | EXPLAIN analysis, vacuum, statistics | JIT thresholds, parallel query pitfalls, vacuum/bloat tuning |
 
-### Azure Database for PostgreSQL (11 sub-skills)
+### Azure Database for PostgreSQL (12 sub-skills)
 
 These sub-skills are gated by the connection capability check. They cover managed-service workflows, Azure AI integrations, and platform-specific safety guardrails.
 
@@ -244,6 +247,7 @@ Each Azure sub-skill also covers **Azure HorizonDB (Preview)** in an *On Azure H
 | **azure-postgresql-entra-id-auth** | Passwordless auth with Entra ID | Token refresh before 5-min expiry, managed identity setup |
 | **azure-postgresql-connection-pooling** | Built-in PgBouncer configuration | Prepared statements break in transaction mode |
 | **azure-postgresql-ha-disaster-recovery** | Zone-redundant HA, PITR, geo-replicas | Forced vs planned failover, PITR creates NEW server |
+| **azure-postgresql-restore-deleted-server** | Recovering a deleted server, delete locks | 5-day window, `ReviveDropped` via `az rest` (no `az postgres flexible-server` subcommand), same subscription/region, HorizonDB clusters unrecoverable |
 | **azure-postgresql-networking-ssl** | Private endpoints, VNet, SSL | VNet chosen at creation (can't change), DigiCert G2 cert |
 | **azure-postgresql-provisioning** | IaC, SKU selection, scaling | Burstable limits, storage can't shrink, IOPS scaling |
 | **azure-postgresql-extension-lifecycle** | Extension allowlisting on Azure | `azure.extensions` param, `azure_pg_admin` role requirement |

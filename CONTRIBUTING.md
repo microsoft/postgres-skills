@@ -23,7 +23,7 @@ postgres-skills/
 │   ├── .mcp.json                       # postgres-mcp server launch (npx)
 │   └── skills/
 │       ├── postgresql-best-practices/SKILL.md   # Routing table + principles
-│       └── postgresql-best-practices/references/ # 22 detailed reference files
+│       └── postgresql-best-practices/references/ # 23 detailed reference files
 ├── tests/
 │   ├── .skills.json                     # Routing fixture (used by tests + evals only)
 │   ├── conftest.py                      # pytest fixtures + MCP client + routing engine
@@ -60,7 +60,7 @@ symlinks as plain text, which makes the manifest invalid.
 This repo ships a **single skill**, `postgresql-best-practices`, made up of:
 
 - `plugin/skills/postgresql-best-practices/SKILL.md` — the lightweight routing table that loads first
-- `plugin/skills/postgresql-best-practices/references/*.md` — 22 detailed reference files (11 generic + 11 Azure)
+- `plugin/skills/postgresql-best-practices/references/*.md` — 23 detailed reference files (11 generic + 12 Azure)
 
 Most contributions add or improve a **reference file**. Two steps:
 

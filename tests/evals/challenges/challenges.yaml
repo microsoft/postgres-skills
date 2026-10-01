@@ -1,6 +1,6 @@
 # Agent Challenges
 #
-# 326 challenges across 20 target skills (generic + Azure + HorizonDB + root)
+# 331 challenges across 21 target skills (generic + Azure + HorizonDB + root)
 # Each challenge tests whether the agent activates the correct skill
 # and produces syntactically valid, non-hallucinated output.
 
@@ -2538,6 +2538,68 @@ challenges:
     - Does it refrain from pretending pg_basebackup is the Azure Flexible Server recovery workflow?
     notes: 'Negative case: self-hosted pg_basebackup setup should not activate Azure HA/DR as the primary skill.'
 
+  # restore-deleted-server
+  - id: az-del-01
+    task: "Someone accidentally deleted our production Azure Database for PostgreSQL Flexible Server three days ago. How do I get it back?"
+    difficulty: hard
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-restore-deleted-server
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - ReviveDropped
+    - five days|5 days|5-day
+    - submissionTimestamp|activity log
+    anti_patterns:
+    - ^\s*(?:\$\s*)?pg_basebackup\b
+    - ^\s*(?:\$\s*)?az postgres flexible-server (?:undelete|restore-deleted|revive)\b
+    correctness_checks:
+    - Does the response state that a deleted server can only be recovered within five days of deletion and that success is not guaranteed?
+    - Does it find the resourceId and submissionTimestamp from the Delete PostgreSQL Server activity-log event?
+    - Does it submit Servers - Create Or Update with createMode ReviveDropped, pointInTimeUTC, sourceServerResourceId, and the original region using api-version 2025-08-01?
+    - Does it explain that the revived server is a new resource in the same subscription, preferably with a new name, and that clients must be repointed?
+
+  - id: az-del-02
+    task: "I need to restore a deleted Flexible Server that was VNet-integrated with a private DNS zone. What changes in the restore request?"
+    difficulty: hard
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-restore-deleted-server
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - delegatedSubnetResourceId
+    - privateDnsZoneArmResourceId
+    correctness_checks:
+    - Does the response add network.delegatedSubnetResourceId and network.privateDnsZoneArmResourceId to the ReviveDropped request body?
+    - Does it note that the subnet and private DNS zone must exist (recreated first if they were deleted too)?
+
+  - id: az-del-03
+    task: "Our Azure PostgreSQL Flexible Server was deleted 10 days ago. Can we still recover it?"
+    difficulty: hard
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-restore-deleted-server
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - five days|5 days|5-day
+    - Backup vault|long-term retention|LTR
+    anti_patterns:
+    - ReviveDropped will still work
+    correctness_checks:
+    - Does the response say the five-day window has passed, so ReviveDropped will fail because the backup can't be found?
+    - Does it explain that Azure Backup vault long-term retention, if configured, can restore recovery points as files to a storage account for pg_restore into a new server?
+    - Does it avoid promising recovery when no LTR backup exists?
+
+  - id: az-del-04
+    task: "How do I add a delete lock so nobody can delete our Azure PostgreSQL Flexible Server again?"
+    difficulty: medium
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-restore-deleted-server
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+    - CanNotDelete
+    - az lock create
+    correctness_checks:
+    - Does the response apply a CanNotDelete management lock with az lock create on the Microsoft.DBforPostgreSQL/flexibleServers resource?
+    - Does it note that locks block control-plane deletion but not data-plane SQL such as DROP DATABASE?
+
   # entra-id-auth expansion
 
   - id: az-auth-03
@@ -4189,7 +4251,7 @@ challenges:
       - "Does the response allowlist age in azure.extensions and add it to shared_preload_libraries via a parameter group connected to the HorizonDB cluster, then create it with CREATE EXTENSION IF NOT EXISTS age CASCADE?"
       - "Does it avoid ALTER SYSTEM and note that age is preloaded so LOAD 'age' is unnecessary and blocked for non-superusers?"
 
-  # ─── AZURE HORIZONDB (Preview) (13 challenges: best-practices flavor routing) ─
+  # ─── AZURE HORIZONDB (Preview) (14 challenges: best-practices flavor routing) ─
   # These verify the agent routes to HorizonDB guidance (cluster / az horizondb /
   # parameter groups) instead of falling back to Flexible Server steps.
 
@@ -4260,6 +4322,25 @@ challenges:
     correctness_checks:
       - "Does the response explain that HorizonDB HA uses zone-resilient shared storage plus replicas (up to 15, doubling as read scale-out), not a streaming primary/standby pair?"
       - "Does it state that cross-region/geo replicas are not available and recommend enabling deletion protection?"
+
+  # restore-deleted-server
+  - id: hz-del-01
+    task: "I deleted my Azure HorizonDB cluster by mistake an hour ago. How do I restore it?"
+    difficulty: hard
+    target_skill: plugin/skills/postgresql-best-practices/references/azure-postgresql-restore-deleted-server
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "can't be restored|cannot be restored|not recoverable|unrecoverable|can't restore"
+      - "lock"
+    anti_patterns:
+      - "\"createMode\"\\s*:\\s*\"ReviveDropped\""
+      - "^\\s*(?:\\$\\s*)?az postgres flexible-server\\s"
+      - "^\\s*(?:\\$\\s*)?az horizondb restore\\b"
+    correctness_checks:
+      - "Does the response state that deleted Azure HorizonDB clusters can't currently be restored, instead of applying the Flexible Server ReviveDropped workflow (a correct answer may name ReviveDropped only to rule it out)?"
+      - "Does it explain that HorizonDB restore (az horizondb restore / PointInTimeRestore) requires an existing source cluster?"
+      - "Does it recommend a Delete resource lock to prevent future accidental deletion?"
 
   # extension-lifecycle
   - id: hz-ext-01
