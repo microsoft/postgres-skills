@@ -3,40 +3,169 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platforms: 3](https://img.shields.io/badge/Platforms-Claude_|_Copilot_|_Codex-purple.svg)](#get-started)
 
-**Build, tune, and operate PostgreSQL with an AI assistant that can act, not just advise.** Postgres Skills gives developers 33 expert-curated sub-skills for PostgreSQL anywhere: local, self-hosted, other clouds, Azure Database for PostgreSQL, and Azure HorizonDB. It covers application development, query performance, indexing, vector search, RAG, security, operations, and the full Apache AGE graph lifecycle. With **postgres-mcp** for database actions and the **Azure CLI** for Azure resource management, your assistant can inspect the real environment and safely execute approved changes instead of returning generic snippets.
+**Postgres Skills is a plugin for Claude Code, GitHub Copilot CLI, and Codex CLI that equips
+your AI coding agent with PostgreSQL guidance and database tools.** Use it to build,
+troubleshoot, and operate PostgreSQL across local, self-hosted, and cloud environments,
+including Azure Database for PostgreSQL and Azure HorizonDB.
 
-## What you get
+It bundles two skills with 33 reference guides and a local PostgreSQL MCP server.
+**It is not a PostgreSQL extension, database service, or standalone AI assistant.**
+You bring a supported agent and choose which database it can access.
 
-A default AI assistant gives you plausible-looking PostgreSQL advice. This plugin gives you expert guidance *and* runs it against your actual database, safely:
+[Get started](#get-started) · [How it works](#how-it-works) ·
+[Examples](#real-world-examples) · [Full catalog](#sub-skill-catalog)
 
-| A default assistant | With this plugin |
-|----------------|-------------|
-| Suggests generic SQL and hopes it fits | Reads your live schema, tier, and settings first, then tailors the answer |
-| Confidently recommends commands that break managed databases | Applies managed-service guardrails and the correct Azure workflow |
-| Explains what you *could* do | Executes it — query, index, provision, restore — with confirmation before anything destructive |
-| Can't tell self-hosted from Azure | Detects the connection and routes to the right generic or Azure guidance |
-| Hand-waves "just use a graph database" | Derives an ontology from your data, builds the graph on Apache AGE, and answers questions with openCypher — all inside PostgreSQL |
+## Is this for me?
+
+### Who it's for
+
+- **Application developers** building PostgreSQL-backed apps, schemas, and queries.
+- **DBAs and platform engineers** investigating performance and managing database operations.
+- **AI application developers** building vector search, retrieval-augmented generation
+  (RAG), and knowledge graphs.
+
+### Workloads it's useful for
+
+| Your task | How the plugin helps |
+|-----------|----------------------|
+| Diagnose a slow query | Inspect the live schema and query plan, then propose a targeted change. |
+| Choose indexes or partitioning | Match the design to your queries, data, and PostgreSQL version. |
+| Build search and AI features | Guide vector indexing, hybrid retrieval, and RAG implementation. |
+| Add tenant isolation | Design row-level security policies around your tenancy model. |
+| Investigate connection or service issues | Check the selected environment and follow the relevant PostgreSQL or Azure workflow. |
+| Build a knowledge graph | Propose an ontology for review, load it into Apache AGE, and query relationships with openCypher. |
+
+### What you're probably doing today instead
+
+You may already use an AI agent and database tools. This plugin adds PostgreSQL-specific
+instructions and references to that workflow.
+
+| Today's friction | What Postgres Skills adds |
+|------------------|--------------------------|
+| Copying schema and settings into prompts | Instructions to inspect the selected database and ground recommendations in its context. |
+| Checking generated SQL against documentation | Version-aware guidance and common PostgreSQL pitfalls. |
+| Translating self-hosted commands into managed-service operations | Separate generic, Azure Database for PostgreSQL, and HorizonDB guidance. |
+| Switching between advice, SQL tools, and cloud commands | A shared agent workflow using PostgreSQL MCP tools and, for Azure operations, the Azure CLI. |
+
+## Get started
+
+Already have Claude Code, GitHub Copilot CLI, or Codex CLI? You also need
+[Node.js LTS](https://nodejs.org/en/download) with `npx` available to launch the MCP server.
+If you're starting from scratch, follow the [first-time setup guide](plugin/SETUP.md#starting-with-nothing).
+
+1. **Install the plugin** from your terminal for the agent you use:
+
+   | Agent | Installation commands |
+   | --- | --- |
+   | Claude Code | `claude plugin marketplace add microsoft/postgres-skills`<br>`claude plugin install postgres-skills@postgres-skills` |
+   | GitHub Copilot CLI | `copilot plugin marketplace add microsoft/postgres-skills`<br>`copilot plugin install postgres-skills@postgres-skills` |
+   | Codex CLI | `codex plugin marketplace add microsoft/postgres-skills`<br>`codex plugin add postgres-skills@postgres-skills` |
+
+2. **Start a new agent session** so it can load the plugin's skills and MCP tools.
+   Review any tool-access prompts before allowing access.
+
+3. **Connect read-only and try an inspection task:**
+
+   ```text
+   Help me connect to my PostgreSQL database using a read-only profile.
+   Then show my table names and approximate sizes without reading application rows.
+   ```
+
+   Have your host, port, database name, and user name ready. Enter the password only
+   in the hidden password prompt, never in chat. See the [connection setup](plugin/SETUP.md#configure-a-database-connection)
+   and [data-access disclosure](plugin/SETUP.md#data-access-and-privacy) before
+   connecting a sensitive or production database.
+
+### Skills only, without database tools
+
+Use [skills.sh](https://skills.sh) if you want the guidance without the bundled MCP server:
+
+```text
+npx skills add microsoft/postgres-skills --full-depth
+```
+
+Choose `postgresql-best-practices`, `pg-graph`, or both. This does not install the
+PostgreSQL MCP server or establish a database connection. For live database work,
+use the full plugin above or configure your own compatible tools.
+
+<details>
+<summary>Install an individual skill</summary>
+
+```text
+npx skills add microsoft/postgres-skills --skill postgresql-best-practices --full-depth
+npx skills add microsoft/postgres-skills --skill pg-graph --full-depth
+```
+
+</details>
 
 ## How it works
 
-This repo is the plugin. Installing it gives your agent three things that work together:
+The AI agent reads skill instructions and chooses tools. The skills themselves do not
+execute SQL or run a background service.
 
-- **The skill** — a lightweight routing table that reads your question and connection, then loads the matching sub-skill (generic, Azure, or graph). A dedicated **pg-graph** skill owns the full Apache AGE lifecycle — ontology derivation, graph construction, and openCypher querying.
-- **The postgres-mcp MCP server** — executes inside your database: runs queries, applies changes, inspects schema, builds and traverses graphs, and detects whether you're on Azure.
-- **The Azure CLI (`az`)** — executes on the managed service: provisioning, scaling, parameters, HA and failover, replicas, point-in-time restore, networking, and upgrades.
+| Component | Role |
+|-----------|------|
+| **Your AI agent** | Interprets your request, loads relevant guidance, and invokes available tools. |
+| **Two skills** | `postgresql-best-practices` routes PostgreSQL and Azure questions to reference guides. `pg-graph` covers ontology design, graph construction, and openCypher queries. |
+| **PostgreSQL MCP server** | Runs locally through `npx` and sends queries and approved changes to the database you select. MCP stands for Model Context Protocol, the interface between the agent and its tools. |
+| **Azure CLI, optional** | Handles Azure resource operations after you install it and authenticate. It is not required for generic PostgreSQL work and the plugin does not install it. |
+
+```mermaid
+flowchart LR
+    User[Your request] --> Agent[AI coding agent]
+    Skills[Skill instructions and references] --> Agent
+    Agent --> MCP[Local PostgreSQL MCP server]
+    MCP <--> DB[Selected PostgreSQL database]
+    Agent --> CLI[Azure CLI, optional]
+    CLI --> Azure[Azure resource management]
+```
+
+For example, ask: **"My query went from 200ms to 8 seconds after deployment."**
+
+1. The agent loads query-performance guidance and checks the selected connection.
+2. It inspects the relevant schema, settings, and query plan with read-only tools.
+3. It explains the evidence and proposes a change, including the target and impact.
+4. The skills instruct it to request approval before a write. After an approved change,
+   it checks the result and reports any remaining uncertainty.
+
+Available operations depend on your database permissions, extensions, service features,
+and agent tool-access settings. The plugin does not grant privileges.
+
+### What changes in your architecture
+
+The plugin extends your development tools, not your application's request path. Your app
+can keep its existing database driver, schema, and deployment architecture.
+Installing the plugin configures a local MCP process; it does not install PostgreSQL
+extensions or change database objects. Particular tasks may require separately approved
+extensions, such as `vector` for vector search or `age` for graph work.
+
+### When not to use it
+
+- **You need an application database driver or production chatbot backend.** This is an
+  agent plugin, not an application runtime or ready-made end-user chat service.
+- **You need unattended database administration or guaranteed fixes.** Keep monitoring,
+  incident response, and human review in place.
+- **You need versioned schema deployment.** Keep your migration framework and CI/CD
+  process; review agent-generated changes through your normal workflow.
+- **Your policies prohibit sending database metadata or results to an AI provider.**
+  Use skills-only guidance with approved, non-sensitive context instead.
+- **You only need to run a known SQL statement.** Your existing SQL client may be enough.
 
 ## Security, permissions, and privacy
 
-Installing the plugin launches
+Your agent launches the plugin's configured
 [`@microsoft/postgres-mcp`](https://github.com/microsoft/postgres-mcp) locally
 through `npx`. The MCP server can access the database selected by the user and
 has the permissions of that PostgreSQL role. Query results and diagnostics
 returned by the server become part of the user's AI-assistant interaction.
 
 Use a dedicated, least-privilege role and a read-only connection profile for
-exploration. The skills require explicit confirmation before database writes,
-CSV imports, graph writes, or Azure resource changes. They treat database
-content as untrusted data and minimize retrieval to what the task needs.
+exploration. The skills instruct the agent to request explicit confirmation before
+database writes, CSV imports, graph writes, or Azure resource changes. These are
+agent instructions, not a database-enforced approval system. Enforce access through
+PostgreSQL roles, connection access modes, and your agent's tool permissions; do not
+enable blanket approval for write tools. The skills also instruct the agent to treat
+database content as untrusted data and retrieve only what the task needs.
 
 The bundled MCP configuration disables postgres-mcp telemetry and does not
 transmit database content to Microsoft for plugin telemetry. Package installation
@@ -45,103 +174,16 @@ to communicate with Azure after the user authenticates. See the
 [plugin setup and data-access disclosure](plugin/SETUP.md) before connecting a
 sensitive or production database.
 
-## Get started
-
-### Starting with nothing
-
-You need an internet connection, an account for one supported AI agent, and
-[Node.js LTS](https://nodejs.org/en/download). Node.js includes `npx`, which
-runs the bundled PostgreSQL MCP server.
-
-1. **Install Node.js LTS**, then open a new terminal and verify:
-
-   ```text
-   node --version
-   npx --version
-   ```
-
-2. **Install one AI agent:**
-
-   **Claude Code** — requires a
-   [Pro, Max, Team, Enterprise, or Console account](https://claude.com/pricing).
-   The free Claude plan does not include Claude Code.
-
-   | Operating system | Installation command |
-   | --- | --- |
-   | Windows PowerShell | `irm https://claude.ai/install.ps1 \| iex` |
-   | macOS, Linux, or WSL | `curl -fsSL https://claude.ai/install.sh \| bash` |
-
-   **GitHub Copilot CLI** — requires an active
-   [GitHub Copilot subscription](https://github.com/features/copilot/plans).
-   Organization administrators must allow Copilot CLI. The npm installation
-   requires Node.js 22 or later; Windows also requires PowerShell 6 or later.
-
-   ```text
-   npm install -g @github/copilot
-   ```
-
-   **Codex CLI** — supports ChatGPT Plus, Pro, Business, Edu, or Enterprise, or
-   an OpenAI API key.
-
-   | Operating system | Installation command |
-   | --- | --- |
-   | Windows PowerShell | `powershell -ExecutionPolicy ByPass -c "irm https://chatgpt.com/codex/install.ps1 \| iex"` |
-   | macOS or Linux | `curl -fsSL https://chatgpt.com/codex/install.sh \| sh` |
-
-   On Windows, [Git for Windows](https://git-scm.com/downloads/win) is optional
-   but recommended for Claude Code and Codex.
-
-3. **Start the agent and sign in:**
-
-   | Agent | Start command | First-time sign-in |
-   | --- | --- | --- |
-   | Claude Code | `claude` | Follow the browser prompt. |
-   | GitHub Copilot CLI | `copilot` | Enter `/login` and follow the prompts. |
-   | Codex CLI | `codex` | Select **Sign in with ChatGPT**, or configure an API key. |
-
-   Exit the agent after sign-in so you are back at your normal terminal prompt.
-
-4. **Install Postgres Skills** from that terminal:
-
-   | Agent | Installation commands |
-   | --- | --- |
-   | Claude Code | `claude plugin marketplace add microsoft/postgres-skills`<br>`claude plugin install postgres-skills@postgres-skills` |
-   | GitHub Copilot CLI | `copilot plugin marketplace add microsoft/postgres-skills`<br>`copilot plugin install postgres-skills@postgres-skills` |
-   | Codex CLI | `codex plugin marketplace add microsoft/postgres-skills`<br>`codex plugin install postgres-skills@postgres-skills` |
-
-   Already have an agent installed? Start here.
-
-5. **Start your agent again and connect safely.** Ask:
-
-   ```text
-   Help me connect postgres-skills to my PostgreSQL database using a read-only profile.
-   ```
-
-   Have your database host, port, database name, and user name ready. Enter the
-   password only in the hidden password prompt, never in chat. See the
-   [setup and security guide](plugin/SETUP.md) for details.
-
-### Install skills through skills.sh
-
-To install the guidance without the full plugin, use the
-[skills.sh](https://skills.sh) CLI:
-
-```text
-npx skills add microsoft/postgres-skills --full-depth
-```
-
-The CLI discovers both `postgresql-best-practices` and `pg-graph` and lets you
-choose which to install. To install one directly:
-
-```text
-npx skills add microsoft/postgres-skills --skill postgresql-best-practices --full-depth
-npx skills add microsoft/postgres-skills --skill pg-graph --full-depth
-```
-
-This installs the skills only. Use the plugin installation above when you also
-want the bundled `postgres-mcp` server and live database tools.
-
 ## Real-world examples
+
+| Try asking | Agent workflow |
+|------------|----------------|
+| **"My query went from 200ms to 8 seconds after deployment."** | Inspect the plan and schema, explain likely causes, and propose a change for review. |
+| **"Set up vector search for my product catalog."** | Check extensions and indexing options for your environment, then request approval before applying changes. |
+| **"Turn my documents into a knowledge graph."** | Sample approved data, propose an ontology for review, and load the graph only after confirmation. |
+
+<details>
+<summary>More examples: PostgreSQL, Azure, and graph workloads</summary>
 
 ### PostgreSQL anywhere
 
@@ -161,12 +203,12 @@ want the bundled `postgres-mcp` server and live database tools.
 → Designs the partition layout, checks pruning requirements, and applies the DDL with confirmation.
 
 **"Index my JSONB documents for containment queries"**
-→ Examines the query pattern and creates the appropriate GIN index.
+→ Examines the query pattern and proposes the appropriate GIN index for approval.
 
 ### Azure Database for PostgreSQL and HorizonDB
 
-**"Batch-embed 1 million rows without leaving the database"**
-→ Processes embeddings safely in batches with the `azure_ai` extension while respecting service limits.
+**"Batch-embed 1 million rows using SQL"**
+→ After approval, uses `azure_ai` SQL functions to call the configured model service in batches while respecting service limits. This can send source text to the model provider and incur inference charges.
 
 **"Provision a General Purpose server and scale it to 8 vCores"**
 → Selects the right Azure resources and provisions or scales the server after confirmation.
@@ -207,12 +249,20 @@ want the bundled `postgres-mcp` server and live database tools.
 → Introspects the graph schema, then generates and runs a validated openCypher query.
 
 **"Visualize my graph in VS Code"**
-→ Returns complete vertices and edges with display labels so VS Code renders an interactive node-edge graph.
+→ Returns complete vertices and edges with display labels for the PostgreSQL extension for VS Code graph viewer. Visualization requires that extension separately.
 
 **"Why did the graph recommend this?"**
 → Returns the reasoning path, provenance, and confidence bounded by the weakest supporting edge.
 
+</details>
+
 ## Sub-skill Catalog
+
+The plugin contains two installable skills and 33 reference guides, grouped below.
+"Sub-skills" refers to those guides, not 33 separate plugins.
+
+<details>
+<summary>Browse all 33 reference guides: 11 PostgreSQL, 12 Azure, and 10 graph</summary>
 
 ### PostgreSQL Foundational (11 sub-skills)
 
@@ -236,12 +286,16 @@ These sub-skills work with any PostgreSQL deployment — self-hosted, RDS, Cloud
 
 These sub-skills are gated by the connection capability check. They cover managed-service workflows, Azure AI integrations, and platform-specific safety guardrails.
 
-Each Azure sub-skill also covers **Azure HorizonDB (Preview)** in an *On Azure HorizonDB* section. When your connection is a HorizonDB cluster (`*.horizondb.azure.com`), the agent routes to the HorizonDB-specific guidance — clusters, `az horizondb`, and parameter groups — instead of falling back to Flexible Server steps, and flags features not yet available on HorizonDB (VNet injection, built-in PgBouncer, index tuning, major-version upgrades, configurable backup retention, cross-region replicas). See [Azure HorizonDB](https://learn.microsoft.com/en-us/azure/horizondb/overview).
+Each Azure reference also includes an *On Azure HorizonDB* section. For a HorizonDB
+connection (`*.horizondb.azure.com`), the skills direct the agent to cluster,
+`az horizondb`, and parameter-group guidance instead of Flexible Server commands.
+Feature availability differs by service and deployment; verify it before acting.
+See [Azure HorizonDB](https://learn.microsoft.com/en-us/azure/horizondb/overview).
 
 | Sub-skill | Helps you with | What the agent learns that LLMs get wrong |
 |-----------|---------------|------------------------------------------|
 | **azure-postgresql-vector-diskann** | DiskANN for billion-scale vector search | `lists` vs `m`/`ef_construction` tuning, DiskANN is Azure-only |
-| **azure-postgresql-genai-patterns** | In-database embeddings + RAG with azure_ai | Batch processing limits, rate limit handling, Path A vs B decision |
+| **azure-postgresql-genai-patterns** | SQL-driven embeddings and RAG with azure_ai | External model calls, batch processing limits, rate limit handling, Path A vs B decision |
 | **azure-postgresql-azure-ai** | azure_ai extension setup, AI functions | `create()` vs `create_embeddings()`, managed identity config |
 | **azure-postgresql-intelligent-tuning** | Query Store, index recommendations | Query Store must be enabled first, `pg_qs.query_capture_mode` |
 | **azure-postgresql-entra-id-auth** | Passwordless auth with Entra ID | Token refresh before 5-min expiry, managed identity setup |
@@ -269,6 +323,8 @@ The **pg-graph** skill is the single home for graph work on PostgreSQL, covering
 | **graph-explainability** | Provenance, reasoning paths, and explainable recommendations | Confidence bounded by the weakest edge on the path; reproducible reasoning trace |
 | **azure-ai-semantic-search** | Enabling and configuring `azure_ai` and generating embeddings for semantic search | Read current settings and ask for endpoint/key/deployment — never invent them |
 | **examples** | End-to-end worked graph examples spanning schema, query, and results | Grounded in the wrapping and safety rules from the other pg-graph sub-skills |
+
+</details>
 
 ## Contributing
 
