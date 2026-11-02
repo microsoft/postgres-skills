@@ -8,10 +8,6 @@ here. Marketplace metadata and discovery changes are tracked in the
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Historical entries are reconstructed from Git history. Version dates use the
-existing release tag where available, or the commit that introduced the version
-otherwise; they do not imply a published GitHub Release.
-
 ## [Unreleased]
 
 ## [0.1.3] - 2026-11-02
