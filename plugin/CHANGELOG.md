@@ -3,7 +3,7 @@
 Notable changes to the installable `postgres-skills` plugin, including its
 skills, MCP integration, host manifests, and setup documentation, are documented
 here. Marketplace metadata and discovery changes are tracked in the
-[marketplace changelog](../.github/plugin/CHANGELOG.md).
+[marketplace changelog](../CHANGELOG.md).
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).

@@ -8,7 +8,11 @@ your AI coding agent with PostgreSQL guidance and database tools.** Use it to bu
 troubleshoot, and operate PostgreSQL across local, self-hosted, and cloud environments,
 including Azure Database for PostgreSQL and Azure HorizonDB.
 
-It bundles two skills with 33 reference guides and a local PostgreSQL MCP server.
+This repository is the plugin marketplace that distributes Postgres Skills.
+See the [marketplace changelog](CHANGELOG.md) for listing and setup updates, and
+the [plugin changelog](plugin/CHANGELOG.md) for plugin release notes.
+
+The plugin bundles two skills with 33 reference guides and a local PostgreSQL MCP server.
 **It is not a PostgreSQL extension, database service, or standalone AI assistant.**
 You bring a supported agent and choose which database it can access.
 
