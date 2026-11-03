@@ -63,7 +63,7 @@ def test_reference_file_count():
     )
 
 
-def test_release_versions_match():
+def test_plugin_release_versions_match():
     marketplace = json.loads(
         (ROOT / ".github" / "plugin" / "marketplace.json").read_text(encoding="utf-8")
     )
@@ -82,13 +82,12 @@ def test_release_versions_match():
     )
 
     versions = {
-        marketplace["metadata"]["version"],
         marketplace["plugins"][0]["version"],
         claude_plugin["version"],
         codex_plugin["version"],
         agent_plugin["version"],
     }
-    assert len(versions) == 1, f"release versions must match, found: {sorted(versions)}"
+    assert len(versions) == 1, f"plugin release versions must match, found: {sorted(versions)}"
 
 
 def test_agent_plugin_manifests():
