@@ -24,8 +24,9 @@ Without it, `codex plugin add postgres-skills@postgres-skills` fails with
 
 Claude Code reads plugin metadata from **`.claude-plugin/plugin.json`**. GitHub
 Copilot reads the Agent Plugins v1.0 **`plugin.json`** and **`mcp.json`** files at
-the plugin root. Keep the host manifests and marketplace metadata in
-`.github/plugin/marketplace.json` at the same release version.
+the plugin root. Keep the host manifests and the listed plugin version in
+`.github/plugin/marketplace.json` at the same release version. The marketplace's
+`metadata.version` is versioned independently.
 
 ## Security and privacy
 
