@@ -46,6 +46,8 @@ and the [plugin changelog](CHANGELOG.md) for release history.
 - `skills/migrate-oracle-app/references/language-adapters.md`: conversion,
   test discovery, integration, packaging, and coverage rules for Java, .NET, Python, C, and C++
 - `skills/migrate-oracle-app/scripts/validate-migration-artifacts.mjs`: fail-closed report/state/evidence validator
+- `skills/migrate-oracle-app/scripts/coding-notes.mjs`: read-only notes ingestion, private provenance,
+  content-digest verification, exhaustive note inventory and native report task lists
 - `skills/migrate-oracle-app/scripts/migration-runtime.mjs`: primary-owner execution lease, verified source/target-object
   caches, bounded recovery checkpoints, and final report/state assembly
 - `skills/migrate-oracle-app/scripts/java-test-preflight.mjs`: effective per-module Java release detection and draft syntax
@@ -415,12 +417,36 @@ application Git repository, not the installed skill directory.
 | `database` | Target-backed assessment/conversion | Unique database from selected profile, when provable | Exact PostgreSQL database. An explicit value overrides the profile default; the skill never silently falls back. |
 | `schema` | Required for `test-target-writes` | One safe schema from codebase evidence and search path | Exact PostgreSQL schema. Target-write testing never derives or inherits it. |
 | `oracle-ddl-folder` | No | None | Read-only migration-project/ancestor root. The preferred layout is `.github/postgres-migrations/<user-provided-name>/artifacts/oracle/<schema>/<object-type>`. The middle name and set of object-type folders are dynamic; any bounded layout with the selected schema and at least one object-type folder is accepted. If absent or unmatched, the skill performs documented best-effort reconstruction and synthetic Docker validation. It does not authorize target writes. |
-| `notes` | No | None | Path to migration rules, coding notes, policies, or scoped conversion guidance. |
+| `notes` | No | None | Read-only coding-notes file or migration project directory containing `results/application_guidance/coding_notes.md`; automatically reconciled in every report. |
 | `postgres-image` | No | Selected target's PostgreSQL major version | Docker image used for the disposable integration-test environment. |
 | `options` | No | Every canonical option is `off` | Comma-separated migration options. Assessment and conversion may recommend options but never enable them implicitly. |
 
 Do not put spaces inside the comma-separated `options` value. Paths containing spaces should be
 quoted according to the client or shell invoking the skill.
+
+### Coding Notes Processing
+
+Supply `notes="/path/to/coding_notes.md"` or `notes="/path/to/migration-project"`.
+Directory input resolves only `results/application_guidance/coding_notes.md` beneath that
+explicit directory, never another directory or guessed file. Missing, unreadable, ambiguous and
+omitted inputs are reported honestly; notes are optional guidance and never authorize source edits,
+database access or migration options.
+
+Every assessment/conversion report, including no-conversion and scope-review exits, automatically
+contains **Coding Notes Processing** with native Markdown task-list checkboxes. All inventoried
+items retain stable IDs and evidence-backed dispositions: applied, no-change-needed, not-applicable,
+conflicting or pending. Checked means read/evaluated with a recorded disposition, **not** necessarily
+implemented or runtime-validated; unread items stay unchecked and pending actions/conflicts retain
+their next actions. Content digests and private local provenance invalidate stale processing
+evidence and notes-dependent caches on reruns. Raw notes and private absolute paths are not copied
+into public notes state/reports; normal privacy and migration safety rules remain mandatory.
+
+The loaded skill's `scripts/coding-notes.mjs` resolves input and generates the checklist from the
+same `codingNotes` object used by runtime finalization and artifact validation. Resolve its absolute
+path from the loaded skill directory independently of the application's current working directory.
+See the [notes contract](skills/migrate-oracle-app/references/coding-notes.md) for input limits,
+evidence schema, early exits and rerun behavior. Notes checks do not replace any target/test/runtime
+gate.
 
 ### Codebase Git Repository
 

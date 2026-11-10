@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
+import { ingestCodingNotes, omittedCodingNotes, renderCodingNotes } from "../skills/migrate-oracle-app/scripts/coding-notes.mjs";
 import { detectMigrationScope } from "../skills/migrate-oracle-app/scripts/detect-migration-scope.mjs";
 import { indexOracleDdlFolder } from "../skills/migrate-oracle-app/scripts/index-oracle-ddl.mjs";
 import { renderRunMetrics } from "../skills/migrate-oracle-app/scripts/format-run-metrics.mjs";
@@ -17,6 +18,108 @@ import {
 } from "../skills/migrate-oracle-app/scripts/migration-runtime.mjs";
 
 const validator = path.resolve("skills/migrate-oracle-app/scripts/validate-migration-artifacts.mjs");
+
+for (const [label, create] of [
+  ["no-conversion", createNoConversionFixture],
+  ["scope-review", createScopeReviewFixture],
+]) {
+  test(`coding notes are validated on both ${label} reporting exits`, async () => {
+    const root = await create();
+    try {
+      const input = path.join(root, ".git", "notes-project");
+      const file = path.join(input, "results", "application_guidance", "coding_notes.md");
+      await mkdir(path.dirname(file), { recursive: true });
+      await writeFile(file, "- CN-01: Keep signatures.\n- CN-02: Verify target contracts.\n");
+      const notes = await ingestCodingNotes(root, input);
+      notes.items[0].evaluated = true;
+      notes.items[0].disposition = "not-applicable";
+      notes.items[0].nextAction = null;
+      notes.items[0].evidence = [{
+        kind: "scope", reference: "scopeDecision.status",
+        detail: `${label} stopped semantic conversion before application edits.`,
+      }];
+      await setCodingNotesFixture(root, notes, ["assessment", "conversion"]);
+      const recorded = spawnSync(process.execPath, [validator, root, "both", "--record"], { encoding: "utf8" });
+      assert.equal(recorded.status, 0, recorded.stderr);
+      const verified = spawnSync(process.execPath, [validator, root, "both"], { encoding: "utf8" });
+      assert.equal(verified.status, 0, verified.stderr);
+      await writeFile(file, "- CN-01: Changed guidance.\n");
+      const changed = spawnSync(process.execPath, [validator, root, "both"], { encoding: "utf8" });
+      assert.notEqual(changed.status, 0);
+      assert.match(changed.stderr, /Coding notes input changed/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+}
+
+test("full conversion validator rejects missing notes state and fabricated checklist evidence", async () => {
+  const root = await createFixture();
+  try {
+    const statePath = conversionStatePath(root);
+    const state = JSON.parse(await readFile(statePath, "utf8"));
+    delete state.codingNotes;
+    await writeFile(statePath, JSON.stringify(state));
+    const absent = spawnSync(process.execPath, [validator, root, "conversion", "--record"], { encoding: "utf8" });
+    assert.notEqual(absent.status, 0);
+    assert.match(absent.stderr, /codingNotes ingestion evidence is required/);
+    state.codingNotes = omittedCodingNotes();
+    await writeFile(statePath, JSON.stringify(state));
+    const reportPath = path.join(root, ".github", "migrate-oracle-app", "conversions", "conversion-report.md");
+    const report = await readFile(reportPath, "utf8");
+    await writeFile(reportPath, report.replace("Input status: **not-supplied**", "- [x] CN-01 - applied\n\nInput status: **processed**"));
+    const fabricated = spawnSync(process.execPath, [validator, root, "conversion", "--record"], { encoding: "utf8" });
+    assert.notEqual(fabricated.status, 0);
+    assert.match(fabricated.stderr, /checklist does not match/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("combined artifact validation rejects different current notes inputs across reports", async () => {
+  const root = await createNoConversionFixture();
+  try {
+    const input = path.join(root, ".git", "notes.md");
+    await writeFile(input, "- CN-01: Keep signatures.\n");
+    const notes = await ingestCodingNotes(root, input);
+    await setCodingNotesFixture(root, notes, ["assessment"]);
+    const result = spawnSync(process.execPath, [validator, root, "both", "--record"], { encoding: "utf8" });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /same current coding notes input snapshot/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("artifact validation records unavailable supplied notes honestly without claiming successful ingestion", async () => {
+  const root = await createNoConversionFixture();
+  try {
+    const input = path.join(root, ".git", "missing-notes.md");
+    for (const kind of ["missing", "unreadable"]) {
+      if (kind === "unreadable") await writeFile(input, Buffer.from([0xff]));
+      const notes = await ingestCodingNotes(root, input);
+      assert.equal(notes.status, kind);
+      await setCodingNotesFixture(root, notes, ["assessment", "conversion"]);
+      const result = spawnSync(process.execPath, [validator, root, "both", "--record"], { encoding: "utf8" });
+      assert.equal(result.status, 0, result.stderr);
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+async function setCodingNotesFixture(root, notes, phases) {
+  for (const phase of phases) {
+    const directory = path.join(root, ".github", "migrate-oracle-app", phase === "assessment" ? "assessment" : "conversions");
+    const statePath = path.join(directory, phase === "assessment" ? "assessment-data.json" : "conversion-state.json");
+    const reportPath = path.join(directory, phase === "assessment" ? "assessment-report.md" : "conversion-report.md");
+    const state = JSON.parse(await readFile(statePath, "utf8"));
+    const report = await readFile(reportPath, "utf8");
+    await writeFile(reportPath, report.replace(renderCodingNotes(state.codingNotes), renderCodingNotes(notes)));
+    state.codingNotes = notes;
+    await writeFile(statePath, JSON.stringify(state));
+  }
+}
 
 test("artifact validator accepts a no-database Angular early exit", async () => {
   const root = await createNoConversionFixture();
@@ -1884,6 +1987,7 @@ async function createNoConversionFixture({ preexistingTarget = false } = {}) {
     JSON.stringify({
       schemaVersion: 1,
       status: "NO_CONVERSION_REQUIRED",
+      codingNotes: omittedCodingNotes(),
       runMetrics: runMetricsEvidence(false),
       scopeDecision,
       fileInventory: {
@@ -1902,6 +2006,7 @@ async function createNoConversionFixture({ preexistingTarget = false } = {}) {
     JSON.stringify({
       schemaVersion: 1,
       status: "NO_CONVERSION_REQUIRED",
+      codingNotes: omittedCodingNotes(),
       runMetrics: runMetricsEvidence(false),
       scopeDecision,
       fileInventory: {
@@ -1961,6 +2066,7 @@ async function createScopeReviewFixture() {
     JSON.stringify({
       schemaVersion: 1,
       status: "SCOPE_REVIEW_REQUIRED",
+      codingNotes: omittedCodingNotes(),
       runMetrics: runMetricsEvidence(false),
       scopeDecision,
       fileInventory: {
@@ -1982,6 +2088,7 @@ async function createScopeReviewFixture() {
     JSON.stringify({
       schemaVersion: 1,
       status: "SCOPE_REVIEW_REQUIRED",
+      codingNotes: omittedCodingNotes(),
       runMetrics: runMetricsEvidence(false),
       scopeDecision,
       fileInventory: {
@@ -2000,6 +2107,7 @@ function scopeReviewMarkdown(title, outcomeHeading) {
     ["scope-review-required", "Scope Review Required"],
     ["validation-results", "Validation Results"],
     ["outcome", outcomeHeading],
+    ["coding-notes-processing", "Coding Notes Processing"],
     [
       "appendix",
       title.includes("Assessment") ? "Appendix / Run Evidence" : "Appendix / Execution Evidence",
@@ -2013,7 +2121,9 @@ ${sections.map(([anchor, heading]) => `- [${heading}](#${anchor})`).join("\n")}
 
 ${sections
   .map(
-    ([anchor, heading]) => `<a id="${anchor}"></a>
+    ([anchor, heading]) => heading === "Coding Notes Processing"
+      ? `<a id="${anchor}"></a>\n## ${heading}\n\n${renderCodingNotes(omittedCodingNotes())}\n\n[Back to Top](#top)`
+      : `<a id="${anchor}"></a>
 ## ${heading}
 
 Scope review required.
@@ -2046,6 +2156,7 @@ function noConversionAssessmentReport() {
       ["application-technology", "Application Technology"],
       ["database-dependency-scan", "Database Dependency Scan"],
       ["assessment-outcome", "Assessment Outcome"],
+      ["coding-notes-processing", "Coding Notes Processing"],
       ["appendix-run-evidence", "Appendix / Run Evidence"],
     ],
   );
@@ -2059,6 +2170,7 @@ function noConversionReport() {
       ["scope-decision", "Scope Decision"],
       ["validation-results", "Validation Results"],
       ["conversion-outcome", "Conversion Outcome"],
+      ["coding-notes-processing", "Coding Notes Processing"],
       ["appendix-execution-evidence", "Appendix / Execution Evidence"],
     ],
   );
@@ -2067,7 +2179,9 @@ function noConversionReport() {
 function noConversionMarkdown(title, sections) {
   const body = sections
     .map(
-      ([anchor, heading]) => `<a id="${anchor}"></a>
+      ([anchor, heading]) => heading === "Coding Notes Processing"
+        ? `<a id="${anchor}"></a>\n## ${heading}\n\n${renderCodingNotes(omittedCodingNotes())}\n\n[Back to Top](#top)`
+        : `<a id="${anchor}"></a>
 ## ${heading}
 
 No application conversion required.
@@ -2140,6 +2254,7 @@ public class DisabledLegacyTest {
     path.join(assessment, "assessment-data.json"),
     JSON.stringify({
       runMetrics: runMetricsEvidence(),
+      codingNotes: omittedCodingNotes(),
       baselineEnablement: { enabledBaseline: { testsRun: baselineTests } },
       postgresProvider: postgresProviderEvidence(),
       targetMetadataAcquisition: targetMetadataAcquisitionEvidence(),
@@ -2197,6 +2312,7 @@ public class DisabledLegacyTest {
     path.join(conversion, "conversion-state.json"),
     JSON.stringify({
       runMetrics: runMetricsEvidence(),
+      codingNotes: omittedCodingNotes(),
       postgresProvider: postgresProviderEvidence(),
       targetMetadataAcquisition: targetMetadataAcquisitionEvidence(),
       oracleDdlSource: oracleDdlSourceEvidence(),
@@ -3214,6 +3330,7 @@ function conversionReport(
     ["database-test-environment", "Database Test Environment"],
     ["remaining-work-exceptions", "Remaining Work & Exceptions"],
     ["conversion-outcome", "Conversion Outcome"],
+    ["coding-notes-processing", "Coding Notes Processing"],
     ["appendix-execution-evidence", "Appendix / Execution Evidence"],
   ];
   const sections = headings
@@ -3632,6 +3749,7 @@ async function configurePersistentDdlFixture(
 }
 
 function sectionBody(heading, finalTests, discoveryRows, adapterIds) {
+  if (heading === "Coding Notes Processing") return renderCodingNotes(omittedCodingNotes());
   if (heading === "Executive Conversion Summary") {
     const executive = executiveSummaryEvidence(finalTests);
     return `${executive.conversionResult}

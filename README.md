@@ -21,6 +21,11 @@ For Oracle-dependent application assessment and conversion, use
 prerequisites, safety policies, and migration-script tests. It uses the same
 `postgres-mcp` server as the other skills.
 
+Optional migration `notes=<file-or-project-directory>` automatically produces a
+**Coding Notes Processing** task list with stable IDs, evidence and dispositions.
+Checked means evaluated, not necessarily implemented or runtime-validated; changed
+notes invalidate prior evidence. See the [coding-notes contract](plugin/skills/migrate-oracle-app/references/coding-notes.md).
+
 ## Is this for me?
 
 ### Who it's for

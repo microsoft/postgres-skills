@@ -120,6 +120,14 @@ ordering/navigation, and inserts Run Metrics centrally from precise state. It re
 complete JSON state once, stages outputs, writes an assembly receipt, then runs artifact validation
 with `--require-runtime --record` and independent verification.
 
+Persist the deterministic `codingNotes` ingestion result and per-note dispositions in phase
+checkpoints under [coding-notes.md](./coding-notes.md), including `not-supplied`. The assembler
+re-reads the private input locator, rejects changed notes/stale inventory, and generates
+**Coding Notes Processing** centrally with native task-list checkboxes. Do not checkpoint a
+hand-written notes section or equate checked with implemented/runtime-validated. Source/target
+manifest input digests automatically include the checkpointed notes snapshot; re-ingest/checkpoint
+the current invocation input before requesting derived findings. Java release caches are independent.
+
 For combined runs, the assessment phase has its own publication boundary for conversion input.
 At the final combined boundary, synchronize final timing into both checkpoints and finalize both
 phases together. This intentional second assessment snapshot is not a per-wave rewrite.

@@ -3,6 +3,11 @@
 Conversion consumes `assessment-data.json` directly and owns implementation, repair, tests,
 coverage, packaging, and resumable state.
 
+Re-ingest the current invocation's optional notes under [coding-notes.md](./coding-notes.md).
+Do not inherit stale assessment checkmarks. Persist every note's disposition in `codingNotes`;
+the final assembler automatically generates **Coding Notes Processing**, including honest pending
+actions/conflicts. Evaluation checkboxes never replace build, target or runtime gates.
+
 Follow [git-workspace.md](./git-workspace.md) for in-place repository preflight and change tracking.
 Use [state-and-convergence.md](./state-and-convergence.md) to avoid repeated discovery, define
 bounded units, cluster failures, cap repair loops, delegate execution, and measure convergence.

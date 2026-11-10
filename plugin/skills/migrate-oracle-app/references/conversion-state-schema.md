@@ -3,6 +3,11 @@
 `conversion-state.json` is sanitized machine evidence, not a free-form log. Persist these canonical
 keys so report generation and `validate-migration-artifacts.mjs` use one contract.
 
+Both assessment and conversion state also require `codingNotes`, including static early exits and
+omitted inputs. Use the ingestion helper's exact provenance/digest/item inventory and the evaluation
+fields defined in [coding-notes.md](./coding-notes.md). Never persist raw notes or private locators.
+The report checklist is generated from this same object and verified against the current file.
+
 ```json
 {
   "schemaVersion": 1,

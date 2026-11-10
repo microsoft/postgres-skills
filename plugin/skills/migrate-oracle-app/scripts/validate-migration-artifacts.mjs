@@ -12,6 +12,7 @@ import { indexOracleDdlFolder } from "./index-oracle-ddl.mjs";
 import { planPostgresToolDiscovery } from "./postgres-provider-policy.mjs";
 import { renderRunMetrics } from "./format-run-metrics.mjs";
 import { verifyMigrationBoundary } from "./migration-runtime.mjs";
+import { codingNotesInputDigest, validateCodingNotesReport } from "./coding-notes.mjs";
 import {
   MINIMUM_TEST_WAVES,
   MAXIMUM_TEST_WAVES,
@@ -51,6 +52,7 @@ const runtimeDirectory = runtimeDirectoryArgument
 const errors = [];
 const warnings = [];
 const runMetricsReports = [];
+const codingNotesInputs = [];
 let testSourceInventoryPromise;
 let missingDiscoveryInventoryReported = false;
 
@@ -66,6 +68,9 @@ if (
   runMetricsReports[0] !== runMetricsReports[1]
 ) {
   errors.push("Assessment and conversion Run Metrics must use the same final timing snapshot for a combined run");
+}
+if (mode === "both" && codingNotesInputs.length === 2 && codingNotesInputs[0] !== codingNotesInputs[1]) {
+  errors.push("Combined reports require the same current coding notes input snapshot");
 }
 
 for (const warning of warnings) {
@@ -85,6 +90,16 @@ if (errors.length > 0) {
   }
 }
 
+async function validateNotes(state, report, statePath, phase) {
+  try {
+    await validateCodingNotesReport(root, state, report, phase);
+    codingNotesInputs.push(codingNotesInputDigest(state.codingNotes));
+  } catch (error) {
+    const reason = error.code && !error.code.startsWith("MIGRATION_") ? error.code : error.message;
+    errors.push(`${statePath}: ${reason}`);
+  }
+}
+
 async function validateAssessment() {
   const reportPath = ".github/migrate-oracle-app/assessment/assessment-report.md";
   const statePath = ".github/migrate-oracle-app/assessment/assessment-data.json";
@@ -93,6 +108,7 @@ async function validateAssessment() {
   const report = await requiredText(reportPath);
   const state = await requiredJson(statePath);
   if (!report || !state) return;
+  await validateNotes(state, report, statePath, "assessment");
   await validateRuntimeExecution("assessment", state, report, statePath);
   validateRunMetrics(state, report, statePath, reportPath);
   if (isStaticScopeStop(state)) {
@@ -192,6 +208,7 @@ async function validateConversion() {
     ".github/migrate-oracle-app/assessment/assessment-data.json",
   );
   if (!report || !state) return;
+  await validateNotes(state, report, statePath, "conversion");
   await validateRuntimeExecution("conversion", state, report, statePath);
   validateRunMetrics(state, report, statePath, reportPath);
   if (isStaticScopeStop(state)) {
