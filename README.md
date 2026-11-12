@@ -8,12 +8,18 @@ your AI coding agent with PostgreSQL guidance and database tools.** Use it to bu
 troubleshoot, and operate PostgreSQL across local, self-hosted, and cloud environments,
 including Azure Database for PostgreSQL and Azure HorizonDB.
 
-It bundles two skills with 33 reference guides and a local PostgreSQL MCP server.
+It bundles three skills and a local PostgreSQL MCP server: PostgreSQL best practices,
+Apache AGE graph workflows, and Oracle application migration.
 **It is not a PostgreSQL extension, database service, or standalone AI assistant.**
 You bring a supported agent and choose which database it can access.
 
 [Get started](#get-started) · [How it works](#how-it-works) ·
 [Examples](#real-world-examples) · [Full catalog](#sub-skill-catalog)
+
+For Oracle-dependent application assessment and conversion, use
+**`migrate-oracle-app`**. See the [migration guide](plugin/MIGRATION.md) for inputs,
+prerequisites, safety policies, and migration-script tests. It uses the same
+`postgres-mcp` server as the other skills.
 
 ## Is this for me?
 
@@ -84,7 +90,9 @@ Use [skills.sh](https://skills.sh) if you want the guidance without the bundled 
 npx skills add microsoft/postgres-skills --full-depth
 ```
 
-Choose `postgresql-best-practices`, `pg-graph`, or both. This does not install the
+Choose `postgresql-best-practices`, `pg-graph`, or `migrate-oracle-app`.
+Migration includes skill-local scripts described in the [migration guide](plugin/MIGRATION.md).
+Skills-only installation does not install the
 PostgreSQL MCP server or establish a database connection. For live database work,
 use the full plugin above or configure your own compatible tools.
 
@@ -106,7 +114,7 @@ execute SQL or run a background service.
 | Component | Role |
 |-----------|------|
 | **Your AI agent** | Interprets your request, loads relevant guidance, and invokes available tools. |
-| **Two skills** | `postgresql-best-practices` routes PostgreSQL and Azure questions to reference guides. `pg-graph` covers ontology design, graph construction, and openCypher queries. |
+| **Three skills** | `postgresql-best-practices` routes PostgreSQL and Azure questions to reference guides. `pg-graph` covers graph workflows. `migrate-oracle-app` assesses and converts Oracle-dependent application code. |
 | **PostgreSQL MCP server** | Runs locally through `npx` and sends queries and approved changes to the database you select. MCP stands for Model Context Protocol, the interface between the agent and its tools. |
 | **Azure CLI, optional** | Handles Azure resource operations after you install it and authenticate. It is not required for generic PostgreSQL work and the plugin does not install it. |
 
@@ -258,8 +266,9 @@ sensitive or production database.
 
 ## Sub-skill Catalog
 
-The plugin contains two installable skills and 33 reference guides, grouped below.
-"Sub-skills" refers to those guides, not 33 separate plugins.
+The PostgreSQL and graph skills contain 33 reference guides, grouped below.
+"Sub-skills" refers to those guides, not 33 separate plugins. The third skill,
+`migrate-oracle-app`, has its own [migration guide](plugin/MIGRATION.md) and workflow references.
 
 <details>
 <summary>Browse all 33 reference guides: 11 PostgreSQL, 12 Azure, and 10 graph</summary>

@@ -4,11 +4,17 @@ The installable plugin payload for the `postgres-skills` marketplace. It bundles
 the PostgreSQL skill and the `postgres-mcp` MCP server so AI-agent CLIs (GitHub Copilot CLI,
 Claude Code, Codex) can route PostgreSQL work to the right guidance and tools.
 
+The `migrate-oracle-app` skill adds Oracle application assessment and conversion,
+using the same MCP server. See the [migration guide](MIGRATION.md) for usage.
+
 ## Contents
 
 | Path | Purpose |
 | --- | --- |
 | `skills/postgresql-best-practices/` | The skill (SKILL.md routing table + reference docs). |
+| `skills/migrate-oracle-app/` | Oracle application migration skill, references, and scripts. |
+| `tests/` | Migration script and documentation contract tests. |
+| `package.json` | Migration test and script commands. |
 | `plugin.json` | Agent Plugins v1.0 manifest used by GitHub Copilot. |
 | `mcp.json` | Agent Plugins v1.0 declaration for the `postgres-mcp` server. |
 | `.mcp.json` | Declares the `postgres-mcp` MCP server (local stdio through `npx`, with optional telemetry disabled). |

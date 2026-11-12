@@ -4,7 +4,7 @@
 """Repository structure and manifest validation.
 
 Ported from the inline Python/bash in the ci.yml ``validate-manifests`` job:
-marketplace manifests must be valid JSON, the single-plugin layout must contain
+marketplace manifests must be valid JSON, the marketplace and plugins must contain
 all required files, and there must be a healthy number of reference files.
 """
 
@@ -26,11 +26,19 @@ JSON_FILES = [
     "plugin/.mcp.json",
     "plugin/.claude-plugin/plugin.json",
     "plugin/.codex-plugin/plugin.json",
+    "plugin/package.json",
     "tests/.skills.json",
 ]
 
 REQUIRED_FILES = [
     "README.md",
+    "CHANGELOG.md",
+    "plugin/README.md",
+    "plugin/CHANGELOG.md",
+    "plugin/MIGRATION.md",
+    "plugin/skills/migrate-oracle-app/SKILL.md",
+    "plugin/skills/migrate-oracle-app/scripts/migration-runtime.mjs",
+    "plugin/tests/migration-runtime.test.mjs",
     "plugin/plugin.json",
     "plugin/mcp.json",
     "plugin/.mcp.json",
@@ -134,3 +142,39 @@ def test_product_display_name():
     assert plugin["name"] == "postgres-skills"
     assert plugin["displayName"] == "Postgres Skills"
     assert readme.startswith("# Postgres Skills\n")
+
+
+def test_main_readme_links_migration_documentation():
+    marketplace = json.loads(
+        (ROOT / ".github" / "plugin" / "marketplace.json").read_text(encoding="utf-8")
+    )
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+
+    assert readme.startswith("# Postgres Skills\n")
+    assert "`migrate-oracle-app`" in readme
+    assert "](plugin/MIGRATION.md)" in readme
+    for plugin in marketplace["plugins"]:
+        directory = plugin["source"].removeprefix("./")
+        for filename in ["README.md", "CHANGELOG.md"]:
+            relative_path = f"{directory}/{filename}"
+            assert (ROOT / relative_path).is_file()
+        assert f"]({directory}/CHANGELOG.md)" in changelog
+
+
+def test_single_plugin_contains_migration():
+        marketplace = json.loads(
+            (ROOT / ".github/plugin/marketplace.json").read_text(encoding="utf-8")
+        )
+        assert [(item["name"], item["source"]) for item in marketplace["plugins"]] == [
+            ("postgres-skills", "./plugin")
+        ]
+        assert not (ROOT / "oracle-to-postgres").exists()
+        assert not (ROOT / "plugin/scripts").exists()
+        package = json.loads((ROOT / "plugin/package.json").read_text(encoding="utf-8"))
+        manifest = json.loads((ROOT / "plugin/plugin.json").read_text(encoding="utf-8"))
+        assert package["name"] == manifest["name"]
+        assert package["version"] == manifest["version"]
+        for filename in ["mcp.json", ".mcp.json"]:
+            mcp = json.loads((ROOT / "plugin" / filename).read_text(encoding="utf-8"))
+            assert list(mcp["mcpServers"]) == ["postgres-mcp"]
