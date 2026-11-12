@@ -28,13 +28,19 @@ zero items and are explicitly reported as empty. Missing/unavailable notes are o
 continue independent work, disclose the limitation and exact customer action, and do not invent
 contents, successful ingestion, or a ready disposition.
 
-The public `codingNotes` object contains hashed input/resolved references, resolution kind, the
+The public `codingNotes` object (schema version 2) contains keyed input/resolved references, resolution kind, the
 exact file SHA-256, line spans, per-item SHA-256 and dispositions. A private locator under the
 worktree's Git metadata (`migrate-oracle-app/coding-notes/`) retains the explicit input path so
 validation can re-read the same source. It contains no note text and is never copied into reports,
 tracked state, or handoffs. Files are created with owner-only permissions. Do not publish absolute
 paths or raw notes, credentials, hosts, profile IDs, connection strings or source snapshots.
 State/report evidence must be concise, sanitized findings, not quotations of sensitive material.
+Path references use HMAC-SHA-256 with a random 32-byte per-worktree secret stored only in
+`reference-key` in that private directory (owner-only directory/file permissions). They are stable
+for reruns in the same worktree but differ across worktrees; they are not plain guessable hashes
+of absolute paths. Never copy the key to requests, reports, state, logs or handoffs. Content digests
+remain ordinary SHA-256 for byte verification. Earlier version-1 notes evidence must be re-ingested
+and re-evaluated; old references/checkmarks are explicitly rejected.
 
 ## Complete Inventory and Honest Dispositions
 
@@ -45,11 +51,18 @@ rules always win; record incompatible guidance as `conflicting`.
 
 The deterministic inventory conservatively includes every nonempty Markdown block; list items and
 headings/table rows begin new items, blank lines separate prose blocks, fenced code remains one block.
+An unclosed fence retains all subsequent lines in one conservative block; evaluate the entire block,
+including any embedded guidance, rather than pretending later list items were individually parsed.
 Non-actionable titles/context still require evaluation (`not-applicable` with a reason), rather than
 being silently dropped. Preserve the helper's IDs, line spans, digests and order exactly. Explicit
-leading IDs such as `CN-01:`, `NOTE_A`, and backtick/bold-wrapped IDs containing a digit, hyphen or
-underscore are retained; numeric/dotted IDs such as `123:`/`CN.4:` and explicitly
-bracketed/wrapped IDs such as `[alpha]` are retained too.
+leading IDs require an explicit delimiter (`:`, `)`, ` - `, or a table cell boundary).
+Structured identifiers such as `CN-01:`/`CN.4:` (alphabetic prefix, separators and numeric suffix)
+or `CN03:` (multiple-letter prefix and numeric suffix),
+including backtick/bold-wrapped forms, are retained. Bracketed identifiers such as `[alpha]:`,
+`[NOTE_A]:` or `[123]:` are also retained. Ordinary repeated labels (`**Note**`, `ROWNUM`,
+`Read-only`), numeric table cells and dotted version prose are not identifiers and receive generated
+IDs. Duplicates of genuinely explicit IDs remain ambiguous; never discard ordinary guidance as a
+duplicate inferred title.
 Other blocks receive `NOTE-<content-hash-prefix>-<occurrence>` IDs, stable
 across reordering/insertions of different content. Do not invent a reduced actionable subset.
 If guidance contains multiple independent actions in one block, account for **all** of them in its
@@ -84,6 +97,8 @@ dispositions change. After that checkpoint the runtime automatically binds sourc
 input digests to the current notes snapshot (in addition to the existing target context); notes
 changes invalidate derived recommendations and stale lookup receipts. Java release caches remain
 independent. Do not reuse notes-dependent findings before checkpointing the current invocation input.
+Source/target cache lookup fails explicitly without that checkpoint, including when notes are
+omitted: persist `not-supplied` first. Notes-agnostic entries from earlier runs cannot bypass it.
 
 At normal phase/final boundaries, `migration-runtime.mjs finalize` verifies the actual input and
 generates the canonical section centrally from `codingNotes`. Do not checkpoint custom checklist
@@ -113,3 +128,6 @@ These are deterministic ingestion/consistency checks, not a proof that a model's
 interpretation is correct. Concrete evidence and independent source/target/test review remain
 necessary. Private provenance must remain available locally for subsequent verification; losing it
 requires explicit re-ingestion, not a fabricated replacement receipt.
+Copied reports, a new clone, or CI without the original private locator/key cannot verify the
+original input. The validator states that limitation and directs explicit re-ingestion/re-evaluation
+in the new worktree; it never silently skips notes verification or inherits old checkmarks.

@@ -440,6 +440,10 @@ implemented or runtime-validated; unread items stay unchecked and pending action
 their next actions. Content digests and private local provenance invalidate stale processing
 evidence and notes-dependent caches on reruns. Raw notes and private absolute paths are not copied
 into public notes state/reports; normal privacy and migration safety rules remain mandatory.
+Path references are keyed with a private per-worktree secret, not unsalted absolute-path hashes.
+Copied reports or CI without private provenance require explicit notes re-ingestion and evaluation;
+verification does not silently skip missing evidence. Repeated prose labels receive generated IDs,
+while genuinely explicit identifiers retain their IDs and duplicate-ID conflicts remain visible.
 
 The loaded skill's `scripts/coding-notes.mjs` resolves input and generates the checklist from the
 same `codingNotes` object used by runtime finalization and artifact validation. Resolve its absolute

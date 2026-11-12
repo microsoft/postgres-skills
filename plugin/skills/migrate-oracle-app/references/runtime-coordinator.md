@@ -127,6 +127,8 @@ re-reads the private input locator, rejects changed notes/stale inventory, and g
 hand-written notes section or equate checked with implemented/runtime-validated. Source/target
 manifest input digests automatically include the checkpointed notes snapshot; re-ingest/checkpoint
 the current invocation input before requesting derived findings. Java release caches are independent.
+Lookup rejects missing notes checkpoints, including omitted input: checkpoint `not-supplied`
+explicitly before using a source/target cache, so older notes-agnostic entries cannot be reused.
 
 For combined runs, the assessment phase has its own publication boundary for conversion input.
 At the final combined boundary, synchronize final timing into both checkpoints and finalize both

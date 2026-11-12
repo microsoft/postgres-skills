@@ -20,6 +20,12 @@ async function fixture() {
     root, runId: "runtime-test", actorId: "primary",
     runtimeDirectory: path.join(root, "private-runtime"), initialize: true,
   });
+  await withPrimaryExecution(runtime, "notes-input", async () => {
+    await checkpointMigration(runtime, {
+      phase: "assessment",
+      operations: [{ op: "set", path: ["codingNotes"], value: omittedCodingNotes() }],
+    });
+  });
   return { root, runtime };
 }
 

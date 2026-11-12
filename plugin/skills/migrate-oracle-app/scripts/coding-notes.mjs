@@ -1,5 +1,5 @@
 import { mkdir, open, readFile, realpath, rename, unlink } from "node:fs/promises";
-import { randomUUID } from "node:crypto";
+import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import path from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import {
@@ -14,7 +14,7 @@ const DISPOSITIONS = new Set(["applied", "no-change-needed", "not-applicable", "
 const EVIDENCE_KINDS = new Set(["source", "diff", "target", "scope", "policy", "limitation"]);
 const PRIVATE_TEXT = /[\u0000-\u001f\u007f]|jdbc:|postgres(?:ql)?:\/\/|(?:password|pwd|token|secret|host(?:name)?|profile[-_ ]?id)\s*[:=]|https?:\/\/|[A-Z]:\\|\/(?:Users|home)\/|\b(?:\d{1,3}\.){3}\d{1,3}\b|\b[\w-]+(?:\.[\w-]+)*\.(?:com|net|org|local|internal)\b|[\w.+%-]+@[\w.-]+/i;
 const OMITTED = {
-  schemaVersion: 1, status: "not-supplied", reason: "optional-input-omitted",
+  schemaVersion: 2, status: "not-supplied", reason: "optional-input-omitted",
   inputRef: null, provenance: null, sha256: null, items: [],
 };
 
@@ -32,6 +32,15 @@ function safeText(value, label) {
 function exactKeys(value, keys) {
   return value && typeof value === "object" && !Array.isArray(value) &&
     isDeepStrictEqual(Object.keys(value).sort(), [...keys].sort());
+}
+
+function explicitNoteId(first) {
+  const match = first.match(/^(?:\*\*|`)?(\[[A-Za-z0-9][A-Za-z0-9_.-]{0,63}\]|[A-Za-z][A-Za-z0-9_.-]{0,63})(?:\*\*|`)?(?=\s*(?::|\)|\s-\s|\|))/);
+  if (!match) return null;
+  const bracketed = match[1].startsWith("[");
+  const id = bracketed ? match[1].slice(1, -1) : match[1];
+  const structured = /^(?:[A-Za-z]{2,}\d+|[A-Za-z][A-Za-z0-9]*(?:[-_.][A-Za-z0-9]+)*[-_.]\d+[A-Za-z0-9]*)$/.test(id);
+  return bracketed || structured ? id : null;
 }
 
 // Inventory all nonempty Markdown blocks, not just guidance the agent considers easy/actionable.
@@ -64,10 +73,7 @@ export function inventoryCodingNotes(text) {
     const digest = sha256(block.text);
     const first = block.text.split("\n")[0]
       .replace(/^\s*(?:#{1,6}\s+|[-*+]\s+|\d+[.)]\s+|\|\s*)?(?:\[[ xX]\]\s*)?/, "");
-    const supplied = first.replace(/^[`*]+/, "").match(/^\[?([A-Za-z0-9][A-Za-z0-9_.-]{0,63})\]?(?=[`*]*\s*[:.)-]\s|[`*]*\s|[`*]*\||$)/)?.[1];
-    // Bare words are prose, not IDs. Explicit IDs contain a digit or a hyphen/underscore.
-    const explicit = supplied && (/[\d_-]/.test(supplied) ||
-      /^[`*\[]/.test(first)) ? supplied : null;
+    const explicit = explicitNoteId(first);
     const count = (occurrences.get(digest) ?? 0) + 1;
     occurrences.set(digest, count);
     const id = explicit ?? `NOTE-${digest.slice(0, 16)}-${count}`;
@@ -87,17 +93,59 @@ async function privateDirectory(root) {
   return path.join(git.stdout.trim(), "migrate-oracle-app", "coding-notes");
 }
 
-async function inspectNotes(input) {
+const PROVENANCE_ACTION = "Coding notes private provenance is unavailable in this worktree (copied reports, a new clone or CI). Re-ingest the explicitly supplied notes and re-evaluate before validation; never reuse old checkmarks.";
+
+async function provenanceSecret(directory, initialize = false) {
+  const folder = await inspectPath(directory, { allowMissing: true });
+  if (folder && (!folder.isDirectory() ||
+    (process.platform !== "win32" && (folder.mode & 0o077) !== 0))) {
+    throw integrationError("Coding notes private provenance directory must have owner-only access; repair local permissions before re-ingestion.");
+  }
+  if (initialize) {
+    await mkdir(directory, { recursive: true, mode: 0o700 });
+  }
+  await inspectPath(directory, { allowMissing: true });
+  const file = path.join(directory, "reference-key");
+  await inspectPath(file, { allowMissing: true });
+  if (initialize) {
+    let handle;
+    try { handle = await open(file, "wx", 0o600); } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+    }
+    if (handle) {
+      try { await handle.writeFile(randomBytes(32)); await handle.sync(); }
+      finally { await handle.close(); }
+    }
+  }
+  let secret;
+  const metadata = await inspectPath(file, { allowMissing: true });
+  if (metadata && (!metadata.isFile() || metadata.size !== 32 ||
+    (process.platform !== "win32" && (metadata.mode & 0o077) !== 0))) {
+    throw integrationError("Coding notes private reference key must be a restrictive regular 32-byte file; repair local provenance before re-ingestion.");
+  }
+  try { secret = await readFile(file); } catch (error) {
+    if (error.code === "ENOENT") throw integrationError(PROVENANCE_ACTION);
+    throw error;
+  }
+  if (secret.length !== 32) throw integrationError("Coding notes private reference key is invalid; re-ingest after repairing local provenance.");
+  return secret;
+}
+
+function pathReference(secret, input) {
+  return createHmac("sha256", secret).update(input).digest("hex");
+}
+
+async function inspectNotes(input, secret) {
   const base = {
-    schemaVersion: 1, status: "missing", reason: "input-missing",
-    inputRef: sha256(input), provenance: null, sha256: null, items: [],
+    schemaVersion: 2, status: "missing", reason: "input-missing",
+    inputRef: pathReference(secret, input), provenance: null, sha256: null, items: [],
   };
   try {
     const metadata = await inspectPath(input, { allowMissing: true });
     if (!metadata) return base;
     const kind = metadata.isDirectory() ? "directory" : "file";
     const file = kind === "directory" ? path.join(input, NOTES_PATH) : input;
-    base.provenance = { inputKind: kind, resolvedRef: sha256(file), resolution: kind === "directory" ? NOTES_PATH : "explicit-file" };
+    base.provenance = { inputKind: kind, resolvedRef: pathReference(secret, file), resolution: kind === "directory" ? NOTES_PATH : "explicit-file" };
     const target = await inspectPath(file, { allowMissing: true });
     if (!target) return { ...base, reason: "canonical-file-missing" };
     if (!target.isFile() || target.size > MAX_BYTES) {
@@ -125,11 +173,9 @@ async function inspectNotes(input) {
 export async function ingestCodingNotes(root, input) {
   if (input === undefined) return omittedCodingNotes();
   const absolute = path.resolve(root, requireText(input, "notes input"));
-  const notes = await inspectNotes(absolute);
   const directory = await privateDirectory(root);
-  await inspectPath(directory, { allowMissing: true });
-  await mkdir(directory, { recursive: true, mode: 0o700 });
-  await inspectPath(directory);
+  const secret = await provenanceSecret(directory, true);
+  const notes = await inspectNotes(absolute, secret);
   const temporary = path.join(directory, `${randomUUID()}.tmp`);
   const handle = await open(temporary, "wx", 0o600);
   try {
@@ -166,8 +212,9 @@ export async function verifyCodingNotes(root, notes, { phase, status } = {}) {
   validateCodingNotes(notes, { phase, status });
   if (notes.status === "not-supplied") return;
   const directory = await privateDirectory(root);
+  const secret = await provenanceSecret(directory);
   const locator = path.join(directory, `${notes.inputRef}.json`);
-  await inspectPath(locator);
+  if (!await inspectPath(locator, { allowMissing: true })) throw integrationError(PROVENANCE_ACTION);
   let privateInput;
   try {
     privateInput = JSON.parse(await readFile(locator, "utf8"));
@@ -176,17 +223,18 @@ export async function verifyCodingNotes(root, notes, { phase, status } = {}) {
     throw integrationError("Coding notes private provenance is invalid JSON");
   }
   if (!privateInput || typeof privateInput.input !== "string") throw integrationError("Coding notes private provenance is invalid");
-  if (privateInput.root !== await realpath(root) || sha256(privateInput.input) !== notes.inputRef) {
+  if (privateInput.root !== await realpath(root) || pathReference(secret, privateInput.input) !== notes.inputRef) {
     throw integrationError("Coding notes private provenance does not match this workspace/input");
   }
-  const current = await inspectNotes(privateInput.input);
+  const current = await inspectNotes(privateInput.input, secret);
   if (!isDeepStrictEqual(inventoryIdentity(current), inventoryIdentity(notes))) {
     throw integrationError("Coding notes input changed; re-ingest and re-evaluate all notes before reporting");
   }
 }
 
 export function validateCodingNotes(notes, { phase, status } = {}) {
-  if (!exactKeys(notes, Object.keys(OMITTED)) || notes.schemaVersion !== 1 ||
+  if (notes?.schemaVersion === 1) throw integrationError("Coding notes evidence format changed; re-ingest and re-evaluate notes instead of reusing old provenance/checkmarks.");
+  if (!exactKeys(notes, Object.keys(OMITTED)) || notes.schemaVersion !== 2 ||
     !Array.isArray(notes.items) || notes.items.length > MAX_ITEMS) {
     throw integrationError("codingNotes ingestion evidence is required (including not-supplied)");
   }
@@ -240,7 +288,9 @@ export function validateCodingNotes(notes, { phase, status } = {}) {
     if (["pending", "conflicting"].includes(item.disposition)) safeText(item.nextAction, "next action");
     else if (item.nextAction !== null) throw integrationError("Resolved coding notes must have a null nextAction");
   }
-  if (["assessment", "conversion"].includes(phase) && typeof status === "string" && status.trim().toUpperCase() === "READY" &&
+  const normalizedStatus = typeof status === "string" ? status.replace(/^[^\p{L}]+/u, "")
+    .trim().toLowerCase().replaceAll("-", " ").replaceAll("_", " ") : "";
+  if (["assessment", "conversion"].includes(phase) && normalizedStatus === "ready" &&
     (notes.status !== "processed" || notes.items.some((item) => !item.evaluated || ["pending", "conflicting"].includes(item.disposition)))) {
     throw integrationError("READY status cannot have unavailable or unresolved coding notes");
   }

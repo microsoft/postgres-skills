@@ -382,7 +382,7 @@ async function manifestNotesDigest(runtime, kind) {
   if (kind === "java-release") return null;
   const snapshot = await replayMigrationState(runtime);
   const notes = snapshot.conversion.state.codingNotes ?? snapshot.assessment.state.codingNotes;
-  if (!notes) return null;
+  if (!notes) throw new Error("Checkpoint codingNotes (including not-supplied) before notes-sensitive manifest lookup");
   await verifyCodingNotes(runtime.root, notes);
   return codingNotesInputDigest(notes);
 }

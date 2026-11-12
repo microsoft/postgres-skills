@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { chmod, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -11,7 +12,7 @@ import {
 } from "../skills/migrate-oracle-app/scripts/coding-notes.mjs";
 import {
   checkpointMigration, finalizeMigrationArtifacts, getManifest, openMigrationRuntime,
-  putManifest, withPrimaryExecution,
+  putManifest, withPrimaryExecution, fingerprintInputs, digestJson,
 } from "../skills/migrate-oracle-app/scripts/migration-runtime.mjs";
 
 const guidance = `- CN-01: Map the routine to app.lookup_customer_v2(bigint).
@@ -154,7 +155,7 @@ test("oversized files and duplicate IDs cannot become partially processed guidan
   assert.equal(notes.reason, "duplicate-note-ids");
   assert.deepEqual(notes.items, []);
   await verifyCodingNotes(root, notes);
-  await writeFile(input, "- `private-host.example.com`: Unsafe identity.\n");
+  await writeFile(input, "- [private-host.example.com]: Unsafe identity.\n");
   const privateId = await ingestCodingNotes(root, input);
   assert.equal(privateId.status, "ambiguous");
   assert.equal(privateId.reason, "unsafe-note-id");
@@ -175,11 +176,11 @@ test("all prose, headings, lists and fenced guidance get deterministic content-b
 });
 
 test("explicit Markdown IDs survive wrappers, and empty files remain genuinely empty", async (t) => {
-  assert.deepEqual(inventoryCodingNotes("- [x] **CN-01**: Keep.\n## `NOTE_A` Keep.\n").map((item) => item.id), ["CN-01", "NOTE_A"]);
+  assert.deepEqual(inventoryCodingNotes("- [x] **CN-01**: Keep.\n## [NOTE_A]: Keep.\n").map((item) => item.id), ["CN-01", "NOTE_A"]);
   const table = inventoryCodingNotes("| ID | Guidance |\n|---|---|\n| CN-01 | Keep binding. |\n| CN-02 | Keep logging. |\n");
   assert.deepEqual(table.slice(2).map((item) => item.id), ["CN-01", "CN-02"]);
   assert.equal(inventoryCodingNotes("- [alpha]: Keep binding.\n")[0].id, "alpha");
-  assert.deepEqual(inventoryCodingNotes("- 123: Keep binding.\n- CN.4: Keep logging.\n").map((item) => item.id), ["123", "CN.4"]);
+  assert.deepEqual(inventoryCodingNotes("- [123]: Keep binding.\n- CN.4: Keep logging.\n").map((item) => item.id), ["123", "CN.4"]);
   const { root, input } = await fixture(t);
   await writeFile(input, " \n\n");
   const empty = await ingestCodingNotes(root, input);
@@ -392,4 +393,107 @@ test("all six report templates and instruction surfaces wire automatic notes rep
   assert.doesNotMatch(contract, /<plugin-root>[/\\]scripts/);
   const manifest = JSON.parse(await readFile(path.resolve("package.json"), "utf8"));
   assert.match(manifest.scripts.test, /tests\/coding-notes\.test\.mjs/);
+});
+
+test("ordinary repeated Markdown labels, numeric table cells and versions get generated IDs", async (t) => {
+  const { root, input } = await fixture(t);
+  const samples = [
+    "- **Note**: Preserve binding.\n- **Note**: Preserve logging.\n",
+    "- `ROWNUM` in OrderDao must change.\n- `ROWNUM` in ReportDao must change.\n",
+    "- Read-only DAOs stay read-only.\n- Read-only views stay read-only.\n",
+    "- 3 tables need inspection.\n- 3 packages need inspection.\n",
+    "| 1 | First mapping |\n\n| 1 | Second mapping |\n",
+    "- 19.3.0.0 driver must be replaced.\n- 19.3.0.0 driver also affects packaging.\n",
+  ];
+  for (const sample of samples) {
+    await writeFile(input, sample);
+    const notes = await ingestCodingNotes(root, input);
+    assert.equal(notes.status, "processed", sample);
+    assert.equal(notes.items.length, 2, sample);
+    assert.ok(notes.items.every((item) => item.id.startsWith("NOTE-")), sample);
+    assert.notEqual(notes.items[0].id, notes.items[1].id);
+    await verifyCodingNotes(root, notes);
+  }
+  assert.deepEqual(inventoryCodingNotes("- **CN-01**: first\n- `CN-02`) second\n- [alpha] - third\n- CN03: fourth\n")
+    .map((item) => item.id), ["CN-01", "CN-02", "alpha", "CN03"]);
+  for (const sample of ["- CN-01: first\n- CN-01: second\n", "- [alpha]: first\n- [alpha]: second\n"]) {
+    await writeFile(input, sample);
+    assert.equal((await ingestCodingNotes(root, input)).status, "ambiguous");
+  }
+});
+
+test("ready normalization rejects case and emoji variants with pending evidence", async (t) => {
+  const { root, input } = await fixture(t);
+  const notes = await ingestCodingNotes(root, input);
+  notes.items.forEach((item) => evaluate(item));
+  for (const status of ["READY", "ready", " Ready ", "✅ READY", "✅ Ready", "🔧 ready"]) {
+    for (const phase of ["assessment", "conversion"]) {
+      assert.throws(() => validateCodingNotes(notes, { phase, status }), /READY/, status);
+    }
+  }
+});
+
+test("private keyed path references are stable locally, distinct across worktrees and never exported", async (t) => {
+  const first = await fixture(t);
+  const second = await fixture(t);
+  const one = await ingestCodingNotes(first.root, first.input);
+  const again = await ingestCodingNotes(first.root, first.input);
+  const other = await ingestCodingNotes(second.root, first.input);
+  assert.equal(one.inputRef, again.inputRef);
+  assert.equal(one.provenance.resolvedRef, again.provenance.resolvedRef);
+  assert.notEqual(one.inputRef, other.inputRef);
+  assert.notEqual(one.inputRef, createHash("sha256").update(first.input).digest("hex"));
+  assert.notEqual(one.provenance.resolvedRef, createHash("sha256").update(first.input).digest("hex"));
+  const secretPath = path.join(first.root, ".git/migrate-oracle-app/coding-notes/reference-key");
+  const key = await readFile(secretPath);
+  assert.equal(key.length, 32);
+  assert.equal((await stat(secretPath)).mode & 0o777, 0o600);
+  assert.equal((await stat(path.dirname(secretPath))).mode & 0o777, 0o700);
+  assert.ok(!JSON.stringify(one).includes(first.input));
+  assert.ok(!JSON.stringify(one).includes(key.toString("hex")));
+  assert.ok(!renderCodingNotes(one).includes(key.toString("hex")));
+  await verifyCodingNotes(first.root, one);
+  await assert.rejects(verifyCodingNotes(second.root, one), /Re-ingest.*re-evaluate/);
+  await rm(path.join(first.root, `.git/migrate-oracle-app/coding-notes/${one.inputRef}.json`));
+  await assert.rejects(verifyCodingNotes(first.root, one), /copied reports.*new clone or CI/);
+  await rm(secretPath);
+  await assert.rejects(verifyCodingNotes(first.root, one), /Re-ingest.*re-evaluate/);
+  assert.throws(() => validateCodingNotes({ ...one, schemaVersion: 1 }), /format changed.*re-ingest/i);
+});
+
+test("notes-sensitive lookup requires checkpoint even when an old notes-agnostic cache exists", async (t) => {
+  const { root } = await fixture(t);
+  await writeFile(path.join(root, "App.java"), "class App {}");
+  const runtime = await openMigrationRuntime({ root, runId: "missing-notes", actorId: "primary", initialize: true });
+  for (const kind of ["source-findings", "target-objects"]) {
+    const request = { kind, key: "unbound", inputs: ["App.java"], contextDigest: "fresh-target" };
+    const data = { staleNotesAgnostic: true };
+    await mkdir(path.join(runtime.directory, "cache"), { recursive: true });
+    await writeFile(path.join(runtime.directory, "cache", `${digestJson([kind, request.key])}.json`), JSON.stringify({
+      schemaVersion: 1, kind, key: request.key, rootDigest: digestJson(runtime.root),
+      inputDigest: (await fingerprintInputs(root, request.inputs)).digest,
+      contextDigest: request.contextDigest, dataDigest: digestJson(data), data,
+    }));
+    await assert.rejects(getManifest(runtime, request), /Checkpoint codingNotes/);
+  }
+  const java = await getManifest(runtime, { kind: "java-release", key: "release", inputs: ["App.java"] });
+  assert.equal(java.status, "miss", "Java cache does not depend on notes");
+  await withPrimaryExecution(runtime, "notes", async () => {
+    await checkpointMigration(runtime, { phase: "assessment", operations: [
+      { op: "set", path: ["codingNotes"], value: omittedCodingNotes() },
+    ] });
+    const request = { kind: "source-findings", key: "explicit-omission", inputs: ["App.java"] };
+    const lookup = await getManifest(runtime, request);
+    await putManifest(runtime, { ...request, expectedInputDigest: lookup.inputDigest, data: { findings: [] } });
+    assert.equal((await getManifest(runtime, request)).status, "hit");
+  });
+  const next = await openMigrationRuntime({ root, runId: "next-run", actorId: "primary", initialize: true });
+  await assert.rejects(getManifest(next, { kind: "source-findings", key: "explicit-omission", inputs: ["App.java"] }), /Checkpoint codingNotes/);
+});
+
+test("an unclosed fence retains later guidance in one complete conservative block", () => {
+  const items = inventoryCodingNotes("```sql\nselect 1;\n\n- CN-01: later guidance\n- CN-02: more guidance\n");
+  assert.equal(items.length, 1);
+  assert.equal(items[0].startLine, 1);
+  assert.equal(items[0].endLine, 6);
 });
