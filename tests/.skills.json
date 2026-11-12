@@ -9,6 +9,21 @@
   "repository": "https://github.com/microsoft/postgres-skills",
   "skills": [
     {
+      "id": "migrate-oracle-app",
+      "path": "plugin/skills/migrate-oracle-app/SKILL.md",
+      "platform_scope": "postgresql",
+      "activation_keywords": [
+        "migrate-oracle-app",
+        "oracle application migration",
+        "migrate oracle app",
+        "convert oracle codebase",
+        "assess oracle codebase",
+        "oracle jdbc migration"
+      ],
+      "always_load": false,
+      "references_dir": "plugin/skills/migrate-oracle-app/references/"
+    },
+    {
       "id": "postgres-skills",
       "path": "plugin/skills/postgresql-best-practices/SKILL.md",
       "platform_scope": "postgresql",

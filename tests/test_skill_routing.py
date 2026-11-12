@@ -66,6 +66,26 @@ def test_prompt_does_not_falsely_activate(skills, prompt):
     assert ids == [], f"{prompt!r} falsely activated {ids}"
 
 
+@pytest.mark.parametrize(
+    "prompt,expected",
+    [
+        ("Use migrate-oracle-app to assess this repository", True),
+        ("Help with Oracle application migration to PostgreSQL", True),
+        ("Migrate my Oracle app to PostgreSQL", True),
+        ("Convert this Oracle codebase to PostgreSQL", True),
+        ("Assess an Oracle codebase before conversion", True),
+        ("Plan Oracle JDBC migration for this Java application", True),
+        ("Diagnose a slow PostgreSQL query", False),
+        ("Convert a MySQL application to PostgreSQL", False),
+        ("Migrate Oracle schema data to PostgreSQL", False),
+        ("Improve code coverage for my Java application", False),
+        ("Build an application code RAG pipeline", False),
+    ],
+)
+def test_migration_activation_precision(skills, prompt, expected):
+    assert ("migrate-oracle-app" in route_ids(prompt, skills)) is expected
+
+
 # ---------------------------------------------------------------------------
 # Skill loading + keyword hygiene
 # ---------------------------------------------------------------------------

@@ -92,14 +92,15 @@ signature or application call shape alone is not authoritative evidence of the o
 
 ## Establish the Baseline
 
-Before this stage, run the static detector from the plugin:
+Before this stage, run the skill-local static detector:
 
 ```text
 node "<skill-directory>\scripts\detect-migration-scope.mjs" "<codebase>"
 ```
 
-`<skill-directory>` is the directory containing `SKILL.md`; the detector is repository-level, not
-under the skill directory. Resolve this exact relative path and do not search for a fallback copy.
+`<skill-directory>` is the directory containing the loaded `SKILL.md`; the detector is
+under `<skill-directory>\scripts`. Resolve its absolute path from that directory, regardless
+of the current working directory, and do not search for a fallback copy.
 
 If it returns `NO_CONVERSION_REQUIRED`, stop before dependency installation, build, test discovery,
 coverage, target connection, or edits. Render

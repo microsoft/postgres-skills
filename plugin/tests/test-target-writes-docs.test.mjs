@@ -4,6 +4,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 const requiredDocuments = [
   "SKILL.md",
@@ -20,6 +21,33 @@ test("the skill identity matches its directory and application-migration scope",
 
   assert.match(skill, /^name: migrate-oracle-app$/m);
   assert.match(skill, /^# Oracle to PostgreSQL Application Migration$/m);
+});
+
+test("migration instructions consistently resolve skill-local script paths", async () => {
+  const skill = await readSkillFile("SKILL.md");
+  const assessment = await readSkillFile("references/assessment.md");
+
+  for (const content of [skill, assessment]) {
+    assert.ok(content.includes("<skill-directory>\\scripts\\detect-migration-scope.mjs"));
+    assert.match(content, /absolute path/i);
+    assert.match(content, /regardless\s+of the current working directory/i);
+    assert.doesNotMatch(content, /Do not run it from|detector is repository-level/i);
+    assert.doesNotMatch(content, /<plugin-root>[\\/]+scripts|<skill-directory>\\\.\.\\\.\.\\scripts/);
+  }
+
+  const detector = new URL("../skills/migrate-oracle-app/scripts/detect-migration-scope.mjs", import.meta.url);
+  const root = await mkdtemp(path.join(os.tmpdir(), "skill-local-detector-test-"));
+  try {
+    await writeFile(path.join(root, "App.java"), 'class App { String sql = "SELECT 1 FROM DUAL"; }\n');
+    const result = JSON.parse(execFileSync(process.execPath, [fileURLToPath(detector), root], {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+    }));
+    assert.equal(result.status, "MIGRATION_REQUIRED");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test("every required skill document defines test-target-writes", async () => {

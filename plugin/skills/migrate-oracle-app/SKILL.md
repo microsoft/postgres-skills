@@ -21,7 +21,8 @@ observable behavior unless a change is necessary and approved.
 
 Resolve the detector directly as
 `<skill-directory>\scripts\detect-migration-scope.mjs`, normalize that path once, and verify
-the file exists before execution. Do not search/glob for an alternate copy or infer
+the file exists before execution. Resolve an absolute path from the loaded skill directory,
+regardless of the current working directory. Do not search/glob for an alternate copy or infer
 `<plugin-root>` as `<skill-directory>`.
 
 ## Modes
@@ -195,8 +196,8 @@ and no all-caps label, for example `✅ Passed`, `⚠️ Action needed`, `➖ No
 2. Identify mode and optional notes.
 3. Run
    `node "<skill-directory>\scripts\detect-migration-scope.mjs" "<codebase>"`.
-   The CLI emits bounded progress to stderr while keeping JSON on stdout. Do not run it from
-   `<skill-directory>\scripts` or search for an alternate copy. The detector uses a linear
+   The CLI emits bounded progress to stderr while keeping JSON on stdout. Resolve the absolute
+   script path from the loaded skill directory; do not search for an alternate copy. The detector uses a linear
    comment-aware string scanner and a 50,000-file, 100 MB text, 30-second scan budget; exhausted
    evidence becomes `SCOPE_REVIEW_REQUIRED` rather than an unbounded background shell. If the result is
    `NO_CONVERSION_REQUIRED`, render the no-conversion assessment/report templates, retain passive
