@@ -4,6 +4,7 @@ import { chmod, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "n
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   ingestCodingNotes, inventoryCodingNotes, omittedCodingNotes, renderCodingNotes,
   validateCodingNotes, validateCodingNotesReport, verifyCodingNotes,
@@ -19,6 +20,23 @@ const guidance = `- CN-01: Map the routine to app.lookup_customer_v2(bigint).
 - CN-04: Preserve logging; do not add dependencies.
 - CN-05: Validate target return contracts before claiming compatibility.
 `;
+
+test("the portable skill-local notes CLI resolves from an unrelated application cwd", async (t) => {
+  const { root, input, directory } = await fixture(t);
+  const script = fileURLToPath(new URL("../skills/migrate-oracle-app/scripts/coding-notes.mjs", import.meta.url));
+  const notes = JSON.parse(execFileSync(process.execPath, [script, "ingest", root, input], {
+    cwd: root, encoding: "utf8",
+  }));
+  assert.equal(notes.status, "processed");
+  assert.equal(notes.items.length, 5);
+  const statePath = path.join(directory, "assessment-data.json");
+  await writeFile(statePath, JSON.stringify({ codingNotes: notes }));
+  const markdown = execFileSync(process.execPath, [script, "render", statePath], {
+    cwd: root, encoding: "utf8",
+  });
+  assert.equal(markdown.trim(), renderCodingNotes(notes));
+  await verifyCodingNotes(root, notes);
+});
 
 async function fixture(t) {
   const directory = await mkdtemp(path.join(os.tmpdir(), "coding-notes-"));
@@ -368,4 +386,10 @@ test("all six report templates and instruction surfaces wire automatic notes rep
   const skill = await readFile(path.resolve("skills/migrate-oracle-app/SKILL.md"), "utf8");
   assert.match(skill, /coding-notes\.md/);
   assert.match(skill, /Every reporting exit includes/);
+  const contract = await readFile(path.join(references, "coding-notes.md"), "utf8");
+  assert.match(contract, /<skill-directory>\/scripts\/coding-notes\.mjs/);
+  assert.match(contract, /absolute script path from the loaded skill directory/);
+  assert.doesNotMatch(contract, /<plugin-root>[/\\]scripts/);
+  const manifest = JSON.parse(await readFile(path.resolve("package.json"), "utf8"));
+  assert.match(manifest.scripts.test, /tests\/coding-notes\.test\.mjs/);
 });
