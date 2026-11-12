@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `migrate-oracle-app` skill for Oracle-dependent application assessment and conversion
+  across Java, .NET, Python, C, and C++, including DDL reconciliation, build/test/coverage
+  guidance, Docker validation, driver-packaging checks, resumable execution, and migration reports
+- Supporting scripts in `skills/migrate-oracle-app/scripts/`, automated contract
+  tests, Node.js package commands, and a [migration guide](MIGRATION.md)
+
 ## [0.2.0] - 2026-11-03
 
 ### Added
