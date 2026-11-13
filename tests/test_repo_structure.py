@@ -88,12 +88,20 @@ def test_plugin_release_versions_match():
     agent_plugin = json.loads(
         (ROOT / "plugin" / "plugin.json").read_text(encoding="utf-8")
     )
+    package = json.loads(
+        (ROOT / "plugin" / "package.json").read_text(encoding="utf-8")
+    )
+    skills_fixture = json.loads(
+        (ROOT / "tests" / ".skills.json").read_text(encoding="utf-8")
+    )
 
     versions = {
         marketplace["plugins"][0]["version"],
         claude_plugin["version"],
         codex_plugin["version"],
         agent_plugin["version"],
+        package["version"],
+        skills_fixture["version"],
     }
     assert len(versions) == 1, f"plugin release versions must match, found: {sorted(versions)}"
 
@@ -129,6 +137,7 @@ def test_marketplace_manifests_match():
     assert all(manifest == manifests[0] for manifest in manifests[1:]), (
         "marketplace manifests must remain identical across supported hosts"
     )
+    assert all(manifest["metadata"]["version"] == "0.1.2" for manifest in manifests)
 
 
 def test_product_display_name():

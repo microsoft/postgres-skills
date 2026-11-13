@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-14
+
 ### Added
 - Automatic Coding Notes Processing task lists across assessment, conversion and static early
   exits, with per-note dispositions distinguishing evaluation from implementation/runtime proof
@@ -66,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix Windows launcher compatibility and guardrail and routing gaps
 
 [Unreleased]: https://github.com/microsoft/postgres-skills/compare/main...HEAD
+[0.3.0]: https://github.com/microsoft/postgres-skills/compare/8066083...f20d2cb7828745b2d45666f46011fa54a549773b
 [0.2.0]: https://github.com/microsoft/postgres-skills/compare/3ea7816fd1e449916b9277cc2671bc1c4c34f8c9...8066083
 [0.1.2]: https://github.com/microsoft/postgres-skills/compare/postgres-skills--v0.1.1...3ea7816fd1e449916b9277cc2671bc1c4c34f8c9
 [0.1.1]: https://github.com/microsoft/postgres-skills/compare/0a4a57e1b5e3118793413efa6b5263dd7c80e5f8...postgres-skills--v0.1.1

@@ -1115,7 +1115,7 @@ test("plugin and package versions agree", async () => {
   const plugin = JSON.parse(await readRepoFile("plugin.json"));
   const packageManifest = JSON.parse(await readRepoFile("package.json"));
 
-  assert.equal(plugin.version, "0.2.0");
+  assert.equal(plugin.version, "0.3.0");
   assert.equal(packageManifest.version, plugin.version);
 });
 
