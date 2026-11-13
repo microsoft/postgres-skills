@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { omittedCodingNotes } from "../skills/migrate-oracle-app/scripts/coding-notes.mjs";
 import {
   assembleMigrationReport, checkpointMigration, digestJson, finalizeMigrationArtifacts,
   fingerprintInputs, getManifest, openMigrationRuntime, putManifest,
@@ -18,6 +19,12 @@ async function fixture() {
   const runtime = await openMigrationRuntime({
     root, runId: "runtime-test", actorId: "primary",
     runtimeDirectory: path.join(root, "private-runtime"), initialize: true,
+  });
+  await withPrimaryExecution(runtime, "notes-input", async () => {
+    await checkpointMigration(runtime, {
+      phase: "assessment",
+      operations: [{ op: "set", path: ["codingNotes"], value: omittedCodingNotes() }],
+    });
   });
   return { root, runtime };
 }
@@ -194,12 +201,20 @@ const template = `<a id="top"></a>
 
 ## Table of Contents
 - [Summary](#summary)
+- [Coding Notes Processing](#coding-notes-processing)
 - [Appendix](#appendix)
 
 <a id="summary"></a>
 ## Summary
 
 \`<summary>\`
+
+[Back to Top](#top)
+
+<a id="coding-notes-processing"></a>
+## Coding Notes Processing
+
+Generated notes.
 
 [Back to Top](#top)
 
@@ -230,6 +245,7 @@ test("the final boundary assembles templates and JSON once with replacement owne
         operations: [
           { op: "set", path: ["status"], value: "PARTIAL" },
           { op: "set", path: ["runMetrics"], value: runMetrics() },
+          { op: "set", path: ["codingNotes"], value: omittedCodingNotes() },
         ],
         sections: { summary: "Measured conversion result.", appendix: "Commands and evidence." },
         headerBindings: { "<run-id>": runtime.runId },
@@ -271,7 +287,7 @@ test("the final boundary assembles templates and JSON once with replacement owne
 
 test("final assembly rejects missing sections, duplicate headings, and manual timing prose", () => {
   const model = {
-    state: { runMetrics: runMetrics() },
+    state: { runMetrics: runMetrics(), codingNotes: omittedCodingNotes() },
     headerBindings: { "<run-id>": "run" },
     sections: { summary: "Result.", appendix: "Evidence." },
   };
@@ -321,7 +337,10 @@ test("finalization performs exactly one runtime-aware record and independent ver
     await withPrimaryExecution(runtime, "checkpoint", async () => {
       await checkpointMigration(runtime, {
         phase: "conversion",
-        operations: [{ op: "set", path: ["runMetrics"], value: runMetrics() }],
+        operations: [
+          { op: "set", path: ["runMetrics"], value: runMetrics() },
+          { op: "set", path: ["codingNotes"], value: omittedCodingNotes() },
+        ],
         sections: { summary: "Measured result.", appendix: "Evidence." },
         headerBindings: { "<run-id>": runtime.runId },
       });

@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Automatic Coding Notes Processing task lists across assessment, conversion and static early
+  exits, with per-note dispositions distinguishing evaluation from implementation/runtime proof
+- Bounded file/project-directory notes ingestion, private path provenance, exhaustive stable IDs,
+  content-digest invalidation, synchronized runtime/report evidence and regression validation
 - `migrate-oracle-app` skill for Oracle-dependent application assessment and conversion
   across Java, .NET, Python, C, and C++, including DDL reconciliation, build/test/coverage
   guidance, Docker validation, driver-packaging checks, resumable execution, and migration reports

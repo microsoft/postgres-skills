@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runProcessCommand } from "./process-command.mjs";
 import { renderRunMetrics } from "./format-run-metrics.mjs";
+import { codingNotesInputDigest, renderCodingNotes, verifyCodingNotes } from "./coding-notes.mjs";
 
 const PHASES = new Set(["assessment", "conversion"]);
 const CACHE_KINDS = new Set(["source-findings", "target-objects", "java-release"]);
@@ -362,17 +363,28 @@ export async function getManifest(runtime, { kind, key, inputs, contextDigest = 
   if (!CACHE_KINDS.has(kind)) throw new Error("Only source, code-derived target, and Java manifests may be cached");
   requiredString(key, "cache key");
   if (kind === "target-objects") requiredString(contextDigest, "fresh target context digest");
+  const notesDigest = await manifestNotesDigest(runtime, kind);
   const fingerprint = await fingerprintInputs(runtime.root, inputs);
+  const inputDigest = notesDigest ? digestJson([fingerprint.digest, notesDigest]) : fingerprint.digest;
   const file = path.join(runtime.directory, "cache", `${digestJson([kind, key])}.json`);
   const entry = await readJsonOrMissing(file);
-  if (!entry) return { status: "miss", reason: "not-cached", inputDigest: fingerprint.digest };
+  if (!entry) return { status: "miss", reason: "not-cached", inputDigest };
   assertJson(entry.data);
   if (entry.kind !== kind || entry.key !== key || entry.rootDigest !== digestJson(runtime.root) ||
     digestJson(entry.data) !== entry.dataDigest) throw new Error("Manifest cache integrity verification failed");
-  if (entry.inputDigest !== fingerprint.digest || entry.contextDigest !== contextDigest) {
-    return { status: "miss", reason: "inputs-or-context-changed", inputDigest: fingerprint.digest };
+  if (entry.inputDigest !== inputDigest || entry.contextDigest !== contextDigest) {
+    return { status: "miss", reason: "inputs-or-context-changed", inputDigest };
   }
-  return { status: "hit", inputDigest: fingerprint.digest, dataDigest: entry.dataDigest, data: entry.data };
+  return { status: "hit", inputDigest, dataDigest: entry.dataDigest, data: entry.data };
+}
+
+async function manifestNotesDigest(runtime, kind) {
+  if (kind === "java-release") return null;
+  const snapshot = await replayMigrationState(runtime);
+  const notes = snapshot.conversion.state.codingNotes ?? snapshot.assessment.state.codingNotes;
+  if (!notes) throw new Error("Checkpoint codingNotes (including not-supplied) before notes-sensitive manifest lookup");
+  await verifyCodingNotes(runtime.root, notes);
+  return codingNotesInputDigest(notes);
 }
 
 export async function putManifest(runtime, {
@@ -558,6 +570,13 @@ export function assembleMigrationReport(template, { sections, headerBindings, st
   if (/`<[^>\r\n]+>`/.test(prefix)) throw new Error("Report header template bindings remain unresolved");
   const bodies = boundaries.map((match) => {
     const [_, anchor, heading] = match;
+    if (anchor === "coding-notes-processing") {
+      const body = renderCodingNotes(state.codingNotes);
+      if (sections[anchor] !== undefined && sections[anchor].trim() !== body) {
+        throw new Error("Coding Notes Processing is generated centrally from machine evidence");
+      }
+      return `<a id="${anchor}"></a>\n## ${heading}\n\n${body}\n\n[Back to Top](#top)`;
+    }
     if (typeof sections[anchor] !== "string" || !sections[anchor].trim()) {
       throw new Error(`Final report section is missing: ${anchor}`);
     }
@@ -584,9 +603,18 @@ export async function finalizeMigrationArtifacts(runtime, {
   }
   const snapshot = await replayMigrationState(runtime);
   const outputs = [];
+  if (phases.length === 2 &&
+    codingNotesInputDigest(snapshot.assessment.state.codingNotes) !==
+      codingNotesInputDigest(snapshot.conversion.state.codingNotes)) {
+    throw new Error("Combined reports require the same current coding notes input snapshot");
+  }
   for (const phase of phases) {
     const model = snapshot[phase];
+    await verifyCodingNotes(runtime.root, model.state.codingNotes, { phase, status: model.state.status });
     const template = await readFile(requiredString(templates[phase], `${phase} template`), "utf8");
+    if (!/^<a id="coding-notes-processing"><\/a>\r?\n## Coding Notes Processing\r?$/m.test(template)) {
+      throw new Error("Final report template requires Coding Notes Processing");
+    }
     const report = assembleMigrationReport(template, model);
     const folder = phase === "assessment" ? "assessment" : "conversions";
     const stateName = phase === "assessment" ? "assessment-data.json" : "conversion-state.json";

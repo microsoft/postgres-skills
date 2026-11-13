@@ -9,6 +9,10 @@ Resolve target-backed assessment inputs with [connection-context.md](./connectio
 connection context is omitted or unavailable, finish code-only assessment with `ACTION NEEDED` and
 do not invent target compatibility findings.
 
+Automatically ingest and evaluate optional notes under [coding-notes.md](./coding-notes.md).
+Persist `codingNotes` and include the generated **Coding Notes Processing** native task list,
+including on no-conversion/scope-review exits. A checked item records evaluation, not validation.
+
 ## Executive Summary First
 
 After the title and sanitized run context, make **Executive Summary** the first substantive section
