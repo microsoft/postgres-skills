@@ -4,7 +4,7 @@
   "display_name": "PostgreSQL Agent Skills",
   "description": "Expert-curated skills for AI coding agents working with PostgreSQL and Azure Database for PostgreSQL. Single plugin with connection-aware routing.",
   "publisher": "microsoft",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "license": "MIT",
   "repository": "https://github.com/microsoft/postgres-skills",
   "skills": [

@@ -824,8 +824,7 @@ and required instruction propagation.
 ## Versioning
 
 The `version` field in `plugin.json` is the single source of truth.
-The current plugin version is `0.2.0`; the marketplace version is independently
-maintained at `0.1.2`.
+The current plugin version is `0.3.0`.
 Do not add a nonstandard version field to `SKILL.md`.
 
 Use Semantic Versioning:

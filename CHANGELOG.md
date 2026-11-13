@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Update the listed plugin version to `0.2.0`, including the deleted-server recovery reference described in the [plugin changelog](plugin/CHANGELOG.md#020---2026-11-03)
+- Update the listed plugin version to `0.3.0` for Oracle application migration and automatic coding-notes processing described in the [plugin changelog](plugin/CHANGELOG.md#030---2026-11-14)
 
 ## [0.1.2] - 2026-09-17
 
