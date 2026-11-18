@@ -4283,7 +4283,7 @@ challenges:
       - "Does it state that HorizonDB qualification is limited to the documented tiny scope rather than implying production-scale or every-region qualification?"
 
   - id: graph-neo4j-cypher-translation-01
-    task: "We are moving a Neo4j application to Apache AGE on Azure HorizonDB. Find every query and Neo4j-specific dependency, translate the unsupported Cypher, and update the application. I want to review and approve every translation before you make each change."
+    task: "We are moving a Neo4j application to Apache AGE on Azure HorizonDB. Find every query and Neo4j-specific dependency and propose translations for unsupported Cypher. Let me approve proposals individually or approve a reviewed batch before you update the application."
     difficulty: hard
     target_skill: plugin/skills/pg-graph/references/neo4j-agefreighter-migration
     platform_scope: azure-postgresql
@@ -4293,19 +4293,19 @@ challenges:
       - "dynamic|telemetry"
       - "proposal ID"
       - "approve|approval"
-      - "one.*at a time|each translation"
+      - "batch"
       - "ag_catalog\\.cypher"
       - "golden"
       - "APOC|GDS"
     anti_patterns:
-      - "apply all translations"
-      - "bulk rewrite"
+      - "unseen.*approved|approval.*unseen"
       - "static.*proves.*runtime"
       - "automatically approve"
     correctness_checks:
       - "Does the response inspect repositories, dependencies, drivers, transactions, static queries, dynamic-query telemetry, APOC, GDS, procedures, and plugins while reporting any discovery blind spots?"
       - "Does it classify every discovered dependency and create a separate proposal with original and translated code, assumptions, changed locations, tests, risk, and rollback?"
-      - "Does it ask for explicit approval of each proposal ID before modifying that query or application location, without treating another approval as blanket authorization?"
+      - "Does it allow individual approval or an explicit reviewed batch listing proposal IDs and versions before modifying those query or application locations?"
+      - "Does it exclude unseen, newly discovered, changed, rejected, or unlisted proposals from batch approval and require new approval when a proposal changes?"
       - "After approval, does it patch only the approved locations and compare normalized Neo4j and AGE results, side effects, errors, ordering, and transaction behavior?"
 
   # ─── AZURE HORIZONDB (Preview) (14 challenges: best-practices flavor routing) ─

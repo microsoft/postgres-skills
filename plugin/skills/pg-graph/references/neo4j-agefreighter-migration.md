@@ -63,8 +63,9 @@ Ask only for information that cannot be discovered safely:
 - Downtime, source-change, and rollback requirements.
 - Approval before source profiling, target diagnostics, loading, cutover, or
   cleanup.
-- Approval for each proposed Cypher or application translation before changing
-  its source file, stored query, or deployment artifact.
+- Approval for proposed Cypher or application translations, individually or as
+  an explicit reviewed batch, before changing source files, stored queries, or
+  deployment artifacts.
 
 Never request a password or connection string in chat. Use environment
 variables or protected files because AGEFreighter rejects literal credentials
@@ -90,7 +91,7 @@ Classify the outcome:
 | Area | AGEFreighter responsibility | Separate migration work |
 | ---- | ---------------------------- | ----------------------- |
 | Nodes, relationships, properties, and stable identities | Configure, stream, checkpoint, load, and verify | Resolve unsupported source values or missing stable keys |
-| Cypher | Static compatibility report with `agefreighter-tools check-cypher` | Inventory the full discoverable corpus, propose translations, approve each translation, and prove runtime equivalence |
+| Cypher | Static compatibility report with `agefreighter-tools check-cypher` | Inventory the full discoverable corpus, propose translations, approve them individually or as an explicit reviewed batch, and prove runtime equivalence |
 | Applications | None | Replace Neo4j Bolt access with PostgreSQL and AGE's SQL-wrapped Cypher interface |
 | APOC, GDS, and custom procedures | None | Replace with AGE, PostgreSQL, application code, or an approved analytical tier |
 | Cutover | Migration evidence, resumability, atomic replacement, and retained backup | Application traffic switch, source fencing, final delta strategy, and business acceptance |
@@ -293,10 +294,13 @@ proposal containing:
 7. Golden inputs, expected normalized results, and target validation steps.
 8. Risk, rollback, and any behavior that remains unknown.
 
-Present one proposal at a time and obtain explicit user approval for that
-proposal ID before modifying its query or application files. Approval for
-profiling, loading, or another translation does not authorize it. If the user
-rejects or edits a proposal, retain the original and revise only the proposal.
+Present every proposal for review before modifying its query or application
+files. The user may approve one proposal or explicitly approve a batch by
+listing the reviewed proposal IDs and versions. Record the approval scope and
+do not include unseen, newly discovered, or changed proposals. Approval for
+profiling or loading does not authorize translations. If the user rejects or
+edits a proposal, retain the original and revise only the proposal; the revised
+version requires new approval.
 
 After approval:
 
@@ -310,11 +314,12 @@ After approval:
 5. Record the evidence and mark the proposal `validated`, `failed`, or
    `approved-with-exception`.
 
-Never apply a bulk rewrite merely because several findings share a rule. Each
-translation requires its own approval and evidence. The skill may generate
-patches for known mechanical patterns, but it must not automatically approve
-semantic changes or claim that static compatibility proves runtime
-equivalence.
+Bulk application is allowed only for the exact proposal IDs and versions in an
+explicit user-approved batch. Each translation still requires its own evidence
+and validation result. The skill may generate patches for known mechanical
+patterns, but it must not treat approval as covering unseen or changed
+proposals, automatically approve semantic changes, or claim that static
+compatibility proves runtime equivalence.
 
 ## 7. Choose a load and cutover strategy
 
@@ -417,8 +422,9 @@ Return:
 3. Approved mappings, stable identities, and consistency limitations.
 4. Complete discoverable application dependency ledger and remaining discovery
    blind spots.
-5. Cypher translation proposals, per-proposal approval, changed locations,
-   golden-test evidence, and unresolved APOC, GDS, driver, or application gaps.
+5. Cypher translation proposals, individual or batch approval scope, changed
+   locations, golden-test evidence, and unresolved APOC, GDS, driver, or
+   application gaps.
 6. Production verification matrix with exact versus sampled evidence,
    exceptions, profile, load, reject, and performance results.
 7. Cutover boundary, retained rollback state, and cleanup decision.
