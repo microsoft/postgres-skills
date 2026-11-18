@@ -604,7 +604,11 @@
         "neo4j to azure postgres",
         "neo4j to horizondb",
         "neo4j aura migration",
-        "agefreighter"
+        "agefreighter",
+        "translate neo4j cypher to age",
+        "neo4j application migration",
+        "neo4j application",
+        "unsupported neo4j cypher"
       ],
       "always_load": false
     },

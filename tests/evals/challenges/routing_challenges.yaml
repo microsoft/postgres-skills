@@ -406,6 +406,12 @@ routing_challenges:
     difficulty: hard
     notes: "Neo4j data migration through AGEFreighter should route to the dedicated pg-graph sub-reference."
 
+  - id: route-63
+    query: "During our Neo4j to HorizonDB migration, inventory the application's Cypher and ask me to approve each unsupported-query translation before changing the code."
+    expected_skill: "plugin/skills/pg-graph/references/neo4j-agefreighter-migration"
+    difficulty: hard
+    notes: "Neo4j application remediation and approval-gated Cypher translation belong to the migration sub-reference."
+
   # ─── Azure HorizonDB flavor routing (best-practices Azure references) ───────
   - id: route-hz-01
     query: "On Azure HorizonDB, how do I allowlist an extension in azure.extensions?"
