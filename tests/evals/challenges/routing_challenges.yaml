@@ -400,6 +400,12 @@ routing_challenges:
     difficulty: medium
     notes: "VS Code AGE graph visualization should route to text-to-cypher (return full objects, set disp_label, match AS arity)."
 
+  - id: route-62
+    query: "Use AGEFreighter to migrate Neo4j Aura into an existing Azure HorizonDB cluster with validation, resume, and rollback."
+    expected_skill: "plugin/skills/pg-graph/references/neo4j-agefreighter-migration"
+    difficulty: hard
+    notes: "Neo4j data migration through AGEFreighter should route to the dedicated pg-graph sub-reference."
+
   # ─── Azure HorizonDB flavor routing (best-practices Azure references) ───────
   - id: route-hz-01
     query: "On Azure HorizonDB, how do I allowlist an extension in azure.extensions?"

@@ -595,6 +595,20 @@
       "always_load": false
     },
     {
+      "id": "graph-neo4j-agefreighter-migration",
+      "path": "plugin/skills/pg-graph/references/neo4j-agefreighter-migration.md",
+      "platform_scope": "azure-postgresql",
+      "activation_keywords": [
+        "migrate neo4j",
+        "neo4j to postgres",
+        "neo4j to azure postgres",
+        "neo4j to horizondb",
+        "neo4j aura migration",
+        "agefreighter"
+      ],
+      "always_load": false
+    },
+    {
       "id": "graph-examples",
       "path": "plugin/skills/pg-graph/references/examples.md",
       "platform_scope": "postgresql",

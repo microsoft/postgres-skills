@@ -316,9 +316,9 @@ See [Azure HorizonDB](https://learn.microsoft.com/en-us/azure/horizondb/overview
 | **azure-postgresql-extension-lifecycle** | Extension allowlisting on Azure | `azure.extensions` param, `azure_pg_admin` role requirement |
 | **azure-postgresql-upgrades-maintenance** | Major version upgrades, maintenance | MVU is one-way, no skip-version, `--validate-only` pre-check |
 
-### Graph on PostgreSQL — Apache AGE (pg-graph, 10 sub-skills)
+### Graph on PostgreSQL — Apache AGE (pg-graph, 11 sub-skills)
 
-The **pg-graph** skill is the single home for graph work on PostgreSQL, covering the full lifecycle: derive an ontology from your data (with a human feedback loop), build the graph, and query it with openCypher, natural-language-to-Cypher, and graph-augmented retrieval. It uses only capabilities available today — agent-driven extraction over the MCP query tools (any PostgreSQL with AGE) or the `azure_ai` extension for in-database work at scale on Azure.
+The **pg-graph** skill is the single home for graph work on PostgreSQL, covering the full lifecycle: derive an ontology from your data, build and query the graph, and migrate qualified Neo4j sources into AGE on Azure Database for PostgreSQL or Azure HorizonDB with AGEFreighter. It uses only released capabilities and verifies exact source and target compatibility before migration.
 
 | Sub-skill | Helps you with | What the agent learns that LLMs get wrong |
 |-----------|---------------|------------------------------------------|
@@ -331,6 +331,7 @@ The **pg-graph** skill is the single home for graph work on PostgreSQL, covering
 | **graph-augmented-rag** | Retrieval combining vector similarity with graph traversal and reranking | Hybrid graph retrieval that goes beyond flat vector search |
 | **graph-explainability** | Provenance, reasoning paths, and explainable recommendations | Confidence bounded by the weakest edge on the path; reproducible reasoning trace |
 | **azure-ai-semantic-search** | Enabling and configuring `azure_ai` and generating embeddings for semantic search | Read current settings and ask for endpoint/key/deployment — never invent them |
+| **neo4j-agefreighter-migration** | Validated, resumable Neo4j migration into AGE on Azure PostgreSQL or HorizonDB | Verify exact AGEFreighter compatibility; separate data movement from Cypher, APOC, GDS, driver, and application remediation |
 | **examples** | End-to-end worked graph examples spanning schema, query, and results | Grounded in the wrapping and safety rules from the other pg-graph sub-skills |
 
 </details>

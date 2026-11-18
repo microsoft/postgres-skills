@@ -4251,6 +4251,32 @@ challenges:
       - "Does the response allowlist age in azure.extensions and add it to shared_preload_libraries via a parameter group connected to the HorizonDB cluster, then create it with CREATE EXTENSION IF NOT EXISTS age CASCADE?"
       - "Does it avoid ALTER SYSTEM and note that age is preloaded so LOAD 'age' is unnecessary and blocked for non-superusers?"
 
+  - id: graph-neo4j-agefreighter-01
+    task: "Migrate our Neo4j Aura graph to an existing Azure HorizonDB PostgreSQL 18 cluster using AGEFreighter. Minimize the information you need from me, validate compatibility, and provide a resumable migration and rollback workflow."
+    difficulty: hard
+    target_skill: plugin/skills/pg-graph/references/neo4j-agefreighter-migration
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "AGEFreighter"
+      - "2\\.4\\.2|compatibility matrix"
+      - "Neo4j 4\\.4\\.48|Neo4j 5\\.26\\.30"
+      - "doctor"
+      - "profile"
+      - "verify"
+      - "resume"
+      - "rollback|retained backup"
+    anti_patterns:
+      - "all Neo4j versions"
+      - "HorizonDB.*production-scale.*qualified"
+      - "literal password"
+      - "ALTER SYSTEM"
+    correctness_checks:
+      - "Does the response verify the exact Neo4j, PostgreSQL, AGE, AGEFreighter, region, and managed-service qualification boundary before writes?"
+      - "Does it distinguish AGEFreighter graph-data migration from Cypher, APOC, GDS, driver, and application remediation?"
+      - "Does it use referenced secrets, read-only validate/plan/profile/doctor steps, explicit approval before load, resumable checkpoints, deep verification, and retained rollback evidence?"
+      - "Does it state that HorizonDB qualification is limited to the documented tiny scope rather than implying production-scale or every-region qualification?"
+
   # ─── AZURE HORIZONDB (Preview) (14 challenges: best-practices flavor routing) ─
   # These verify the agent routes to HorizonDB guidance (cluster / az horizondb /
   # parameter groups) instead of falling back to Flexible Server steps.
