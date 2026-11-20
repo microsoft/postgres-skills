@@ -424,6 +424,12 @@ routing_challenges:
     difficulty: hard
     notes: "Migration state, resume safety, and rollback route to the migration sub-reference."
 
+  - id: route-66
+    query: "The Neo4j migration runner says agefreighter is not on PATH. Help me install the qualified Windows binaries and configure PATH."
+    expected_skill: "plugin/skills/pg-graph/references/neo4j-agefreighter-migration"
+    difficulty: medium
+    notes: "AGEFreighter installation and executable discovery are prerequisites of the Neo4j migration workflow."
+
   # ─── Azure HorizonDB flavor routing (best-practices Azure references) ───────
   - id: route-hz-01
     query: "On Azure HorizonDB, how do I allowlist an extension in azure.extensions?"

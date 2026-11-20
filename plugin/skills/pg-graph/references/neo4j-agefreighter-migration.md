@@ -140,6 +140,124 @@ Resolve `<skill-directory>` as the directory containing the root `pg-graph`
   decision, and cutover runbook.
 - Fails closed when required evidence is failed, unknown, or not run.
 
+### Install and resolve AGEFreighter
+
+The plugin bundles the migration runner, not the AGEFreighter binaries. Help
+the user install the exact release admitted by the current compatibility
+matrix when either executable is unavailable. Do not silently download
+software, elevate privileges, or modify persistent `PATH`.
+
+1. Detect the operating system and architecture.
+2. Check Node.js and both AGEFreighter executables:
+
+   ```powershell
+   node --version
+   Get-Command agefreighter, agefreighter-tools
+   agefreighter version
+   agefreighter-tools --help
+   ```
+
+   ```sh
+   node --version
+   command -v agefreighter
+   command -v agefreighter-tools
+   agefreighter version
+   agefreighter-tools --help
+   ```
+
+3. If installation is needed, show the exact release, archive, source URL,
+   destination, PATH scope, and expected changes. Ask for approval before
+   downloading, extracting, installing, or changing persistent PATH.
+4. Download only from the selected release in
+   `https://github.com/rioriost/agefreighter/releases`. Release archives
+   contain both `agefreighter` and `agefreighter-tools`; do not suggest
+   `pip`, `pipx`, `npm`, or a separately downloaded tools package.
+5. Verify the archive against the release `checksums.txt` and, when GitHub CLI
+   attestation support is available, verify build provenance:
+
+   ```powershell
+   (Get-FileHash .\agefreighter_v2.4.2_windows_amd64.zip -Algorithm SHA256).Hash
+   gh attestation verify .\agefreighter_v2.4.2_windows_amd64.zip `
+     --repo rioriost/agefreighter
+   ```
+
+   ```sh
+   sha256sum agefreighter_v2.4.2_linux_amd64.tar.gz
+   gh attestation verify agefreighter_v2.4.2_linux_amd64.tar.gz \
+     --repo rioriost/agefreighter
+   ```
+
+   On macOS use `shasum -a 256` when `sha256sum` is unavailable. Compare the
+   digest exactly with the matching `checksums.txt` entry. Do not continue on
+   a mismatch or failed provenance check.
+
+6. Install both binaries using the platform-appropriate path.
+
+   **Windows, user-scoped installation**
+
+   ```powershell
+   $Version = "2.4.2"
+   $InstallDir = Join-Path $env:LOCALAPPDATA "Programs\AGEFreighter\$Version"
+   New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+   Expand-Archive .\agefreighter_v2.4.2_windows_amd64.zip `
+     -DestinationPath $InstallDir -Force
+
+   $UserPath = [Environment]::GetEnvironmentVariable("Path", "User")
+   $Entries = @($UserPath -split ";" | Where-Object { $_ })
+   if ($Entries -notcontains $InstallDir) {
+     [Environment]::SetEnvironmentVariable(
+       "Path",
+       (($Entries + $InstallDir) -join ";"),
+       "User"
+     )
+   }
+   $env:Path = "$InstallDir;$env:Path"
+   ```
+
+   Keep the installation user-scoped by default. Do not change the machine
+   PATH or write under `Program Files` unless the user explicitly chooses an
+   administrator-managed installation. AGEFreighter 2.4.2 Windows binaries
+   are unsigned; explain the expected `NotSigned` result and require checksum
+   and provenance verification rather than treating the warning as proof of
+   compromise or safety.
+
+   **macOS**
+
+   ```sh
+   brew install rioriost/cask/agefreighter
+   ```
+
+   Use Homebrew only when it installs the selected qualified release. Otherwise
+   install both verified archive binaries into an already approved directory
+   on PATH, such as `/usr/local/bin`.
+
+   **Linux**
+
+   ```sh
+   tar -xzf agefreighter_v2.4.2_linux_amd64.tar.gz
+   sudo install -m 0755 agefreighter agefreighter-tools /usr/local/bin/
+   ```
+
+   Ask before using `sudo`. If elevation is unavailable, offer a user-scoped
+   directory such as `$HOME/.local/bin`, add it to the current session with
+   `export PATH="$HOME/.local/bin:$PATH"`, and ask before updating the detected
+   shell startup file for future sessions.
+
+7. Refresh executable discovery. The current Windows process can use the
+   session PATH assignment above; newly opened terminals inherit the persisted
+   user PATH. On macOS or Linux, start a new shell or source the approved shell
+   startup file. Then rerun all four discovery/version commands from step 2.
+8. Confirm that the reported AGEFreighter version is the selected qualified
+   version and that both commands resolve from the intended directory. Record
+   the version, resolved paths, archive digest, and provenance result in the
+   readiness evidence. If multiple versions resolve, stop and let the user
+   choose which installation should take precedence.
+
+If a command still cannot be found, report the resolved install directory,
+current PATH entries, shell/process refresh needed, and the exact failed
+command. Do not bypass discovery with an unreviewed absolute path or copy the
+binaries into the application repository.
+
 Typical flow:
 
 ```sh

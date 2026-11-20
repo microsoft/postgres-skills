@@ -4289,6 +4289,33 @@ challenges:
       - "Does it generate a cutover and rollback runbook from RPO, RTO, downtime, source-change strategy, monitoring, and rollback thresholds?"
       - "Does it state that HorizonDB qualification is limited to the documented tiny scope rather than implying production-scale or every-region qualification?"
 
+  - id: graph-neo4j-agefreighter-install-01
+    task: "I installed the postgres-skills plugin on Windows, but the Neo4j migration says agefreighter is not recognized. Help me install the qualified AGEFreighter release and set PATH safely so the bundled migration runner can find both commands."
+    difficulty: medium
+    target_skill: plugin/skills/pg-graph/references/neo4j-agefreighter-migration
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "plugin.*runner|runner.*plugin"
+      - "agefreighter-tools"
+      - "Get-Command"
+      - "checksums\\.txt|Get-FileHash"
+      - "attestation|provenance"
+      - "User.*Path|user-scoped"
+      - "agefreighter version"
+      - "approval|confirm"
+    anti_patterns:
+      - "pip install"
+      - "npm install"
+      - "machine PATH.*without.*approval"
+      - "copy.*application repository"
+    correctness_checks:
+      - "Does the response explain that the plugin bundles the migration runner but not the AGEFreighter binaries?"
+      - "Does it select an exact qualified release and require checksum and provenance verification before installing both agefreighter and agefreighter-tools?"
+      - "Does it show a user-scoped Windows installation and PATH update, refresh the current process or terminal, and verify both commands and the reported version?"
+      - "Does it ask before downloading software or changing persistent PATH and avoid requiring an administrator-managed machine PATH?"
+      - "Does it provide actionable diagnostics for multiple versions or an executable that still cannot be found?"
+
   - id: graph-neo4j-cypher-translation-01
     task: "We are moving a Neo4j application to Apache AGE on Azure HorizonDB. Find every query and Neo4j-specific dependency and propose translations for unsupported Cypher. Let me approve proposals individually or approve a reviewed batch before you update the application."
     difficulty: hard
