@@ -412,6 +412,18 @@ routing_challenges:
     difficulty: hard
     notes: "Neo4j application remediation and approval-gated Cypher translation belong to the migration sub-reference."
 
+  - id: route-64
+    query: "Assess whether our Neo4j Aura application is ready to migrate to Azure PostgreSQL, recommend a pilot, and minimize the questions you ask me."
+    expected_skill: "plugin/skills/pg-graph/references/neo4j-agefreighter-migration"
+    difficulty: hard
+    notes: "Readiness-first Neo4j migration UX belongs to the migration sub-reference."
+
+  - id: route-65
+    query: "Resume our interrupted Neo4j migration and tell me what completed, what was preserved, and whether rollback is still available."
+    expected_skill: "plugin/skills/pg-graph/references/neo4j-agefreighter-migration"
+    difficulty: hard
+    notes: "Migration state, resume safety, and rollback route to the migration sub-reference."
+
   # ─── Azure HorizonDB flavor routing (best-practices Azure references) ───────
   - id: route-hz-01
     query: "On Azure HorizonDB, how do I allowlist an extension in azure.extensions?"

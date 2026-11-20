@@ -608,7 +608,14 @@
         "translate neo4j cypher to age",
         "neo4j application migration",
         "neo4j application",
-        "unsupported neo4j cypher"
+        "unsupported neo4j cypher",
+        "neo4j migration readiness",
+        "neo4j aura application",
+        "neo4j migration status",
+        "resume neo4j migration",
+        "interrupted neo4j migration",
+        "neo4j migration cutover",
+        "neo4j migration rollback"
       ],
       "always_load": false
     },

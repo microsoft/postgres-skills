@@ -4269,6 +4269,10 @@ challenges:
       - "verification matrix|business invariants"
       - "golden"
       - "approval"
+      - "readiness"
+      - "pilot"
+      - "GO|NO-GO"
+      - "status|next recommended action"
     anti_patterns:
       - "all Neo4j versions"
       - "HorizonDB.*production-scale.*qualified"
@@ -4277,9 +4281,12 @@ challenges:
     correctness_checks:
       - "Does the response verify the exact Neo4j, PostgreSQL, AGE, AGEFreighter, region, and managed-service qualification boundary before writes?"
       - "Does it distinguish AGEFreighter graph-data migration from Cypher, APOC, GDS, driver, and application remediation?"
-      - "Does it use referenced secrets, read-only validate/plan/profile/doctor steps, explicit approval before load, resumable checkpoints, a workload-specific production verification matrix, and retained rollback evidence?"
-      - "Does it inventory the complete discoverable query and application corpus, record blind spots, and require explicit approval for each proposed translation before changing a query or application file?"
+      - "Does it begin with a bounded read-only assessment and a concise readiness card rather than requiring the user to understand commands or LoadJob YAML first?"
+      - "Does it recommend a thin-slice pilot, coordinate data and application remediation in parallel, and maintain durable migration status with one clear next action?"
+      - "Does it use referenced secrets, read-only validate/plan/profile/doctor steps, explicit approval before target writes, resumable checkpoints, layered production verification, a go/no-go summary, and retained rollback evidence?"
+      - "Does it inventory the complete discoverable query and application corpus, record blind spots, and allow individual or explicit reviewed-batch approval before changing queries or application files?"
       - "Does it validate each approved translation with golden-result and transaction-behavior tests rather than treating static compatibility as runtime equivalence?"
+      - "Does it generate a cutover and rollback runbook from RPO, RTO, downtime, source-change strategy, monitoring, and rollback thresholds?"
       - "Does it state that HorizonDB qualification is limited to the documented tiny scope rather than implying production-scale or every-region qualification?"
 
   - id: graph-neo4j-cypher-translation-01
@@ -4307,6 +4314,60 @@ challenges:
       - "Does it allow individual approval or an explicit reviewed batch listing proposal IDs and versions before modifying those query or application locations?"
       - "Does it exclude unseen, newly discovered, changed, rejected, or unlisted proposals from batch approval and require new approval when a proposal changes?"
       - "After approval, does it patch only the approved locations and compare normalized Neo4j and AGE results, side effects, errors, ordering, and transaction behavior?"
+
+  - id: graph-neo4j-guided-ux-01
+    task: "I own an application on Neo4j Aura and want to know if it can move to Azure PostgreSQL with AGE. I do not know AGEFreighter, migration modes, stable keys, or YAML. Ask me as little as possible, assess readiness, recommend the safest path, and only stop me for decisions that truly need approval."
+    difficulty: hard
+    target_skill: plugin/skills/pg-graph/references/neo4j-agefreighter-migration
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "Guided|Standard|Expert"
+      - "read-only"
+      - "READY|BLOCKED"
+      - "readiness"
+      - "pilot"
+      - "recommended"
+      - "next.*action|next.*decision"
+      - "cutover"
+      - "cleanup"
+    anti_patterns:
+      - "choose.*create.*replace.*append.*upsert"
+      - "write.*job\\.yaml.*first"
+      - "approve every command"
+      - "provide.*stable.*key.*before"
+    correctness_checks:
+      - "Does the response ask only for source access, target or target preference, application/query locations, critical workloads, RPO/RTO/downtime, and one bounded read-only scope approval?"
+      - "Does it discover and recommend graph name, load mode, stable identities, mappings, consistency strategy, and verification depth rather than making the user choose them without evidence?"
+      - "Does it offer Guided, Standard, and Expert modes while preserving critical gates for access scope, target writes, application changes, cutover, and destructive cleanup?"
+      - "Does it return a readiness card with blockers, blind spots, complexity, evidence-backed estimates, a pilot recommendation, and one next decision?"
+      - "Does it hide commands and YAML as implementation details unless the user asks for them?"
+
+  - id: graph-neo4j-resume-ux-01
+    task: "Our Neo4j migration terminal was interrupted overnight. I do not want to rerun everything or inspect raw logs. Tell me exactly where the migration is, what was preserved, whether resume is safe, what decision you need from me, and how rollback would work."
+    difficulty: hard
+    target_skill: plugin/skills/pg-graph/references/neo4j-agefreighter-migration
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "migration-state"
+      - "status"
+      - "preserved"
+      - "resume safety|safe to resume"
+      - "fingerprint"
+      - "next recommended action"
+      - "rollback"
+      - "approval needed"
+    anti_patterns:
+      - "start over"
+      - "rerun the full migration"
+      - "drop_graph"
+      - "delete.*metadata"
+    correctness_checks:
+      - "Does the response inspect durable job and migration state before recommending recovery?"
+      - "Does it summarize completed work, active phase, blockers, preserved batches/checkpoints/graphs, next action, approval need, and rollback state without forcing the user to interpret raw logs?"
+      - "Does it verify source and configuration fingerprints and ordering contracts before declaring resume safe?"
+      - "Does it offer retry, reconfigure, skip with exception, abort, or rollback with explicit impact instead of silently choosing a fallback?"
 
   # ─── AZURE HORIZONDB (Preview) (14 challenges: best-practices flavor routing) ─
   # These verify the agent routes to HorizonDB guidance (cluster / az horizondb /

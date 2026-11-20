@@ -16,6 +16,105 @@ and target match its released compatibility boundary. It provides strict
 configuration validation, bounded source profiling, resumable batches, atomic
 replacement, verification, reports, and retained rollback evidence.
 
+## Contents
+
+- Customer experience, interaction modes, approvals, and durable state
+- Compatibility boundary and minimal inputs
+- Readiness, inventory, target checks, mappings, and `LoadJob`
+- Validation, thin-slice pilot, and parallel execution tracks
+- Cypher and application remediation
+- Load strategy, verification, go/no-go, cutover, recovery, and reporting
+
+## Customer experience contract
+
+Lead with the migration outcome, current status, and next decision. Keep
+commands, YAML, compatibility tables, and full verification evidence available
+as implementation detail rather than making the user interpret them before
+understanding whether the migration is viable.
+
+Ask for outcomes and constraints, discover technical choices, recommend a
+default with rationale, and interrupt only for consequential decisions. Never
+trade away the approval gates for access scope, target writes, application
+changes, production cutover, or destructive cleanup.
+
+## Workflow at a glance
+
+1. Obtain one approval for bounded read-only assessment.
+2. Return a one-page readiness card and recommended migration mode.
+3. Run a thin-slice pilot on representative data and critical queries.
+4. Present one plan for the data and application tracks.
+5. Execute data preparation and application remediation in parallel.
+6. Rehearse, verify, and return a concise go/no-go decision.
+7. Generate and approve a timed cutover and rollback runbook.
+8. Cut over, observe, retain rollback state, and approve cleanup.
+
+## Interaction modes and approval budget
+
+Offer an interaction mode at the start and recommend **Standard** unless the
+user requests otherwise:
+
+| Mode | Experience | Approval behavior |
+| ---- | ---------- | ----------------- |
+| Guided | Explain each phase in customer terms and recommend every technical choice | Group low-risk read-only work under one scope approval; pause at every critical gate |
+| Standard | Execute approved read-only discovery and routine validation without repeated prompts | Pause only at critical gates or when discovery is ambiguous |
+| Expert | Expose commands, configuration, and tuning controls | Let the user control routine steps, but do not waive critical gates |
+
+The five critical gates are:
+
+1. **Access scope:** approve source, target, repository, telemetry, and profiling
+   boundaries for the read-only assessment.
+2. **Target writes:** approve the isolated pilot and later the production load.
+3. **Application changes:** approve translation proposals individually or as
+   an explicit reviewed batch.
+4. **Production cutover:** approve source fencing, final delta, and traffic
+   switching after go/no-go review.
+5. **Destructive cleanup:** approve removal of retained backups, shadow
+   objects, or temporary migration artifacts after the rollback window.
+
+One approval can cover all listed actions within a gate when the scope,
+targets, expected impact, and rollback are explicit. Do not repeatedly ask for
+approval for local validation, plan generation, report generation, or
+read-only actions already covered by the access-scope approval.
+
+## Durable migration workspace
+
+Maintain a resumable, secret-free workspace such as
+`.agefreighter-migration/<migration-name>/`:
+
+```text
+migration-state.yaml
+readiness.md
+job.yaml
+application-ledger.md
+translations/
+verification.md
+cutover-runbook.md
+migration-report.md
+```
+
+`migration-state.yaml` records the interaction mode, current phase, source and
+target fingerprints, AGEFreighter job ID, completed and pending steps,
+blockers, proposal IDs and versions, approval scopes, verification status,
+rollback state, and exact resume action. Never store credentials or access
+tokens in this workspace.
+
+At every pause, failure, or resumed conversation, show:
+
+```text
+Migration status: <on-track | needs-attention | blocked>
+Phase: <name>
+Completed: <evidence-backed milestones>
+In progress: <current bounded operation>
+Blockers/unknowns: <none or concise list>
+Next recommended action: <one action and why>
+Approval needed: <gate and exact scope, or none>
+Resume: <safe command or workflow step>
+Rollback state: <available, not yet created, or expired>
+```
+
+Use tool-reported counts and progress. Do not invent a completion percentage
+or ETA. Give a range only when profiling or completed batches provide evidence.
+
 ## Verified compatibility boundary
 
 Check the current
@@ -55,21 +154,50 @@ provenance verification.
 Ask only for information that cannot be discovered safely:
 
 - Neo4j URI, database, username, and a secret reference.
-- Existing Azure PostgreSQL server or HorizonDB cluster and database.
-- Target graph name.
-- Preferred migration mode: `create`, `replace`, `append`, or `upsert`.
-- Stable source key and identity properties, unless bounded discovery is
-  appropriate.
-- Downtime, source-change, and rollback requirements.
-- Approval before source profiling, target diagnostics, loading, cutover, or
-  cleanup.
+- Existing Azure PostgreSQL or HorizonDB target, or the desired service and
+  region when target guidance is needed.
+- Application repository or query-artifact locations when application
+  migration is in scope.
+- Critical workloads and business invariants.
+- Downtime, source-change, RPO, RTO, and rollback-window requirements.
+- Interaction mode and approval for the bounded read-only assessment.
 - Approval for proposed Cypher or application translations, individually or as
   an explicit reviewed batch, before changing source files, stored queries, or
   deployment artifacts.
 
+Discover and recommend the target graph name, migration mode, stable keys,
+mappings, batch settings, consistency strategy, and verification depth. Ask
+the user only when discovery produces multiple safe choices or no safe choice.
+
 Never request a password or connection string in chat. Use environment
 variables or protected files because AGEFreighter rejects literal credentials
 in a `LoadJob`.
+
+## 0. Return a readiness assessment first
+
+Under the approved read-only scope, run local validation, source inventory,
+bounded profiling, target diagnostics, and application discovery. Do not make
+the user review a `LoadJob` before receiving this initial assessment.
+
+Return a one-page readiness card:
+
+```text
+Migration readiness: <READY | READY WITH REMEDIATION | BLOCKED>
+Recommended path: <service, mode, consistency strategy, and interaction mode>
+Data complexity: <low | medium | high> — <evidence>
+Application complexity: <low | medium | high> — <evidence>
+Discovery coverage: <observed sources and explicit blind spots>
+Critical blockers: <none or list>
+Required remediation: <grouped list>
+Estimated range: <only evidence-backed time/storage/capacity ranges>
+Recommended pilot: <representative labels, relationships, and queries>
+Next decision: <one decision with recommended default>
+```
+
+`READY WITH REMEDIATION` means the path is viable but identified work must
+complete before cutover. `BLOCKED` must name the failed compatibility,
+identity, access, consistency, target, or application condition and the
+smallest action that could unblock it.
 
 ## 1. Establish the migration boundary
 
@@ -242,7 +370,55 @@ Review:
   fixtures, performance targets, rollback test, and evidence required for
   production acceptance.
 
-## 6. Discover, assess, and translate Cypher separately
+## 6. Prove the path with a thin-slice pilot
+
+Before a full rehearsal or production load, recommend an isolated pilot that
+is small enough to complete quickly but representative enough to expose data,
+query, driver, and operational incompatibilities. Obtain one target-write
+approval covering the pilot graph, selected source scope, expected target
+objects, and cleanup or retention plan.
+
+Select:
+
+- Representative vertex labels, including multi-label and property edge cases.
+- Representative relationship types, directions, endpoint combinations, and
+  relationship properties.
+- Three to five critical queries spanning reads, paths, aggregations, and a
+  controlled mutation when mutations are in scope.
+- At least one application connection path using the intended PostgreSQL
+  driver and AGE wrapper.
+- Data volumes that exercise batching without implying production capacity.
+
+The pilot succeeds only when it demonstrates:
+
+- Mapping, identity, endpoint, and property correctness.
+- Golden-result equivalence for the selected queries.
+- Expected driver, parameter, result-shape, and transaction behavior.
+- Initial latency and resource evidence, clearly labeled as pilot scale.
+- Resume or rerun behavior and safe pilot rollback.
+- A revised list of blockers, unknowns, and full-migration acceptance criteria.
+
+A pilot reduces uncertainty but does not qualify production scale, high
+availability, full query coverage, or cutover readiness. Return a short pilot
+decision: **proceed**, **proceed with remediation**, or **stop and redesign**.
+
+## 7. Run data and application tracks in parallel
+
+After readiness and pilot approval, maintain one plan with two coordinated
+tracks:
+
+| Data track | Application track |
+| ---------- | ----------------- |
+| Finalize mappings and stable identities | Complete the query and dependency ledger |
+| Select load and consistency strategy | Cluster compatibility findings and translations |
+| Validate capacity and target readiness | Replace driver, wrapper, procedure, and transaction dependencies |
+| Load, resume, and verify graph data | Run golden, mutation, error, and transaction tests |
+
+Neither track should wait for unrelated work in the other. Synchronize them at
+pilot acceptance, rehearsal entry, go/no-go review, and production cutover.
+Show one combined dashboard and one next decision.
+
+## 8. Discover, assess, and translate Cypher separately
 
 Build a query and application dependency ledger before translating anything.
 Include the source location, owner or component, execution frequency, read or
@@ -294,13 +470,19 @@ proposal containing:
 7. Golden inputs, expected normalized results, and target validation steps.
 8. Risk, rollback, and any behavior that remains unknown.
 
-Present every proposal for review before modifying its query or application
-files. The user may approve one proposal or explicitly approve a batch by
-listing the reviewed proposal IDs and versions. Record the approval scope and
-do not include unseen, newly discovered, or changed proposals. Approval for
-profiling or loading does not authorize translations. If the user rejects or
-edits a proposal, retain the original and revise only the proposal; the revised
-version requires new approval.
+Cluster proposals that share the same mechanical transformation into a
+translation family. For each family, show the canonical before/after diff,
+rule, risk (`low`, `medium`, or `high`), affected proposal IDs and versions,
+locations, exceptions, and validation strategy. This lets the user review the
+pattern once without hiding the individual impact.
+
+Present every proposal or translation family for review before modifying its
+query or application files. The user may approve one proposal, a translation
+family, or an explicit batch by listing the reviewed proposal IDs and versions.
+Record the approval scope and do not include unseen, newly discovered, or
+changed proposals. Approval for profiling or loading does not authorize
+translations. If the user rejects or edits a proposal, retain the original and
+revise only the proposal; the revised version requires new approval.
 
 After approval:
 
@@ -315,13 +497,13 @@ After approval:
    `approved-with-exception`.
 
 Bulk application is allowed only for the exact proposal IDs and versions in an
-explicit user-approved batch. Each translation still requires its own evidence
-and validation result. The skill may generate patches for known mechanical
-patterns, but it must not treat approval as covering unseen or changed
-proposals, automatically approve semantic changes, or claim that static
-compatibility proves runtime equivalence.
+approved family or explicit batch. Each translation still requires its own
+evidence and validation result. The skill may generate patches for known
+mechanical patterns, but it must not treat approval as covering family
+exceptions, unseen or changed proposals, automatically approve semantic
+changes, or claim that static compatibility proves runtime equivalence.
 
-## 7. Choose a load and cutover strategy
+## 9. Choose a load and source-change strategy
 
 | Mode | Use when | Safety boundary |
 | ---- | -------- | --------------- |
@@ -338,7 +520,20 @@ captured. AGEFreighter checkpoints resume an interrupted ordered migration;
 they do not create a shared Neo4j snapshot across all mappings or automatically
 capture application changes after the read boundary.
 
-## 8. Load, monitor, verify, and report
+Recommend one of these source-change patterns:
+
+| Pattern | Use when | Tradeoff |
+| ------- | -------- | -------- |
+| Planned downtime | The accepted downtime covers the final load and verification | Simplest consistency model, highest downtime |
+| Repeated upsert or delta | Stable identities and a reliable changed-record boundary exist | Lower downtime, requires reconciliation and idempotent behavior |
+| Temporary dual-write | The application can safely write to both systems and reconcile failures | Low cutover downtime, highest application complexity |
+| Custom CDC | Business requirements justify a separately engineered change stream | Most flexible, outside AGEFreighter's built-in guarantees |
+
+Base the recommendation on source write activity, RPO, RTO, accepted downtime,
+identity stability, and application-change tolerance. Do not imply AGEFreighter
+provides CDC or a graph-wide Neo4j snapshot.
+
+## 10. Load, monitor, verify, and report
 
 After the user approves the source and target impact:
 
@@ -363,7 +558,17 @@ Require:
 
 A clean truncated integrity sample is incomplete, not a pass.
 
-Use a production verification matrix and record each check as `pass`, `fail`,
+Organize verification into three layers:
+
+1. **Automated core:** compatibility, batch completion, rejects, counts,
+   identities, endpoints, digests, schema, and resume fingerprints.
+2. **Workload acceptance:** business invariants, critical queries, mutations,
+   driver behavior, transactions, and agreed performance targets.
+3. **Production hardening:** security, concurrency, capacity, observability,
+   backup/restore, failure recovery, cutover, and rollback rehearsal.
+
+Show the concise go/no-go summary first and keep the complete matrix as
+drill-down evidence. Record each matrix check as `pass`, `fail`,
 `approved-exception`, `not-run`, or `unknown`:
 
 | Area | Required evidence |
@@ -390,7 +595,54 @@ Do not declare production readiness while any required check is `fail`,
 record its impact, owner, expiration or follow-up condition, and rollback
 implication. Report exact and exhaustive checks separately from sampled checks.
 
-## 9. Recover or roll back
+Return this decision card before requesting cutover approval:
+
+```text
+Cutover recommendation: <GO | CONDITIONAL GO | NO-GO>
+Automated core: <pass/fail summary>
+Workload acceptance: <pass/fail summary>
+Production hardening: <pass/fail summary>
+Approved exceptions: <none or bounded list>
+Open blockers/unknowns: <none or list>
+Rollback readiness: <ready/not ready and retained state>
+Recommended decision: <one action and rationale>
+Approval needed: production cutover scope
+```
+
+`CONDITIONAL GO` is valid only when the user explicitly accepts every bounded
+exception and none invalidates data integrity, recoverability, or an agreed
+business invariant.
+
+## 11. Generate the cutover and rollback runbook
+
+Generate `cutover-runbook.md` from the selected source-change strategy, RPO,
+RTO, accepted downtime, traffic-switch mechanism, smoke tests, rollback
+window, and rollback thresholds. Do not leave the user to assemble operational
+steps from the migration report.
+
+The runbook must contain:
+
+- Preconditions and evidence links.
+- T-minus preparation, source-write fencing, and final-delta steps.
+- Final verification and explicit go/no-go checkpoint.
+- Application connection or traffic switch.
+- Smoke tests and production monitoring.
+- Quantitative or observable rollback triggers.
+- Rollback commands and validation.
+- Observation window and escalation path.
+- Backup-retention and cleanup timing.
+
+Use a relative timeline appropriate to the migration, for example `T-7 days`,
+`T-1 day`, `T-30 minutes`, `T0`, `T+30 minutes`, and `T+1 day`. Mark which
+steps are automated, which require the user or application team, and which
+cannot be reversed.
+
+Request one production-cutover approval covering the finalized runbook,
+source-write impact, final delta, traffic switch, monitoring window, and
+rollback thresholds. Any material runbook change after approval requires a new
+cutover approval.
+
+## 12. Recover or roll back
 
 Inspect durable status before any recovery:
 
@@ -413,6 +665,20 @@ agefreighter cleanup --target job.yaml JOB_ID
 Do not use manual `drop_graph`, metadata deletion, broad schema cleanup, or
 renames of AGEFreighter shadow and backup objects as recovery shortcuts.
 
+For every failure, update the durable state and return:
+
+```text
+Failure: <specific operation and error>
+Preserved state: <committed batches, checkpoints, active graph, backup>
+Resume safety: <safe | unsafe | requires decision> — <reason>
+Recommended action: <retry | reconfigure | skip with exception | abort | roll back>
+Impact: <data, application, downtime, and rollback implications>
+Approval needed: <exact critical gate or none>
+```
+
+Do not collapse an error into a generic failure or silently choose a
+success-shaped fallback.
+
 ## Required final report
 
 Return:
@@ -427,8 +693,10 @@ Return:
    application gaps.
 6. Production verification matrix with exact versus sampled evidence,
    exceptions, profile, load, reject, and performance results.
-7. Cutover boundary, retained rollback state, and cleanup decision.
-8. Unknowns that prevent production qualification.
+7. Readiness, pilot, combined dashboard, and go/no-go decisions.
+8. Approved cutover and rollback runbook, retained rollback state, observation
+   outcome, and cleanup decision.
+9. Unknowns that prevent production qualification.
 
 ## Sources
 
