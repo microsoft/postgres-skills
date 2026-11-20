@@ -334,6 +334,35 @@ The **pg-graph** skill is the single home for graph work on PostgreSQL, covering
 | **neo4j-agefreighter-migration** | Executable, guarded Neo4j migration into AGE on Azure PostgreSQL or HorizonDB | Use the bundled state-machine runner, AGEFreighter data plane, PostgreSQL MCP target plane, approved translation batches, go/no-go verification, and cutover/rollback evidence |
 | **examples** | End-to-end worked graph examples spanning schema, query, and results | Grounded in the wrapping and safety rules from the other pg-graph sub-skills |
 
+#### Automated Neo4j migration flow
+
+The `neo4j-agefreighter-migration` sub-skill uses three cooperating components:
+
+| Component | Responsibility |
+|-----------|----------------|
+| **Migration runner** | Persists secret-free state, enforces approvals, executes stages, records redacted receipts, resumes interrupted work, and generates readiness, status, verification, go/no-go, and cutover artifacts |
+| **AGEFreighter** | Profiles Neo4j and performs qualified, checkpointed graph-data loading, verification, reporting, atomic replacement, resume, and cleanup |
+| **PostgreSQL MCP** | Inspects the Azure PostgreSQL or HorizonDB target, verifies AGE and target capabilities, runs bounded validation queries, and performs explicitly approved target changes |
+
+```text
+Initialize → Readiness assessment → Thin-slice pilot
+           → Data load + application remediation
+           → Verification and go/no-go
+           → Approved cutover → Observation → Approved cleanup
+```
+
+The runner is installed with the plugin at
+`skills/pg-graph/scripts/neo4j-migration-runner.mjs`; it is not copied into the
+application repository. It creates only the selected
+`.agefreighter-migration/<name>` workspace for resumable state and evidence.
+It requires Node.js 22+, a qualified AGEFreighter release on `PATH`, and a
+configured PostgreSQL MCP connection.
+
+Routine read-only discovery and validation are grouped to minimize approval
+fatigue. Human approval remains required for the access scope, pilot and
+production target writes, application translations, production cutover, and
+destructive cleanup.
+
 </details>
 
 ## Contributing
