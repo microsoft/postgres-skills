@@ -40,6 +40,7 @@ prerequisites, safety policies, and migration-script tests. It uses the same
 | Add tenant isolation | Design row-level security policies around your tenancy model. |
 | Investigate connection or service issues | Check the selected environment and follow the relevant PostgreSQL or Azure workflow. |
 | Build a knowledge graph | Propose an ontology for review, load it into Apache AGE, and query relationships with openCypher. |
+| Migrate a Neo4j application | Assess graph and application compatibility, run a representative pilot, migrate with AGEFreighter, translate approved Cypher, verify parity, and guide cutover and rollback. |
 
 ### What you're probably doing today instead
 
@@ -189,6 +190,7 @@ sensitive or production database.
 | **"My query went from 200ms to 8 seconds after deployment."** | Inspect the plan and schema, explain likely causes, and propose a change for review. |
 | **"Set up vector search for my product catalog."** | Check extensions and indexing options for your environment, then request approval before applying changes. |
 | **"Turn my documents into a knowledge graph."** | Sample approved data, propose an ontology for review, and load the graph only after confirmation. |
+| **"Migrate our Neo4j Aura application to AGE on Azure HorizonDB."** | Assess readiness, prove a thin slice, migrate graph data with AGEFreighter, remediate approved application queries, verify go/no-go, and generate the cutover and rollback runbook. |
 
 <details>
 <summary>More examples: PostgreSQL, Azure, and graph workloads</summary>
@@ -262,16 +264,83 @@ sensitive or production database.
 **"Why did the graph recommend this?"**
 → Returns the reasoning path, provenance, and confidence bounded by the weakest supporting edge.
 
+#### Real-world scenario: care-coordination graph migration
+
+A healthcare application uses Neo4j Aura 5.26 for a care-coordination graph
+connecting patients, providers, facilities, referrals, encounters, and care
+programs. The application uses the Neo4j Bolt driver, inline Cypher, several
+APOC procedures, and a small set of analytical queries. The team wants to move
+the operational graph to Apache AGE on an existing Azure HorizonDB PostgreSQL
+18 cluster, minimize downtime, preserve application behavior, and retain a
+tested rollback path.
+
+Example prompt:
+
+```text
+Migrate our Neo4j Aura 5.26 care-coordination application to Apache AGE on
+our existing Azure HorizonDB PostgreSQL 18 cluster.
+
+Use Standard mode and ask me only for information you cannot discover safely.
+Assess the source graph, application repository, Cypher, Bolt driver usage,
+APOC/GDS dependencies, target compatibility, and source-write activity.
+
+Recommend stable identities, mappings, migration mode, and a low-downtime
+strategy. Run a representative pilot before the full load. Propose application
+and Cypher translations for review; I may approve them individually or as an
+explicit batch. Maintain resumable state, verify data and query parity, and
+produce a go/no-go decision plus a timed cutover and rollback runbook.
+
+Use saved connection profiles and secret references. Do not put credentials in
+chat or change production traffic without my approval.
+```
+
+What the sub-skill covers:
+
+1. **Readiness:** verifies the exact Neo4j, PostgreSQL, AGE, AGEFreighter,
+   service, and region boundary; inventories graph shape, volume, identities,
+   source writes, application code, queries, drivers, APOC, GDS, and discovery
+   blind spots.
+2. **Recommended plan:** derives graph name, stable keys, mappings, load mode,
+   consistency strategy, capacity range, verification criteria, and the next
+   decision instead of making the user choose unfamiliar options upfront.
+3. **Thin-slice pilot:** migrates representative labels, relationships,
+   property edge cases, critical queries, and an application connection path
+   into an isolated pilot graph.
+4. **Data migration:** uses AGEFreighter for validated mappings, checkpointed
+   batches, atomic replacement where selected, status, resume, verification,
+   reports, retained backup evidence, and approved cleanup.
+5. **Application remediation:** discovers static and observed queries, groups
+   mechanical translations into reviewable families, patches only approved
+   proposal IDs and versions, and flags APOC, GDS, dynamic Cypher, driver, or
+   semantic redesign work.
+6. **Target validation:** uses PostgreSQL MCP for AGE and server capability
+   checks, bounded catalog and validation queries, golden-query execution, and
+   explicitly approved target changes.
+7. **Production qualification:** checks schema, properties, counts, identities,
+   endpoints, topology, business invariants, query results, mutations,
+   transactions, concurrency, performance, security, observability,
+   backup/restore, and rollback readiness.
+8. **Cutover and recovery:** maintains durable migration state, explains what
+   was preserved after failures, recommends safe retry or rollback actions, and
+   generates a timed source-fence, final-delta, traffic-switch, monitoring, and
+   rollback runbook.
+
+Human approval remains required for the initial access scope, pilot and
+production writes, application changes, production cutover, and destructive
+cleanup. The workflow does not invent ambiguous application semantics,
+automatically replace APOC/GDS algorithms, or claim production qualification
+from a pilot or static Cypher check.
+
 </details>
 
 ## Sub-skill Catalog
 
-The PostgreSQL and graph skills contain 33 reference guides, grouped below.
-"Sub-skills" refers to those guides, not 33 separate plugins. The third skill,
+The PostgreSQL and graph skills contain 34 reference guides, grouped below.
+"Sub-skills" refers to those guides, not 34 separate plugins. The third skill,
 `migrate-oracle-app`, has its own [migration guide](plugin/MIGRATION.md) and workflow references.
 
 <details>
-<summary>Browse all 33 reference guides: 11 PostgreSQL, 12 Azure, and 10 graph</summary>
+<summary>Browse all 34 reference guides: 11 PostgreSQL, 12 Azure, and 11 graph</summary>
 
 ### PostgreSQL Foundational (11 sub-skills)
 
