@@ -4343,6 +4343,35 @@ challenges:
       - "Does it return a readiness card with blockers, blind spots, complexity, evidence-backed estimates, a pilot recommendation, and one next decision?"
       - "Does it hide commands and YAML as implementation details unless the user asks for them?"
 
+  - id: graph-neo4j-executable-automation-01
+    task: "I have saved Neo4j and Azure PostgreSQL connection profiles and have approved a bounded assessment. Execute as much of the migration as can be automated. Do not give me a long manual checklist; maintain state, run the tools, and only stop for critical approvals or ambiguous application semantics."
+    difficulty: hard
+    target_skill: plugin/skills/pg-graph/references/neo4j-agefreighter-migration
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "neo4j-migration-runner"
+      - "migration-state"
+      - "AGEFreighter"
+      - "postgres_mcp"
+      - "readiness"
+      - "pilot"
+      - "status"
+      - "verify"
+      - "go-no-go|GO|NO-GO"
+      - "approval"
+    anti_patterns:
+      - "run these commands yourself"
+      - "manually create.*migration-state"
+      - "conversation.*is.*state"
+      - "skip.*approval"
+    correctness_checks:
+      - "Does the response use the bundled deterministic runner as the coordinator rather than merely describing commands?"
+      - "Does it use AGEFreighter for qualified graph-data movement, PostgreSQL MCP for target discovery and evidence, and repository tools for approved application changes?"
+      - "Does it persist sanitized state and command receipts, reconcile AGEFreighter status before resume, and generate readiness, dashboard, verification, go/no-go, and cutover artifacts?"
+      - "Does it continue automatically through already approved read-only and routine steps while stopping for access scope, target writes, application changes, production cutover, cleanup, or ambiguous semantics?"
+      - "Does it avoid claiming that MCP replaces AGEFreighter loading or that automation can safely choose unknown mappings, application semantics, traffic switching, or rollback mechanisms?"
+
   - id: graph-neo4j-resume-ux-01
     task: "Our Neo4j migration terminal was interrupted overnight. I do not want to rerun everything or inspect raw logs. Tell me exactly where the migration is, what was preserved, whether resume is safe, what decision you need from me, and how rollback would work."
     difficulty: hard

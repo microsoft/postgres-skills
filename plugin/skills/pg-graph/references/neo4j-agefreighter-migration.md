@@ -115,6 +115,63 @@ Rollback state: <available, not yet created, or expired>
 Use tool-reported counts and progress. Do not invent a completion percentage
 or ETA. Give a range only when profiling or completed batches provide evidence.
 
+## Deterministic migration runner
+
+Use the bundled runner as the default orchestration path instead of manually
+reconstructing state from conversation history:
+
+```sh
+node <skill-directory>/scripts/neo4j-migration-runner.mjs <command> ...
+```
+
+Resolve `<skill-directory>` as the directory containing the root `pg-graph`
+`SKILL.md`, and verify the script exists before execution. It requires Node.js
+22+ and the qualified `agefreighter` and `agefreighter-tools` executables on
+`PATH`. The runner:
+
+- Creates the secret-free workspace and atomically persists
+  `migration-state.yaml`.
+- Enforces access, pilot-write, production-write, application-change, cutover,
+  and cleanup approval records.
+- Invokes AGEFreighter without a shell and writes redacted command receipts.
+- Runs readiness checks, pilots, production loads, status, resume,
+  verification, reports, and cleanup.
+- Generates the dashboard, readiness card, verification summary, go/no-go
+  decision, and cutover runbook.
+- Fails closed when required evidence is failed, unknown, or not run.
+
+Typical flow:
+
+```sh
+node <runner> init \
+  --workspace .agefreighter-migration/app \
+  --name app --job reviewed-job.yaml --mode standard
+
+node <runner> approve \
+  --workspace .agefreighter-migration/app \
+  --gate access-scope \
+  --scope "Bounded Neo4j profile, target diagnostics, and application inventory"
+
+node <runner> assess --workspace .agefreighter-migration/app
+node <runner> approve --workspace .agefreighter-migration/app \
+  --gate pilot-write --scope "Isolated pilot graph and approved source subset"
+node <runner> pilot --workspace .agefreighter-migration/app \
+  --pilot-job reviewed-pilot-job.yaml
+node <runner> status --workspace .agefreighter-migration/app
+node <runner> verify --workspace .agefreighter-migration/app
+```
+
+Use `approve --gate application-change --proposals
+ID@VERSION,ID@VERSION` for reviewed translation proposals or families. Use
+`record-check` to attach golden-query, application, performance, security,
+restore, and rollback evidence before `go-no-go`.
+
+The runner does not invent mappings, translate ambiguous semantics, provision
+an unknown target, switch application traffic, or activate an undocumented
+backup. The agent performs those evidence-driven tasks through repository
+tools and PostgreSQL MCP, records the resulting evidence, and asks for the
+critical approval before execution.
+
 ## Verified compatibility boundary
 
 Check the current
@@ -256,6 +313,25 @@ agefreighter doctor --target job.yaml \
 
 `doctor` is the target readiness gate. It must fail before graph changes when
 the PostgreSQL and AGE pairing is unsupported.
+
+Use PostgreSQL MCP as the target-plane adapter:
+
+1. Resolve the saved target connection and call
+   `postgres_mcp_get_server_capabilities` once.
+2. Execute the runner-generated `target-diagnostics.sql` with
+   `postgres_mcp_query`.
+3. Use bounded catalog queries for graph, schema, extension, privilege,
+   identity, count, digest, and performance evidence.
+4. Before any `postgres_mcp_modify`, show the exact database, SQL, impact, and
+   rollback and confirm that the applicable target-write approval scope covers
+   it.
+5. Save a sanitized target evidence artifact and reference it from
+   `record-check`; never store the profile ID, host, credentials, or connection
+   string in migration state.
+
+Do not use MCP as a hidden alternate loader when AGEFreighter supports the
+qualified data path. Use MCP for target discovery, setup, bounded verification,
+application golden tests, and approved target-side changes.
 
 ## 3. Select explicit mappings or discovery
 
