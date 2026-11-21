@@ -400,6 +400,36 @@ routing_challenges:
     difficulty: medium
     notes: "VS Code AGE graph visualization should route to text-to-cypher (return full objects, set disp_label, match AS arity)."
 
+  - id: route-62
+    query: "Use AGEFreighter to migrate Neo4j Aura into an existing Azure HorizonDB cluster with validation, resume, and rollback."
+    expected_skill: "plugin/skills/pg-graph/references/neo4j-agefreighter-migration"
+    difficulty: hard
+    notes: "Neo4j data migration through AGEFreighter should route to the dedicated pg-graph sub-reference."
+
+  - id: route-63
+    query: "During our Neo4j to HorizonDB migration, inventory the application's Cypher and let me approve unsupported-query translations individually or as a reviewed batch before changing the code."
+    expected_skill: "plugin/skills/pg-graph/references/neo4j-agefreighter-migration"
+    difficulty: hard
+    notes: "Neo4j application remediation and approval-gated Cypher translation belong to the migration sub-reference."
+
+  - id: route-64
+    query: "Assess whether our Neo4j Aura application is ready to migrate to Azure PostgreSQL, recommend a pilot, and minimize the questions you ask me."
+    expected_skill: "plugin/skills/pg-graph/references/neo4j-agefreighter-migration"
+    difficulty: hard
+    notes: "Readiness-first Neo4j migration UX belongs to the migration sub-reference."
+
+  - id: route-65
+    query: "Resume our interrupted Neo4j migration and tell me what completed, what was preserved, and whether rollback is still available."
+    expected_skill: "plugin/skills/pg-graph/references/neo4j-agefreighter-migration"
+    difficulty: hard
+    notes: "Migration state, resume safety, and rollback route to the migration sub-reference."
+
+  - id: route-66
+    query: "The Neo4j migration runner says agefreighter is not on PATH. Help me install the qualified Windows binaries and configure PATH."
+    expected_skill: "plugin/skills/pg-graph/references/neo4j-agefreighter-migration"
+    difficulty: medium
+    notes: "AGEFreighter installation and executable discovery are prerequisites of the Neo4j migration workflow."
+
   # ─── Azure HorizonDB flavor routing (best-practices Azure references) ───────
   - id: route-hz-01
     query: "On Azure HorizonDB, how do I allowlist an extension in azure.extensions?"

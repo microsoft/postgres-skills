@@ -40,6 +40,7 @@ prerequisites, safety policies, and migration-script tests. It uses the same
 | Add tenant isolation | Design row-level security policies around your tenancy model. |
 | Investigate connection or service issues | Check the selected environment and follow the relevant PostgreSQL or Azure workflow. |
 | Build a knowledge graph | Propose an ontology for review, load it into Apache AGE, and query relationships with openCypher. |
+| Migrate a Neo4j application | Assess graph and application compatibility, run a representative pilot, migrate with AGEFreighter, translate approved Cypher, verify parity, and guide cutover and rollback. |
 
 ### What you're probably doing today instead
 
@@ -189,6 +190,7 @@ sensitive or production database.
 | **"My query went from 200ms to 8 seconds after deployment."** | Inspect the plan and schema, explain likely causes, and propose a change for review. |
 | **"Set up vector search for my product catalog."** | Check extensions and indexing options for your environment, then request approval before applying changes. |
 | **"Turn my documents into a knowledge graph."** | Sample approved data, propose an ontology for review, and load the graph only after confirmation. |
+| **"Migrate our Neo4j Aura application to AGE on Azure HorizonDB."** | Assess readiness, prove a thin slice, migrate graph data with AGEFreighter, remediate approved application queries, verify go/no-go, and generate the cutover and rollback runbook. |
 
 <details>
 <summary>More examples: PostgreSQL, Azure, and graph workloads</summary>
@@ -262,16 +264,92 @@ sensitive or production database.
 **"Why did the graph recommend this?"**
 → Returns the reasoning path, provenance, and confidence bounded by the weakest supporting edge.
 
+#### Real-world scenario: care-coordination graph migration
+
+A healthcare application uses Neo4j Aura 5.26 for a care-coordination graph
+connecting patients, providers, facilities, referrals, encounters, and care
+programs. The application uses the Neo4j Bolt driver, inline Cypher, several
+APOC procedures, and a small set of analytical queries. The team wants to move
+the operational graph to Apache AGE on an existing Azure HorizonDB PostgreSQL
+18 cluster, minimize downtime, preserve application behavior, and retain a
+tested rollback path.
+
+Example prompt:
+
+```text
+Migrate our Neo4j Aura 5.26 care-coordination application to Apache AGE on
+our existing Azure HorizonDB PostgreSQL 18 cluster.
+
+Use Standard mode and ask me only for information you cannot discover safely.
+Assess the source graph, application repository, Cypher, Bolt driver usage,
+APOC/GDS dependencies, target compatibility, and source-write activity.
+
+Recommend stable identities, mappings, migration mode, and a low-downtime
+strategy. Run a representative pilot before the full load. Propose application
+and Cypher translations for review; I may approve them individually or as an
+explicit batch. Maintain resumable state, verify data and query parity, and
+produce a go/no-go decision plus a timed cutover and rollback runbook.
+
+Use saved connection profiles and secret references. Do not put credentials in
+chat or change production traffic without my approval.
+```
+
+What the sub-skill covers:
+
+1. **Readiness:** verifies the exact Neo4j, PostgreSQL, AGE, AGEFreighter,
+   service, and region boundary; inventories graph shape, volume, identities,
+   source writes, application code, queries, drivers, APOC, GDS, and discovery
+   blind spots.
+2. **Recommended plan:** derives graph name, stable keys, mappings, load mode,
+   consistency strategy, capacity range, verification criteria, and the next
+   decision instead of making the user choose unfamiliar options upfront.
+3. **Thin-slice pilot:** migrates representative labels, relationships,
+   property edge cases, critical queries, and an application connection path
+   into an isolated pilot graph.
+4. **Data migration:** uses AGEFreighter for validated mappings, checkpointed
+   batches, status, resume, verification, reports, retained backup evidence,
+   and approved cleanup. The runner accepts explicit machine outcomes rather
+   than treating exit code zero as proof of success.
+5. **Application remediation:** discovers static and observed queries, groups
+   mechanical translations into reviewable families, patches only approved
+   proposal IDs and versions, and flags APOC, GDS, dynamic Cypher, driver, or
+   semantic redesign work.
+6. **Target validation:** the agent uses PostgreSQL MCP capabilities
+   `pgsql_get_server_capabilities`, `pgsql_query`, and `pgsql_modify` for AGE
+   and server checks, bounded queries, golden-query execution, and approved
+   target changes. MCP server prefixes can vary by host.
+7. **Production qualification:** checks schema, properties, counts, identities,
+   endpoints, topology, business invariants, query results, mutations,
+   transactions, concurrency, performance, security, observability,
+   backup/restore, and rollback readiness.
+8. **Cutover and recovery:** maintains durable migration state, explains what
+   was preserved after failures, recommends safe retry or rollback actions, and
+   generates a timed source-fence, final-delta, traffic-switch, monitoring, and
+   rollback runbook.
+
+Human approval remains required for the initial access scope, pilot and
+production writes, application changes, production cutover, and destructive
+cleanup. The workflow does not invent ambiguous application semantics,
+automatically replace APOC/GDS algorithms, or claim production qualification
+from a pilot or static Cypher check.
+
+The bundled runner owns state transitions, command receipts, machine-evidence
+validation, approval binding, and generated artifacts. The agent and repository
+tools own application discovery and approved patches. PostgreSQL MCP owns
+target-plane queries and approved changes. AGEFreighter owns the qualified
+graph-data movement. The runner does not resolve saved-profile secrets or
+automatically create semantic translations.
+
 </details>
 
 ## Sub-skill Catalog
 
-The PostgreSQL and graph skills contain 33 reference guides, grouped below.
-"Sub-skills" refers to those guides, not 33 separate plugins. The third skill,
+The PostgreSQL and graph skills contain 34 reference guides, grouped below.
+"Sub-skills" refers to those guides, not 34 separate plugins. The third skill,
 `migrate-oracle-app`, has its own [migration guide](plugin/MIGRATION.md) and workflow references.
 
 <details>
-<summary>Browse all 33 reference guides: 11 PostgreSQL, 12 Azure, and 10 graph</summary>
+<summary>Browse all 34 reference guides: 11 PostgreSQL, 12 Azure, and 11 graph</summary>
 
 ### PostgreSQL Foundational (11 sub-skills)
 
@@ -316,9 +394,9 @@ See [Azure HorizonDB](https://learn.microsoft.com/en-us/azure/horizondb/overview
 | **azure-postgresql-extension-lifecycle** | Extension allowlisting on Azure | `azure.extensions` param, `azure_pg_admin` role requirement |
 | **azure-postgresql-upgrades-maintenance** | Major version upgrades, maintenance | MVU is one-way, no skip-version, `--validate-only` pre-check |
 
-### Graph on PostgreSQL — Apache AGE (pg-graph, 10 sub-skills)
+### Graph on PostgreSQL — Apache AGE (pg-graph, 11 sub-skills)
 
-The **pg-graph** skill is the single home for graph work on PostgreSQL, covering the full lifecycle: derive an ontology from your data (with a human feedback loop), build the graph, and query it with openCypher, natural-language-to-Cypher, and graph-augmented retrieval. It uses only capabilities available today — agent-driven extraction over the MCP query tools (any PostgreSQL with AGE) or the `azure_ai` extension for in-database work at scale on Azure.
+The **pg-graph** skill is the single home for graph work on PostgreSQL, covering the full lifecycle: derive an ontology from your data, build and query the graph, and migrate qualified Neo4j sources into AGE on Azure Database for PostgreSQL or Azure HorizonDB with AGEFreighter. Its bundled deterministic runner persists resumable state, enforces phase and approval gates, validates supported AGEFreighter machine evidence, and produces readiness, verification, cutover, and rollback artifacts. The agent separately coordinates PostgreSQL MCP and repository work.
 
 | Sub-skill | Helps you with | What the agent learns that LLMs get wrong |
 |-----------|---------------|------------------------------------------|
@@ -331,7 +409,37 @@ The **pg-graph** skill is the single home for graph work on PostgreSQL, covering
 | **graph-augmented-rag** | Retrieval combining vector similarity with graph traversal and reranking | Hybrid graph retrieval that goes beyond flat vector search |
 | **graph-explainability** | Provenance, reasoning paths, and explainable recommendations | Confidence bounded by the weakest edge on the path; reproducible reasoning trace |
 | **azure-ai-semantic-search** | Enabling and configuring `azure_ai` and generating embeddings for semantic search | Read current settings and ask for endpoint/key/deployment — never invent them |
+| **neo4j-agefreighter-migration** | Executable, guarded Neo4j migration into AGE on Azure PostgreSQL or HorizonDB | Use the bundled state-machine runner, AGEFreighter data plane, PostgreSQL MCP target plane, approved translation batches, go/no-go verification, and cutover/rollback evidence |
 | **examples** | End-to-end worked graph examples spanning schema, query, and results | Grounded in the wrapping and safety rules from the other pg-graph sub-skills |
+
+#### Automated Neo4j migration flow
+
+The `neo4j-agefreighter-migration` sub-skill uses three cooperating components:
+
+| Component | Responsibility |
+|-----------|----------------|
+| **Migration runner** | Persists secret-free state, enforces approvals, executes stages, records redacted receipts, resumes interrupted work, and generates readiness, status, verification, go/no-go, and cutover artifacts |
+| **AGEFreighter** | Profiles Neo4j and performs qualified, checkpointed graph-data loading, verification, reporting, atomic replacement, resume, and cleanup |
+| **PostgreSQL MCP** | Inspects the Azure PostgreSQL or HorizonDB target, verifies AGE and target capabilities, runs bounded validation queries, and performs explicitly approved target changes |
+
+```text
+Initialize → Readiness assessment → Thin-slice pilot
+           → Data load + application remediation
+           → Verification and go/no-go
+           → Approved cutover → Observation → Approved cleanup
+```
+
+The runner is installed with the plugin at
+`skills/pg-graph/scripts/neo4j-migration-runner.mjs`; it is not copied into the
+application repository. It creates only the selected
+`.agefreighter-migration/<name>` workspace for resumable state and evidence.
+It requires Node.js 22+, a qualified AGEFreighter release on `PATH`, and a
+configured PostgreSQL MCP connection.
+
+Routine read-only discovery and validation are grouped to minimize approval
+fatigue. Human approval remains required for the access scope, pilot and
+production target writes, application translations, production cutover, and
+destructive cleanup.
 
 </details>
 
