@@ -307,15 +307,17 @@ What the sub-skill covers:
    property edge cases, critical queries, and an application connection path
    into an isolated pilot graph.
 4. **Data migration:** uses AGEFreighter for validated mappings, checkpointed
-   batches, atomic replacement where selected, status, resume, verification,
-   reports, retained backup evidence, and approved cleanup.
+   batches, status, resume, verification, reports, retained backup evidence,
+   and approved cleanup. The runner accepts explicit machine outcomes rather
+   than treating exit code zero as proof of success.
 5. **Application remediation:** discovers static and observed queries, groups
    mechanical translations into reviewable families, patches only approved
    proposal IDs and versions, and flags APOC, GDS, dynamic Cypher, driver, or
    semantic redesign work.
-6. **Target validation:** uses PostgreSQL MCP for AGE and server capability
-   checks, bounded catalog and validation queries, golden-query execution, and
-   explicitly approved target changes.
+6. **Target validation:** the agent uses PostgreSQL MCP capabilities
+   `pgsql_get_server_capabilities`, `pgsql_query`, and `pgsql_modify` for AGE
+   and server checks, bounded queries, golden-query execution, and approved
+   target changes. MCP server prefixes can vary by host.
 7. **Production qualification:** checks schema, properties, counts, identities,
    endpoints, topology, business invariants, query results, mutations,
    transactions, concurrency, performance, security, observability,
@@ -330,6 +332,13 @@ production writes, application changes, production cutover, and destructive
 cleanup. The workflow does not invent ambiguous application semantics,
 automatically replace APOC/GDS algorithms, or claim production qualification
 from a pilot or static Cypher check.
+
+The bundled runner owns state transitions, command receipts, machine-evidence
+validation, approval binding, and generated artifacts. The agent and repository
+tools own application discovery and approved patches. PostgreSQL MCP owns
+target-plane queries and approved changes. AGEFreighter owns the qualified
+graph-data movement. The runner does not resolve saved-profile secrets or
+automatically create semantic translations.
 
 </details>
 
@@ -387,7 +396,7 @@ See [Azure HorizonDB](https://learn.microsoft.com/en-us/azure/horizondb/overview
 
 ### Graph on PostgreSQL — Apache AGE (pg-graph, 11 sub-skills)
 
-The **pg-graph** skill is the single home for graph work on PostgreSQL, covering the full lifecycle: derive an ontology from your data, build and query the graph, and migrate qualified Neo4j sources into AGE on Azure Database for PostgreSQL or Azure HorizonDB with AGEFreighter. Its bundled deterministic runner persists resumable state, enforces approval gates, orchestrates AGEFreighter, coordinates PostgreSQL MCP evidence, and produces readiness, verification, cutover, and rollback artifacts.
+The **pg-graph** skill is the single home for graph work on PostgreSQL, covering the full lifecycle: derive an ontology from your data, build and query the graph, and migrate qualified Neo4j sources into AGE on Azure Database for PostgreSQL or Azure HorizonDB with AGEFreighter. Its bundled deterministic runner persists resumable state, enforces phase and approval gates, validates supported AGEFreighter machine evidence, and produces readiness, verification, cutover, and rollback artifacts. The agent separately coordinates PostgreSQL MCP and repository work.
 
 | Sub-skill | Helps you with | What the agent learns that LLMs get wrong |
 |-----------|---------------|------------------------------------------|

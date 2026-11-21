@@ -73,6 +73,56 @@ def test_reference_file_count():
     )
 
 
+def test_neo4j_runner_production_safety_contracts_are_documented_and_present():
+    runner = (
+        ROOT
+        / "plugin"
+        / "skills"
+        / "pg-graph"
+        / "scripts"
+        / "neo4j-migration-runner.mjs"
+    ).read_text(encoding="utf-8")
+    reference = (
+        ROOT
+        / "plugin"
+        / "skills"
+        / "pg-graph"
+        / "references"
+        / "neo4j-agefreighter-migration.md"
+    ).read_text(encoding="utf-8")
+
+    for contract in [
+        "required machine-readable evidence was unavailable",
+        "automated-core is runner-owned",
+        "Production load requires accepted pilot evidence",
+        "Cutover completion requires a current GO decision",
+        "Cleanup requires observation and acceptance evidence",
+        "Approval gate",
+        "activeJobDigest",
+        "register-proposal",
+        "attach-job",
+        "rollback-window-satisfied",
+        "TRANSIENT_RENAME_CODES",
+        "validateJobContent",
+    ]:
+        assert contract in runner
+
+    for documented_contract in [
+        "`pgsql_get_server_capabilities`",
+        "`pgsql_query`",
+        "`pgsql_modify`",
+        "Exit code zero is not passing evidence",
+        "The runner does not call PostgreSQL MCP",
+        "does not resolve profile secrets",
+        "exact registered `ID@VERSION` entries and content",
+    ]:
+        assert documented_contract in reference
+
+    assert "postgres_mcp_get_server_capabilities" not in reference
+    assert "postgres_mcp_query" not in reference
+    assert "postgres_mcp_modify" not in reference
+
+
 def test_plugin_release_versions_match():
     marketplace = json.loads(
         (ROOT / ".github" / "plugin" / "marketplace.json").read_text(encoding="utf-8")

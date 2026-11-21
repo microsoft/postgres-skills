@@ -131,14 +131,28 @@ Resolve `<skill-directory>` as the directory containing the root `pg-graph`
 
 - Creates the secret-free workspace and atomically persists
   `migration-state.yaml`.
-- Enforces access, pilot-write, production-write, application-change, cutover,
-  and cleanup approval records.
+- Binds versioned, expiring approvals to the current source, target, job,
+  mapping, repository, proposal, go/no-go, runbook, and evidence fingerprints
+  relevant to each operation.
+- Enforces readiness, accepted pilot, production verification, GO, rollback,
+  observation-window, and cleanup sequencing. Approval never substitutes for
+  a missing phase.
 - Invokes AGEFreighter without a shell and writes redacted command receipts.
-- Runs readiness checks, pilots, production loads, status, resume,
-  verification, reports, and cleanup.
+- Requests machine-readable AGEFreighter evidence where the released command
+  supports it. Exit code zero is not passing evidence: failed, incomplete,
+  unknown, unavailable, or truncated required outcomes fail closed. Commands
+  without a reliable machine contract remain `needs review`.
+- Runs the runner-owned portions of readiness checks, pilots, production
+  loads, status, resume, verification, reports, and cleanup.
 - Generates the dashboard, readiness card, verification summary, go/no-go
   decision, and cutover runbook.
-- Fails closed when required evidence is failed, unknown, or not run.
+- Uses uniquely named immutable command outputs so repeated assessment and
+  verification runs do not overwrite earlier evidence.
+
+The runner does not call PostgreSQL MCP, inspect or patch an application
+repository, resolve saved-profile secrets, choose semantic mappings, or switch
+traffic. The agent uses MCP and repository tools for those functions, records
+their reviewed evidence in the runner, and preserves the approval gates.
 
 ### Install and resolve AGEFreighter
 
@@ -261,9 +275,23 @@ binaries into the application repository.
 Typical flow:
 
 ```sh
+# Start from a reviewed AGEFreighter job:
 node <runner> init \
   --workspace .agefreighter-migration/app \
   --name app --job reviewed-job.yaml --mode standard
+
+# Or start discovery from saved references without a job or secrets:
+node <runner> init \
+  --workspace .agefreighter-migration/app \
+  --name app \
+  --source-profile saved-neo4j-readonly \
+  --target-profile saved-postgres-target \
+  --repository ./application --mode standard
+
+# After mappings and configuration have been reviewed:
+node <runner> attach-job \
+  --workspace .agefreighter-migration/app \
+  --job reviewed-job.yaml
 
 node <runner> approve \
   --workspace .agefreighter-migration/app \
@@ -275,14 +303,33 @@ node <runner> approve --workspace .agefreighter-migration/app \
   --gate pilot-write --scope "Isolated pilot graph and approved source subset"
 node <runner> pilot --workspace .agefreighter-migration/app \
   --pilot-job reviewed-pilot-job.yaml
-node <runner> status --workspace .agefreighter-migration/app
-node <runner> verify --workspace .agefreighter-migration/app
+node <runner> record-pilot --workspace .agefreighter-migration/app \
+  --outcome accepted --evidence "Reviewed pilot evidence location"
 ```
 
-Use `approve --gate application-change --proposals
-ID@VERSION,ID@VERSION` for reviewed translation proposals or families. Use
-`record-check` to attach golden-query, application, performance, security,
-restore, and rollback evidence before `go-no-go`.
+Register each deterministic translation proposal before approval:
+
+```sh
+node <runner> register-proposal \
+  --workspace .agefreighter-migration/app \
+  --id CYPHER-001 --version 1 \
+  --file translations/CYPHER-001-v1.patch \
+  --location "src/queries/referrals.ts:40-61"
+
+node <runner> approve \
+  --workspace .agefreighter-migration/app \
+  --gate application-change \
+  --scope "Apply the reviewed CYPHER-001 version 1 patch and tests" \
+  --proposals CYPHER-001@1
+```
+
+The approval binds the exact registered `ID@VERSION` entries and content
+digests. Changed content requires a new version and approval. The runner does
+not apply or semantically generate the translation.
+
+Use `record-check` only for workload-acceptance and production-hardening
+evidence. Automated-core evidence is runner-owned. Record rollback evidence
+separately before generating current cutover approval.
 
 The runner does not invent mappings, translate ambiguous semantics, provision
 an unknown target, switch application traffic, or activate an undocumented
@@ -328,7 +375,9 @@ provenance verification.
 
 Ask only for information that cannot be discovered safely:
 
-- Neo4j URI, database, username, and a secret reference.
+- A saved Neo4j source-profile reference and saved target-profile reference,
+  or the non-secret connection fields and supported secret references needed
+  to create them.
 - Existing Azure PostgreSQL or HorizonDB target, or the desired service and
   region when target guidance is needed.
 - Application repository or query-artifact locations when application
@@ -344,9 +393,16 @@ Discover and recommend the target graph name, migration mode, stable keys,
 mappings, batch settings, consistency strategy, and verification depth. Ask
 the user only when discovery produces multiple safe choices or no safe choice.
 
-Never request a password or connection string in chat. Use environment
-variables or protected files because AGEFreighter rejects literal credentials
-in a `LoadJob`.
+The runner can initialize a discovery-only workspace from the two saved
+profile references and an application-repository path. This writes an explicit
+discovery/readiness artifact and blocks AGEFreighter assessment and loading
+until a reviewed job is attached with `attach-job`. The runner stores profile
+references; it does not resolve profile secrets.
+
+Never request a password or credential-bearing connection string in chat.
+Sensitive job fields must use supported environment, protected-file, saved
+profile, or secret-reference forms. Structural job validation rejects nested
+literal secrets, and receipts remain defensively redacted.
 
 ## 0. Return a readiness assessment first
 
@@ -369,10 +425,11 @@ Recommended pilot: <representative labels, relationships, and queries>
 Next decision: <one decision with recommended default>
 ```
 
-`READY WITH REMEDIATION` means the path is viable but identified work must
-complete before cutover. `BLOCKED` must name the failed compatibility,
-identity, access, consistency, target, or application condition and the
-smallest action that could unblock it.
+`READY` requires complete passing required evidence with no unresolved review
+items. `READY WITH REMEDIATION` requires all required machine evidence to pass
+but permits explicitly listed review items or remediations. `BLOCKED` covers
+failed, incomplete, unknown, unavailable, or truncated required evidence and
+must name the smallest action that could unblock it.
 
 ## 1. Establish the migration boundary
 
@@ -435,12 +492,12 @@ the PostgreSQL and AGE pairing is unsupported.
 Use PostgreSQL MCP as the target-plane adapter:
 
 1. Resolve the saved target connection and call
-   `postgres_mcp_get_server_capabilities` once.
+   `pgsql_get_server_capabilities` once.
 2. Execute the runner-generated `target-diagnostics.sql` with
-   `postgres_mcp_query`.
+   `pgsql_query`.
 3. Use bounded catalog queries for graph, schema, extension, privilege,
    identity, count, digest, and performance evidence.
-4. Before any `postgres_mcp_modify`, show the exact database, SQL, impact, and
+4. Before any `pgsql_modify`, show the exact database, SQL, impact, and
    rollback and confirm that the applicable target-write approval scope covers
    it.
 5. Save a sanitized target evidence artifact and reference it from
@@ -450,6 +507,9 @@ Use PostgreSQL MCP as the target-plane adapter:
 Do not use MCP as a hidden alternate loader when AGEFreighter supports the
 qualified data path. Use MCP for target discovery, setup, bounded verification,
 application golden tests, and approved target-side changes.
+
+These are capability names. A host can expose a server-specific prefix, such
+as `postgres-mcp-` or `pgsql-tools-`, before the capability name.
 
 ## 3. Select explicit mappings or discovery
 

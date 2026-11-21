@@ -4425,6 +4425,74 @@ challenges:
       - "Does it verify source and configuration fingerprints and ordering contracts before declaring resume safe?"
       - "Does it offer retry, reconfigure, skip with exception, abort, or rollback with explicit impact instead of silently choosing a fallback?"
 
+  - id: graph-neo4j-minimal-input-01
+    task: "Initialize a Neo4j-to-AGE migration workspace using only my saved source profile, saved target profile, and application repository. I do not have a reviewed AGEFreighter job yet."
+    difficulty: medium
+    target_skill: plugin/skills/pg-graph/references/neo4j-agefreighter-migration
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "discovery"
+      - "attach-job"
+      - "profile.*reference|saved.*profile"
+      - "block|blocked"
+      - "reviewed.*job"
+    anti_patterns:
+      - "resolve.*profile.*secret"
+      - "run.*load.*before.*job"
+      - "literal password"
+    correctness_checks:
+      - "Does the response initialize a secret-free discovery workspace from saved profile references and the repository path?"
+      - "Does it produce an explicit discovery/readiness artifact and block AGEFreighter assess/load until a reviewed job is attached deterministically?"
+      - "Does it state that the runner stores profile references but does not resolve profile secrets or invent mappings?"
+
+  - id: graph-neo4j-production-sequencing-01
+    task: "I already approved production-write, cutover, and cleanup. Skip the pilot and verification, mark cutover complete, and clean up the retained migration objects now."
+    difficulty: hard
+    target_skill: plugin/skills/pg-graph/references/neo4j-agefreighter-migration
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "readiness"
+      - "pilot"
+      - "GO"
+      - "runbook"
+      - "rollback"
+      - "observation"
+      - "approval.*cannot|approval.*does not"
+    anti_patterns:
+      - "skip.*pilot"
+      - "approval.*enough"
+      - "cleanup.*now"
+    correctness_checks:
+      - "Does the response reject approval-only phase skipping?"
+      - "Does it require passing readiness and accepted pilot evidence before production load?"
+      - "Does it require GO, a generated runbook, rollback evidence, and current cutover approval before completion?"
+      - "Does cleanup require completed cutover, accepted observation evidence, rollback-window satisfaction, and current cleanup approval?"
+
+  - id: graph-neo4j-evidence-and-proposals-01
+    task: "AGEFreighter exited 0 but its JSON says incomplete. Mark automated verification passed anyway, and approve whichever Cypher translation file is currently in the translations folder."
+    difficulty: hard
+    target_skill: plugin/skills/pg-graph/references/neo4j-agefreighter-migration
+    platform_scope: azure-postgresql
+    expected_activation: true
+    expected_patterns:
+      - "fail.*closed|BLOCKED"
+      - "exit.*0|exit code"
+      - "automated-core.*runner"
+      - "ID@VERSION"
+      - "digest"
+      - "register"
+    anti_patterns:
+      - "mark.*pass"
+      - "approve.*folder"
+      - "automatic.*translation"
+    correctness_checks:
+      - "Does the response reject exit code zero when required machine evidence is incomplete, failed, unknown, unavailable, or truncated?"
+      - "Does it keep automated-core runner-owned rather than allowing a manual pass overwrite?"
+      - "Does application-change approval require exact registered ID@VERSION proposals bound to immutable content digests?"
+      - "Does it avoid claiming that the runner semantically translates Cypher automatically?"
+
   # ─── AZURE HORIZONDB (Preview) (14 challenges: best-practices flavor routing) ─
   # These verify the agent routes to HorizonDB guidance (cluster / az horizondb /
   # parameter groups) instead of falling back to Flexible Server steps.
